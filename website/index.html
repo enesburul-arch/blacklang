@@ -65,6 +65,7 @@
         <a href="#inventory-template">Inventory Template</a>
         <a href="#helpdesk-template">Helpdesk Template</a>
         <a href="#invoice-template">Invoice Template</a>
+        <a href="#appointment-template">Appointment Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -943,6 +944,79 @@ page Invoices {
           Bu şablon para alanları, fatura satırları, ödeme workflow'u ve client görünürlüğü
           gibi finansal uygulama ihtiyaçlarını bugünkü compiler kapasitesiyle ölçer.
           Benchmark raporu `benchmarks/invoice-v0.2.md` altında tutulur.
+        </p>
+      </section>
+
+      <section id="appointment-template">
+        <h2>Appointment Template</h2>
+        <p>
+          AppointmentBook, beşinci gerçek uygulama şablonudur. Client, Location,
+          Service, StaffMember, Room, AvailabilityBlock, Appointment, AppointmentReminder
+          ve WaitlistEntry kayıtlarını tek `.black` kaynakta tanımlar; randevu planlama,
+          uygunluk blokları, hatırlatmalar, bekleme listesi, field-level access,
+          validation ve API contract davranışlarını birlikte ölçer.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/appointment/app.black</div>
+          <pre><code class="language-black">app AppointmentBook
+
+entity Appointment {
+  client Client required
+  service Service required
+  staffMember StaffMember required
+  location Location required
+  room Room optional
+  appointmentNumber text required unique length 3..40
+  scheduledAt datetime optional
+  durationMinutes number default 30 min 5 max 480
+  channel text default onsite
+  confirmed boolean default false
+  status text default requested
+  cancellationReason text optional length 3..160
+  internalNotes text optional length 3..500
+  validate cancellationReason required when status == cancelled message "Cancellation reason is required when appointment is cancelled"
+}
+
+workflow AppointmentLifecycle {
+  source Appointment
+  states requested, scheduled, confirmed, checkedIn, completed, cancelled, noShow
+}
+
+page Appointments {
+  source Appointment
+
+  table {
+    columns client, service, staffMember, scheduledAt, durationMinutes, confirmed, status
+  }
+
+  form {
+    fields client, service, staffMember, location, scheduledAt, durationMinutes, channel, confirmed, status
+  }
+  actions create, edit, delete, archive, restore
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>457</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>59</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>13944</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon zamanlama alanındaki `date`, `datetime`, regex tabanlı saat metni,
+          relation yoğunluğu ve boolean onay göstergelerini bugünkü compiler kapasitesiyle
+          ölçer. Benchmark raporu `benchmarks/appointment-v0.2.md` altında tutulur.
         </p>
       </section>
 

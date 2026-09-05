@@ -1,0 +1,457 @@
+app AppointmentBook
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Client {
+  name text required label "Client Name" placeholder "Enter client name" help "Person booking the appointment"
+  email email required unique label "Client Email" placeholder "client@example.com" help "Primary appointment contact email"
+  phone text optional label "Client Phone" placeholder "Enter phone number" help "Optional contact number"
+  timezone text default UTC label "Timezone" placeholder "UTC" help "Client timezone for reminders"
+  status text default active label "Client Status" placeholder "active" help "Client lifecycle status"
+}
+
+entity Location {
+  name text required unique label "Location Name" placeholder "Enter location name" help "Physical or virtual appointment location"
+  code text required unique length 2..20 label "Location Code" placeholder "NYC" help "Short location code"
+  address text optional length 5..240 label "Address" placeholder "Enter address" help "Address or meeting location details"
+  timezone text default UTC label "Timezone" placeholder "UTC" help "Default timezone for this location"
+  status text default active label "Location Status" placeholder "active" help "Location availability"
+}
+
+entity Service {
+  name text required unique label "Service Name" placeholder "Enter service name" help "Bookable service"
+  code text required unique length 2..20 label "Service Code" placeholder "CONSULT" help "Short service code"
+  durationMinutes number default 30 min 5 max 480 label "Duration" placeholder "30" help "Default appointment duration in minutes"
+  price money default 0 min 0 label "Service Price" placeholder "Enter price" help "Default service price"
+  status text default active label "Service Status" placeholder "active" help "Service availability"
+}
+
+entity StaffMember {
+  location Location required label "Location" placeholder "Select location" help "Primary work location"
+  name text required label "Staff Name" placeholder "Enter staff name" help "Bookable staff member"
+  email email required unique label "Staff Email" placeholder "staff@example.com" help "Staff contact email"
+  roleTitle text optional label "Role Title" placeholder "Consultant" help "Visible staff role"
+  status text default active label "Staff Status" placeholder "active" help "Staff availability"
+}
+
+entity Room {
+  location Location required label "Location" placeholder "Select location" help "Location that owns this room or resource"
+  name text required label "Room Name" placeholder "Enter room name" help "Bookable room or resource"
+  code text required unique length 2..20 label "Room Code" placeholder "R1" help "Short room code"
+  capacity number default 1 min 1 label "Capacity" placeholder "1" help "Number of attendees this room supports"
+  status text default active label "Room Status" placeholder "active" help "Room availability"
+}
+
+entity AvailabilityBlock {
+  staffMember StaffMember required label "Staff Member" placeholder "Select staff member" help "Staff member available in this block"
+  location Location required label "Location" placeholder "Select location" help "Location for this availability"
+  room Room optional label "Room" placeholder "Select room" help "Optional room or resource"
+  blockDate date optional label "Block Date" placeholder "Select date" help "Date of availability"
+  startTime text required length 4..10 regex "^[0-2][0-9]:[0-5][0-9]$" message "Use HH:MM time format"
+  endTime text required length 4..10 regex "^[0-2][0-9]:[0-5][0-9]$" message "Use HH:MM time format"
+  status text default open label "Availability Status" placeholder "open" help "Open, blocked, or reserved"
+}
+
+entity Appointment {
+  client Client required label "Client" placeholder "Select client" help "Client attending the appointment"
+  service Service required label "Service" placeholder "Select service" help "Booked service"
+  staffMember StaffMember required label "Staff Member" placeholder "Select staff member" help "Assigned provider"
+  location Location required label "Location" placeholder "Select location" help "Appointment location"
+  room Room optional label "Room" placeholder "Select room" help "Optional room or resource"
+  appointmentNumber text required unique length 3..40 label "Appointment Number" placeholder "APT-1001" help "Internal or external appointment reference"
+  scheduledAt datetime optional label "Scheduled Time" placeholder "Select scheduled time" help "Appointment start time"
+  durationMinutes number default 30 min 5 max 480 label "Duration" placeholder "30" help "Appointment duration in minutes"
+  channel text default onsite label "Channel" placeholder "onsite" help "Onsite, phone, video, or home visit"
+  confirmed boolean default false label "Confirmed" help "Whether the client confirmed attendance"
+  status text default requested label "Appointment Status" placeholder "requested" help "Booking lifecycle status"
+  cancellationReason text optional length 3..160 label "Cancellation Reason" placeholder "Enter reason" help "Required when appointment is cancelled"
+  internalNotes text optional length 3..500 label "Internal Notes" placeholder "Private scheduling note" help "Internal-only scheduling details"
+  validate cancellationReason required when status == cancelled message "Cancellation reason is required when appointment is cancelled"
+}
+
+entity AppointmentReminder {
+  appointment Appointment required label "Appointment" placeholder "Select appointment" help "Appointment this reminder belongs to"
+  client Client required label "Client" placeholder "Select client" help "Client receiving the reminder"
+  method text default email label "Reminder Method" placeholder "email" help "Email, SMS, phone, or push"
+  sendAt datetime optional label "Send Time" placeholder "Select send time" help "When the reminder should be sent"
+  sent boolean default false label "Sent" help "Whether reminder delivery completed"
+  failureReason text optional length 3..160 label "Failure Reason" placeholder "Enter failure reason" help "Required when delivery fails"
+  status text default pending label "Reminder Status" placeholder "pending" help "Reminder workflow status"
+  validate failureReason required when status == failed message "Failure reason is required when reminder fails"
+}
+
+entity WaitlistEntry {
+  client Client required label "Client" placeholder "Select client" help "Client waiting for a slot"
+  service Service required label "Service" placeholder "Select service" help "Requested service"
+  preferredLocation Location optional label "Preferred Location" placeholder "Select location" help "Preferred location"
+  preferredStaff StaffMember optional label "Preferred Staff" placeholder "Select staff member" help "Preferred staff member"
+  requestedDate date optional label "Requested Date" placeholder "Select requested date" help "Preferred appointment date"
+  priority number default 1 min 1 max 5 label "Priority" placeholder "1" help "Waitlist priority from 1 to 5"
+  notes text optional length 3..300 label "Notes" placeholder "Enter notes" help "Scheduling notes"
+  status text default waiting label "Waitlist Status" placeholder "waiting" help "Waitlist lifecycle status"
+}
+
+role Admin {
+  allow all
+}
+
+role SchedulingManager {
+  allow read Client
+  allow create Client
+  allow update Client
+  allow read Location
+  allow create Location
+  allow update Location
+  allow read Service
+  allow create Service
+  allow update Service
+  allow read StaffMember
+  allow create StaffMember
+  allow update StaffMember
+  allow read Room
+  allow create Room
+  allow update Room
+  allow read AvailabilityBlock
+  allow create AvailabilityBlock
+  allow update AvailabilityBlock
+  allow read Appointment
+  allow create Appointment
+  allow update Appointment
+  allow read AppointmentReminder
+  allow create AppointmentReminder
+  allow update AppointmentReminder
+  allow read WaitlistEntry
+  allow create WaitlistEntry
+  allow update WaitlistEntry
+}
+
+role Practitioner {
+  allow read Client
+  allow read Location
+  allow read Service
+  allow read StaffMember
+  allow read Room
+  allow read AvailabilityBlock
+  allow update AvailabilityBlock status
+  allow read Appointment
+  allow update Appointment status confirmed internalNotes
+  allow read AppointmentReminder
+  allow update AppointmentReminder sent failureReason status
+  allow read WaitlistEntry
+  allow update WaitlistEntry notes status
+}
+
+role ClientViewer {
+  allow read Client
+  allow read Location
+  allow read Service
+  allow read StaffMember
+  allow read Appointment
+  deny read Appointment internalNotes
+  allow create Appointment
+  allow update Appointment status confirmed cancellationReason
+  allow read AppointmentReminder
+  allow read WaitlistEntry
+  allow create WaitlistEntry
+  allow update WaitlistEntry notes status
+}
+
+api AvailabilitySearch {
+  method GET
+  path "/api/availability/{locationCode}"
+  param locationCode text
+  query serviceCode text
+  private
+}
+
+api AppointmentWebhook {
+  method POST
+  path "/api/webhooks/appointments"
+  webhook
+  public
+}
+
+workflow AppointmentLifecycle {
+  source Appointment
+  states requested, scheduled, confirmed, checkedIn, completed, cancelled, noShow
+
+  transition schedule {
+    from requested
+    to scheduled
+    allow Admin, SchedulingManager
+  }
+
+  transition confirm {
+    from scheduled
+    to confirmed
+    allow Admin, SchedulingManager, Practitioner, ClientViewer
+  }
+
+  transition checkIn {
+    from confirmed
+    to checkedIn
+    allow Admin, SchedulingManager, Practitioner
+  }
+
+  transition complete {
+    from checkedIn
+    to completed
+    allow Admin, SchedulingManager, Practitioner
+  }
+
+  transition cancel {
+    from scheduled
+    to cancelled
+    allow Admin, SchedulingManager, Practitioner, ClientViewer
+  }
+
+  transition markNoShow {
+    from confirmed
+    to noShow
+    allow Admin, SchedulingManager, Practitioner
+  }
+}
+
+workflow ReminderLifecycle {
+  source AppointmentReminder
+  states pending, queued, sent, failed
+
+  transition queue {
+    from pending
+    to queued
+    allow Admin, SchedulingManager
+  }
+
+  transition markSent {
+    from queued
+    to sent
+    allow Admin, SchedulingManager, Practitioner
+  }
+
+  transition fail {
+    from queued
+    to failed
+    allow Admin, SchedulingManager, Practitioner
+  }
+}
+
+state AppointmentsPageState {
+  selectedAppointments Appointment[]
+  activeCalendar text
+  modal createAppointment closed
+}
+
+state WaitlistEntriesPageState {
+  selectedWaitlistEntries WaitlistEntry[]
+  activeFilter text
+  modal createWaitlistEntry closed
+}
+
+component DurationBadge {
+  input durationMinutes number
+  variant short when durationMinutes < 60
+  variant long when durationMinutes >= 60
+}
+
+component ConfirmedBadge {
+  input confirmed boolean
+  variant yes when confirmed == true
+  variant no when confirmed == false
+}
+
+layout AppointmentLayout {
+  sidebar {
+    item Clients
+    item Locations
+    item Services
+    item StaffMembers
+    item Rooms
+    item AvailabilityBlocks
+    item Appointments
+    item AppointmentReminders
+    item WaitlistEntries
+  }
+}
+
+page Clients {
+  layout AppointmentLayout
+  source Client
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns name, email, phone, timezone, status
+    search name, email, phone, timezone, status
+    filter timezone, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, email, phone, timezone, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Locations {
+  layout AppointmentLayout
+  source Location
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns name, code, address, timezone, status
+    search name, code, address, timezone, status
+    filter timezone, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, address, timezone, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Services {
+  layout AppointmentLayout
+  source Service
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns name, code, durationMinutes, price, status
+    search name, code, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, durationMinutes, price, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page StaffMembers {
+  layout AppointmentLayout
+  source StaffMember
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns location, name, email, roleTitle, status
+    search location, name, email, roleTitle, status
+    filter location, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields location, name, email, roleTitle, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Rooms {
+  layout AppointmentLayout
+  source Room
+  access Admin, SchedulingManager, Practitioner
+
+  table {
+    columns location, name, code, capacity, status
+    search location, name, code, status
+    filter location, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields location, name, code, capacity, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page AvailabilityBlocks {
+  layout AppointmentLayout
+  source AvailabilityBlock
+  access Admin, SchedulingManager, Practitioner
+
+  table {
+    columns staffMember, location, room, blockDate, startTime, endTime, status
+    search staffMember, location, room, startTime, endTime, status
+    filter staffMember, location, room, blockDate, status
+    sort blockDate asc
+    paginate 10
+  }
+
+  form {
+    fields staffMember, location, room, blockDate, startTime, endTime, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Appointments {
+  layout AppointmentLayout
+  source Appointment
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns client, service, staffMember, location, room, appointmentNumber, scheduledAt, durationMinutes, channel, confirmed, status, cancellationReason, internalNotes
+    search client, service, staffMember, location, room, appointmentNumber, channel, status, cancellationReason, internalNotes
+    filter client, service, staffMember, location, room, channel, confirmed, status
+    sort scheduledAt asc
+    paginate 10
+  }
+
+  form {
+    fields client, service, staffMember, location, room, appointmentNumber, scheduledAt, durationMinutes, channel, confirmed, status, cancellationReason, internalNotes
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page AppointmentReminders {
+  layout AppointmentLayout
+  source AppointmentReminder
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns appointment, client, method, sendAt, sent, failureReason, status
+    search appointment, client, method, failureReason, status
+    filter appointment, client, method, sent, status
+    sort sendAt asc
+    paginate 10
+  }
+
+  form {
+    fields appointment, client, method, sendAt, sent, failureReason, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page WaitlistEntries {
+  layout AppointmentLayout
+  source WaitlistEntry
+  access Admin, SchedulingManager, Practitioner, ClientViewer
+
+  table {
+    columns client, service, preferredLocation, preferredStaff, requestedDate, priority, notes, status
+    search client, service, preferredLocation, preferredStaff, notes, status
+    filter client, service, preferredLocation, preferredStaff, priority, status
+    sort requestedDate asc
+    paginate 10
+  }
+
+  form {
+    fields client, service, preferredLocation, preferredStaff, requestedDate, priority, notes, status
+  }
+  actions create, edit, delete, archive, restore
+}

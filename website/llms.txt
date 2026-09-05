@@ -24,6 +24,7 @@ Read first:
 - `#inventory-template` for the InventoryControl template benchmark.
 - `#helpdesk-template` for the SupportDesk template benchmark.
 - `#invoice-template` for the InvoiceFlow template benchmark.
+- `#appointment-template` for the AppointmentBook template benchmark.
 
 Agent rule:
 

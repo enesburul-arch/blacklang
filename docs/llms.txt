@@ -27,6 +27,7 @@ Core local files in this repository:
 - examples/inventory/app.black
 - examples/helpdesk/app.black
 - examples/invoice/app.black
+- examples/appointment/app.black
 - blacklang.toml
 
 Important principle:

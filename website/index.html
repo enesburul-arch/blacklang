@@ -64,6 +64,7 @@
         <a href="#crm-template">CRM Template</a>
         <a href="#inventory-template">Inventory Template</a>
         <a href="#helpdesk-template">Helpdesk Template</a>
+        <a href="#invoice-template">Invoice Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -868,6 +869,80 @@ page Tickets {
           ekipler, ajanlar, SLA kayıtları, ticket yorumları ve bilgi bankası aynı uygulama
           kabuğunda üretilir. Benchmark raporu `benchmarks/helpdesk-v0.2.md` altında
           tutulur.
+        </p>
+      </section>
+
+      <section id="invoice-template">
+        <h2>Invoice Template</h2>
+        <p>
+          InvoiceFlow, dördüncü gerçek uygulama şablonudur. Client, BillingContact,
+          TaxRate, CatalogItem, Invoice, InvoiceLine, Payment ve CreditNote kayıtlarını
+          tek `.black` kaynakta tanımlar; fatura onayı, ödeme takibi, iade notları,
+          field-level access, validation ve API contract davranışlarını birlikte ölçer.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/invoice/app.black</div>
+          <pre><code class="language-black">app InvoiceFlow
+
+entity Invoice {
+  client Client required
+  billingContact BillingContact optional
+  invoiceNumber text required unique length 3..40
+  issueDate date optional
+  dueDate date optional
+  currency text default USD
+  subtotal money default 0 min 0
+  taxTotal money default 0 min 0
+  discountTotal money default 0 min 0
+  grandTotal money default 0 min 0
+  paidAmount money default 0 min 0
+  balanceDue money default 0 min 0
+  paymentStatus text default unpaid
+  status text default draft
+  validate discountTotal &lt;= subtotal message "Discount cannot exceed subtotal"
+  validate paidAmount &lt;= grandTotal message "Paid amount cannot exceed grand total"
+}
+
+workflow InvoiceLifecycle {
+  source Invoice
+  states draft, approved, sent, partiallyPaid, paid, overdue, void
+}
+
+page Invoices {
+  source Invoice
+
+  table {
+    columns client, invoiceNumber, dueDate, grandTotal, paidAmount, balanceDue, paymentStatus, status
+  }
+
+  form {
+    fields client, invoiceNumber, dueDate, subtotal, taxTotal, discountTotal, grandTotal, paidAmount, balanceDue, status
+  }
+  actions create, edit, delete, archive, restore
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>435</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>55</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>12837</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon para alanları, fatura satırları, ödeme workflow'u ve client görünürlüğü
+          gibi finansal uygulama ihtiyaçlarını bugünkü compiler kapasitesiyle ölçer.
+          Benchmark raporu `benchmarks/invoice-v0.2.md` altında tutulur.
         </p>
       </section>
 

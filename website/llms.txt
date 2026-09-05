@@ -23,6 +23,7 @@ Read first:
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
 - `#helpdesk-template` for the SupportDesk template benchmark.
+- `#invoice-template` for the InvoiceFlow template benchmark.
 
 Agent rule:
 

@@ -61,6 +61,7 @@ Reusable `.black` app templates live under `examples/`.
 - `examples/crm/app.black` demonstrates a SalesCRM template with auth, roles, relations, workflows, components, API contracts, and validation.
 - `examples/inventory/app.black` demonstrates an InventoryControl template with warehouses, suppliers, stock items, purchase orders, movement workflows, field-level access, and API contracts.
 - `examples/helpdesk/app.black` demonstrates a SupportDesk template with customers, teams, SLAs, tickets, comments, knowledge articles, workflows, field-level access, and API contracts.
+- `examples/invoice/app.black` demonstrates an InvoiceFlow template with clients, invoice lines, payments, credit notes, payment workflows, field-level access, and API contracts.
 
 ## Example
 
@@ -214,3 +215,4 @@ Implemented so far:
 - [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)
 - [InventoryControl Benchmark v0.2](benchmarks/inventory-v0.2.md)
 - [SupportDesk Benchmark v0.2](benchmarks/helpdesk-v0.2.md)
+- [InvoiceFlow Benchmark v0.2](benchmarks/invoice-v0.2.md)

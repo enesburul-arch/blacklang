@@ -1,0 +1,435 @@
+app InvoiceFlow
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Client {
+  name text required unique label "Client Name" placeholder "Enter client name" help "Company or person receiving invoices"
+  email email required unique label "Billing Email" placeholder "billing@example.com" help "Primary invoice delivery email"
+  taxNumber text optional unique length 3..40 label "Tax Number" placeholder "Enter tax number" help "Tax or company registration number"
+  billingAddress text optional length 5..240 label "Billing Address" placeholder "Enter billing address" help "Address printed on invoice documents"
+  status text default active label "Client Status" placeholder "active" help "Client lifecycle status"
+}
+
+entity BillingContact {
+  client Client required label "Client" placeholder "Select client" help "Client this billing contact belongs to"
+  name text required label "Contact Name" placeholder "Enter contact name" help "Billing contact person"
+  email email required unique label "Contact Email" placeholder "contact@example.com" help "Billing contact email"
+  phone text optional label "Contact Phone" placeholder "Enter phone number" help "Optional billing contact number"
+  status text default active label "Contact Status" placeholder "active" help "Contact lifecycle status"
+}
+
+entity TaxRate {
+  name text required unique label "Tax Name" placeholder "Enter tax name" help "Tax label shown on invoices"
+  code text required unique length 2..20 label "Tax Code" placeholder "VAT20" help "Short tax code"
+  rate number default 0 min 0 max 100 label "Rate Percent" placeholder "20" help "Tax percentage from 0 to 100"
+  status text default active label "Tax Status" placeholder "active" help "Tax rate availability"
+}
+
+entity CatalogItem {
+  name text required unique label "Item Name" placeholder "Enter item name" help "Product or service name"
+  sku text optional unique length 3..40 regex "^[A-Z0-9-]+$" message "Use uppercase letters, numbers, and dashes"
+  type text default service label "Item Type" placeholder "service" help "Product or service"
+  unitPrice money default 0 min 0 label "Unit Price" placeholder "Enter unit price" help "Default billing price"
+  status text default active label "Item Status" placeholder "active" help "Catalog item status"
+}
+
+entity Invoice {
+  client Client required label "Client" placeholder "Select client" help "Client receiving the invoice"
+  billingContact BillingContact optional label "Billing Contact" placeholder "Select contact" help "Optional contact for invoice delivery"
+  invoiceNumber text required unique length 3..40 label "Invoice Number" placeholder "INV-1001" help "Internal or external invoice number"
+  issueDate date optional label "Issue Date" placeholder "Select issue date" help "Date the invoice was issued"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "Payment due date"
+  currency text default USD label "Currency" placeholder "USD" help "Invoice currency code"
+  subtotal money default 0 min 0 label "Subtotal" placeholder "Enter subtotal" help "Amount before tax and discounts"
+  taxTotal money default 0 min 0 label "Tax Total" placeholder "Enter tax total" help "Total tax amount"
+  discountTotal money default 0 min 0 label "Discount Total" placeholder "Enter discount" help "Total discount amount"
+  grandTotal money default 0 min 0 label "Grand Total" placeholder "Enter grand total" help "Final invoice amount"
+  paidAmount money default 0 min 0 label "Paid Amount" placeholder "Enter paid amount" help "Amount already paid"
+  balanceDue money default 0 min 0 label "Balance Due" placeholder "Enter balance due" help "Remaining amount due"
+  paymentStatus text default unpaid label "Payment Status" placeholder "unpaid" help "Payment status"
+  status text default draft label "Invoice Status" placeholder "draft" help "Invoice workflow status"
+  validate discountTotal <= subtotal message "Discount cannot exceed subtotal"
+  validate paidAmount <= grandTotal message "Paid amount cannot exceed grand total"
+}
+
+entity InvoiceLine {
+  invoice Invoice required label "Invoice" placeholder "Select invoice" help "Invoice this line belongs to"
+  item CatalogItem required label "Catalog Item" placeholder "Select catalog item" help "Billed product or service"
+  taxRate TaxRate optional label "Tax Rate" placeholder "Select tax rate" help "Optional tax rate"
+  description text required length 3..240 label "Description" placeholder "Enter line description" help "Line item description"
+  quantity number default 1 min 1 label "Quantity" placeholder "Enter quantity" help "Billed quantity"
+  unitPrice money default 0 min 0 label "Unit Price" placeholder "Enter unit price" help "Price for one unit"
+  discount money default 0 min 0 label "Discount" placeholder "Enter discount" help "Line discount"
+  lineTotal money default 0 min 0 label "Line Total" placeholder "Enter line total" help "Final line amount"
+  status text default active label "Line Status" placeholder "active" help "Line lifecycle status"
+  validate discount <= lineTotal message "Line discount cannot exceed line total"
+}
+
+entity Payment {
+  invoice Invoice required label "Invoice" placeholder "Select invoice" help "Invoice receiving payment"
+  client Client required label "Client" placeholder "Select client" help "Client making the payment"
+  paymentNumber text required unique length 3..40 label "Payment Number" placeholder "PAY-1001" help "Payment reference number"
+  method text default bankTransfer label "Payment Method" placeholder "bankTransfer" help "Payment method"
+  amount money default 0 min 0 label "Amount" placeholder "Enter amount" help "Payment amount"
+  receivedDate date optional label "Received Date" placeholder "Select date" help "Date money was received"
+  reference text optional length 3..80 label "Reference" placeholder "Enter reference" help "Bank or processor reference"
+  status text default pending label "Payment Status" placeholder "pending" help "Payment workflow status"
+  validate reference required when status == reconciled message "Reference is required when payment is reconciled"
+}
+
+entity CreditNote {
+  invoice Invoice required label "Invoice" placeholder "Select invoice" help "Invoice receiving the credit"
+  client Client required label "Client" placeholder "Select client" help "Client receiving credit"
+  creditNumber text required unique length 3..40 label "Credit Number" placeholder "CR-1001" help "Credit note number"
+  reason text required length 3..160 label "Reason" placeholder "Enter reason" help "Reason for issuing the credit"
+  amount money default 0 min 0 label "Credit Amount" placeholder "Enter credit amount" help "Credited amount"
+  issuedDate date optional label "Issued Date" placeholder "Select issue date" help "Credit issue date"
+  status text default draft label "Credit Status" placeholder "draft" help "Credit note workflow status"
+}
+
+role Admin {
+  allow all
+}
+
+role BillingManager {
+  allow read Client
+  allow create Client
+  allow update Client
+  allow read BillingContact
+  allow create BillingContact
+  allow update BillingContact
+  allow read TaxRate
+  allow create TaxRate
+  allow update TaxRate
+  allow read CatalogItem
+  allow create CatalogItem
+  allow update CatalogItem
+  allow read Invoice
+  allow create Invoice
+  allow update Invoice
+  allow read InvoiceLine
+  allow create InvoiceLine
+  allow update InvoiceLine
+  allow read Payment
+  allow create Payment
+  allow update Payment
+  allow read CreditNote
+  allow create CreditNote
+  allow update CreditNote
+}
+
+role Accountant {
+  allow read Client
+  allow read BillingContact
+  allow read TaxRate
+  allow read CatalogItem
+  allow read Invoice
+  allow create Invoice
+  allow update Invoice status paymentStatus paidAmount balanceDue dueDate
+  allow read InvoiceLine
+  allow create InvoiceLine
+  allow update InvoiceLine description quantity unitPrice discount lineTotal status
+  allow read Payment
+  allow create Payment
+  allow update Payment method amount receivedDate reference status
+  allow read CreditNote
+  allow create CreditNote
+  allow update CreditNote reason amount issuedDate status
+}
+
+role ClientViewer {
+  allow read Client
+  allow read BillingContact
+  allow read CatalogItem
+  allow read Invoice
+  deny read Invoice discountTotal
+  allow read InvoiceLine
+  allow read Payment
+  allow create Payment
+  allow read CreditNote
+}
+
+api InvoicePDF {
+  method GET
+  path "/api/invoices/{invoiceNumber}/pdf"
+  param invoiceNumber text
+  private
+}
+
+api PaymentWebhook {
+  method POST
+  path "/api/webhooks/payments"
+  webhook
+  public
+}
+
+workflow InvoiceLifecycle {
+  source Invoice
+  states draft, approved, sent, partiallyPaid, paid, overdue, void
+
+  transition approve {
+    from draft
+    to approved
+    allow Admin, BillingManager
+  }
+
+  transition send {
+    from approved
+    to sent
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition markPartial {
+    from sent
+    to partiallyPaid
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition markPaid {
+    from partiallyPaid
+    to paid
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition markOverdue {
+    from sent
+    to overdue
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition void {
+    from draft
+    to void
+    allow Admin, BillingManager
+  }
+}
+
+workflow PaymentLifecycle {
+  source Payment
+  states pending, received, reconciled, failed, refunded
+
+  transition receive {
+    from pending
+    to received
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition reconcile {
+    from received
+    to reconciled
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition fail {
+    from pending
+    to failed
+    allow Admin, BillingManager, Accountant
+  }
+
+  transition refund {
+    from reconciled
+    to refunded
+    allow Admin, BillingManager
+  }
+}
+
+state InvoicesPageState {
+  selectedInvoices Invoice[]
+  activeFilter text
+  modal createInvoice closed
+}
+
+state PaymentsPageState {
+  selectedPayments Payment[]
+  activeFilter text
+  modal createPayment closed
+}
+
+component BalanceDueBadge {
+  input balanceDue money
+  variant clear when balanceDue <= 0
+  variant due when balanceDue > 0
+}
+
+component PaidAmountBadge {
+  input paidAmount money
+  variant none when paidAmount <= 0
+  variant paid when paidAmount > 0
+}
+
+layout InvoiceLayout {
+  sidebar {
+    item Clients
+    item BillingContacts
+    item TaxRates
+    item CatalogItems
+    item Invoices
+    item InvoiceLines
+    item Payments
+    item CreditNotes
+  }
+}
+
+page Clients {
+  layout InvoiceLayout
+  source Client
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns name, email, taxNumber, billingAddress, status
+    search name, email, taxNumber, billingAddress, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, email, taxNumber, billingAddress, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page BillingContacts {
+  layout InvoiceLayout
+  source BillingContact
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns client, name, email, phone, status
+    search client, name, email, phone, status
+    filter client, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields client, name, email, phone, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page TaxRates {
+  layout InvoiceLayout
+  source TaxRate
+  access Admin, BillingManager, Accountant
+
+  table {
+    columns name, code, rate, status
+    search name, code, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, rate, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page CatalogItems {
+  layout InvoiceLayout
+  source CatalogItem
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns name, sku, type, unitPrice, status
+    search name, sku, type, status
+    filter type, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, sku, type, unitPrice, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Invoices {
+  layout InvoiceLayout
+  source Invoice
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns client, billingContact, invoiceNumber, issueDate, dueDate, currency, subtotal, taxTotal, discountTotal, grandTotal, paidAmount, balanceDue, paymentStatus, status
+    search client, billingContact, invoiceNumber, currency, paymentStatus, status
+    filter client, billingContact, currency, paymentStatus, status
+    sort invoiceNumber asc
+    paginate 10
+  }
+
+  form {
+    fields client, billingContact, invoiceNumber, issueDate, dueDate, currency, subtotal, taxTotal, discountTotal, grandTotal, paidAmount, balanceDue, paymentStatus, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page InvoiceLines {
+  layout InvoiceLayout
+  source InvoiceLine
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns invoice, item, taxRate, description, quantity, unitPrice, discount, lineTotal, status
+    search invoice, item, taxRate, description, status
+    filter invoice, item, taxRate, status
+    sort description asc
+    paginate 10
+  }
+
+  form {
+    fields invoice, item, taxRate, description, quantity, unitPrice, discount, lineTotal, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Payments {
+  layout InvoiceLayout
+  source Payment
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns invoice, client, paymentNumber, method, amount, receivedDate, reference, status
+    search invoice, client, paymentNumber, method, reference, status
+    filter invoice, client, method, status
+    sort paymentNumber asc
+    paginate 10
+  }
+
+  form {
+    fields invoice, client, paymentNumber, method, amount, receivedDate, reference, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page CreditNotes {
+  layout InvoiceLayout
+  source CreditNote
+  access Admin, BillingManager, Accountant, ClientViewer
+
+  table {
+    columns invoice, client, creditNumber, reason, amount, issuedDate, status
+    search invoice, client, creditNumber, reason, status
+    filter invoice, client, status
+    sort creditNumber asc
+    paginate 10
+  }
+
+  form {
+    fields invoice, client, creditNumber, reason, amount, issuedDate, status
+  }
+  actions create, edit, delete, archive, restore
+}

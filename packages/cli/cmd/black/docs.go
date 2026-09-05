@@ -63,6 +63,21 @@ black inspect examples/warehouse/app.black --affected Product.stock --json`,
 		},
 		Errors: []string{"FILE_READ_ERROR", "MISSING_AFFECTED_SYMBOL", "UNKNOWN_AFFECTED_SYMBOL"},
 	},
+	"diagnostics": {
+		Keyword: "diagnostics",
+		Purpose: "Documents stable BlackLang diagnostic codes and repair strategy for humans, AI agents, and CI tools.",
+		Syntax:  "docs/diagnostics.md | black docs diagnostics --json",
+		Example: `black validate app.black --json
+black lint app.black --json
+black docs diagnostics --json`,
+		AgentNotes: []string{
+			"Branch on diagnostic code, not message text.",
+			"Fix parser diagnostics before semantic diagnostics.",
+			"Fix source-security diagnostics before packaging or deployment.",
+			"Use docs/diagnostics.md as the full stable local reference.",
+		},
+		Errors: []string{"FILE_READ_ERROR", "UNKNOWN_TABLE_COLUMN", "UNKNOWN_AFFECTED_SYMBOL", "HARDCODED_TOKEN"},
+	},
 	"docs": {
 		Keyword: "docs",
 		Purpose: "Prints compact BlackLang reference entries for one keyword or every known keyword.",

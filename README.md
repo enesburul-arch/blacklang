@@ -116,6 +116,7 @@ black build --ir
 black inspect --ir
 black inspect --affected Product.stock --json
 black docs entity --ir
+black docs diagnostics --json
 black docs --all --json
 black explain entity --json
 ```
@@ -133,6 +134,7 @@ Implemented so far:
 - `inspect --affected <symbol> --json` command for AI-readable impact analysis
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
+- Stable diagnostic documentation in `docs/diagnostics.md`
 - `explain <keyword> --json` command for focused agent guidance
 - `blacklang.toml` source/out config support
 - `version --json` command
@@ -215,6 +217,7 @@ Implemented so far:
 - [Web Roadmap](blacklang-web-yol-haritasi.md)
 - [Language Spec](SPEC.md)
 - [Agent Guide](AGENTS.md)
+- [Diagnostic Codes](docs/diagnostics.md)
 - [Warehouse Benchmark v0.1](benchmarks/warehouse-v0.1.md)
 - [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)
 - [InventoryControl Benchmark v0.2](benchmarks/inventory-v0.2.md)

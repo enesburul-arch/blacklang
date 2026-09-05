@@ -615,16 +615,30 @@ black security scan --json</code></pre>
       "file": "examples/warehouse/app.black",
       "line": 17,
       "column": 13,
-      "code": "UNKNOWN_FIELD",
-      "message": "Page Products uses unknown field barcode.",
-      "suggestion": "Add barcode to Product or remove it from columns."
+      "code": "UNKNOWN_TABLE_COLUMN",
+      "message": "Page Products table uses unknown field Product.barcode.",
+      "suggestion": "Add the field to the source entity or remove it from columns."
     }
   ]
 }</code></pre>
         </div>
         <p>
           Bu model, insan için okunabilir; AI için de deterministik onarım akışı sağlar.
+          AI ajanı hata metnine göre değil, `code` alanına göre karar vermelidir.
+          Tam referans `/diagnostics.md` ve `docs/diagnostics.md` içinde tutulur; kısa CLI açıklaması
+          `black docs diagnostics --json` ile alınabilir.
         </p>
+        <div class="code-panel">
+          <div class="code-title">Diagnostic code families</div>
+          <pre><code>UNKNOWN_*     referenced symbol does not exist
+DUPLICATE_*   declaration appears more than once
+MISSING_*     required block, field, value, or option is absent
+INVALID_*     syntax or value shape is malformed
+UNSUPPORTED_* value is known but not supported in this version
+UNCLOSED_*    block or string is not closed
+UNEXPECTED_*  token is not valid in that location
+HARDCODED_*   likely secret is stored in source</code></pre>
+        </div>
       </section>
 
       <section id="ai-agents">

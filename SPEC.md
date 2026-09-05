@@ -145,7 +145,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 31,
+  "count": 32,
   "docs": [
     {
       "keyword": "entity",
@@ -161,6 +161,18 @@ JSON shape:
 ```
 
 The `docs` array is sorted by keyword for deterministic AI context. Agents should use `black docs --all --json` when entering an unfamiliar BlackLang project, and `black docs <keyword> --json` for focused edits.
+
+## Current Diagnostic Documentation
+
+Draft v0.2 records stable diagnostic behavior in `docs/diagnostics.md`.
+
+Every diagnostic should keep `file`, `line`, `column`, `code`, `message`, and optional `suggestion` fields. AI agents should branch on `code`, not on mutable human message text.
+
+The compact CLI entry is available through:
+
+```bash
+black docs diagnostics --json
+```
 
 ## Current Inspect Affected Command
 
@@ -1060,9 +1072,9 @@ Draft v0.1 validates:
       "file": "examples/warehouse/app.black",
       "line": 17,
       "column": 13,
-      "code": "UNKNOWN_FIELD",
-      "message": "Page Products uses unknown field barcode.",
-      "suggestion": "Add barcode to Product or remove it from columns."
+      "code": "UNKNOWN_TABLE_COLUMN",
+      "message": "Page Products table uses unknown field Product.barcode.",
+      "suggestion": "Add the field to the source entity or remove it from columns."
     }
   ]
 }

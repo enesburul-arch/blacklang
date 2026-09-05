@@ -19,6 +19,8 @@ Read first:
 - `#roles` for role and access rules.
 - `#security` for source security rules.
 - `#cli` for machine-readable commands.
+- `#errors` for diagnostic JSON shape and code families.
+- `/diagnostics.md` for the stable diagnostic code reference.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
@@ -33,4 +35,5 @@ Agent rule:
 2. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
 3. Modify `.black` source files, not generated output.
 4. Run `black format --check --json`, `black lint --json`, and `black build`.
-5. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+5. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+6. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

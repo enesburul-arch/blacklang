@@ -122,6 +122,7 @@ black validate --json
 black inspect --json
 black inspect --affected Product.stock --json
 black docs entity --json
+black docs diagnostics --json
 black docs --all --json
 black explain table --json
 ```
@@ -170,6 +171,22 @@ black inspect app.black --affected Product.stock --json
 The affected output tells AI agents which entities, pages, roles, workflows, states, components, APIs, and generated files may change when a symbol is edited.
 
 Use it before renaming or changing important fields such as `status`, relation fields, workflow source entities, or role-scoped fields.
+
+## Current Diagnostic Documentation
+
+Stable diagnostic code rules live in:
+
+```text
+docs/diagnostics.md
+```
+
+AI agents should use diagnostic `code` values, not message text, when deciding how to repair parser, validator, build, package, source-security, docs, or inspect errors.
+
+The short CLI reference is available with:
+
+```bash
+black docs diagnostics --json
+```
 
 ## Current Explain Command
 

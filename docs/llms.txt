@@ -23,6 +23,7 @@ Core local files in this repository:
 - BLACKLANG.md
 - AGENTS.md
 - ROADMAP.md
+- docs/diagnostics.md
 - examples/warehouse/app.black
 - examples/crm/app.black
 - examples/inventory/app.black
@@ -41,3 +42,5 @@ Use BlackIR when a compact AI-readable project summary is better than verbose JS
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
 Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, or APIs.
+
+Use `docs/diagnostics.md` and `black docs diagnostics --json` when interpreting diagnostic codes.

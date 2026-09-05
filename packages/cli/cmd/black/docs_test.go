@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -86,6 +88,38 @@ func TestFindInspectDoc(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "UNKNOWN_AFFECTED_SYMBOL") {
 		t.Fatalf("expected inspect docs to mention UNKNOWN_AFFECTED_SYMBOL, got %#v", doc)
+	}
+}
+
+func TestFindDiagnosticsDoc(t *testing.T) {
+	doc, ok := FindDoc("diagnostics")
+	if !ok {
+		t.Fatalf("expected diagnostics docs")
+	}
+	if !strings.Contains(doc.Syntax, "docs/diagnostics.md") {
+		t.Fatalf("expected diagnostics docs to mention docs/diagnostics.md, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "HARDCODED_TOKEN") {
+		t.Fatalf("expected diagnostics docs to mention source-security codes, got %#v", doc)
+	}
+}
+
+func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
+	if err != nil {
+		t.Fatalf("expected diagnostics reference to be readable: %v", err)
+	}
+	text := string(content)
+	for _, code := range []string{
+		"UNKNOWN_TABLE_COLUMN",
+		"FORMAT_REQUIRED",
+		"HARDCODED_TOKEN",
+		"MISSING_AFFECTED_SYMBOL",
+		"UNSUPPORTED_FIELD_TYPE",
+	} {
+		if !strings.Contains(text, code) {
+			t.Fatalf("expected diagnostics reference to mention %s", code)
+		}
 	}
 }
 

@@ -73,6 +73,145 @@ BlackLang Core
 └── Automation Target
 ```
 
+## Web %100 Kapsam Yol Haritası
+
+Bu bölümün amacı, BlackLang'in web tarafında uzun vadede "webde yapamayacağı şey kalmaması" hedefini ölçülebilir hale getirmektir.
+
+Buradaki `%100`, dünyadaki her framework'ün her özel kullanımını birebir çekirdeğe gömmek anlamına gelmez. Daha doğru tanım şudur:
+
+> Modern bir web projesinde ihtiyaç duyulan her ana davranış, BlackLang kaynak diliyle veya resmi BlackLang extension/plugin sistemiyle deterministik şekilde tarif edilebilmeli, doğrulanabilmeli, üretilebilmeli ve deploy edilebilmelidir.
+
+Yani hedef yalnızca CRUD üretmek değildir. Hedef; frontend, backend, database, güvenlik, dosya, ödeme, realtime, test, deployment, observability ve ekip çalışması dahil production web geliştirme alanının tamamını kapsayan bir kaynak temsil oluşturmaktır.
+
+### Kapsam Prensibi
+
+BlackLang webde %100'e giderken iki katmanlı ilerlemelidir:
+
+```text
+BlackLang Core
+  ortak, deterministik, güvenli web kavramları
+
+BlackLang Extensions
+  payment provider, cloud storage, email provider, AI service, özel framework adapterleri
+```
+
+Core içine her şeyi doldurmak dili ağırlaştırır. Ama her şeyi plugin'e bırakmak da dilin gücünü azaltır. Bu yüzden karar kuralı:
+
+- Her web uygulamasında sık görülen davranışlar core'a girer.
+- Provider'a veya şirkete özel davranışlar extension/plugin olarak bağlanır.
+- Her extension aynı parser, validator, docs, JSON/BlackIR ve affected graph disiplinine uyar.
+- AI ajanı bir extension'ı kullanmadan önce o extension'ın kısa öğrenme paketini okuyabilir.
+
+### %100 İçin Ana Kapsam Alanları
+
+| Alan | Hedef | Durum |
+|---|---|---|
+| App structure | Proje, target, generated sınırı, config, paketleme | Kısmen var |
+| Data model | Entity, relation, index, constraint, migration, seed | Kısmen var |
+| CRUD | Create, read, update, delete, archive, restore, bulk actions | Kısmen var |
+| Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var |
+| UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Başlangıç gerekli |
+| Styling/theme | Token, theme profile, responsive rule, state style, animation | Kısmen var |
+| Forms | Inputs, validation, wizard, dynamic field, file field, dependent select | Kısmen var |
+| Routing | Nested route, dynamic route, protected route, layout route | Başlangıç gerekli |
+| State | Page state, global state, URL state, persisted state | Kısmen var |
+| Components | Input/output, variant, slot, event, composition | Kısmen var |
+| Frontend logic | if, loop, computed display, event handler, client action | Eksik |
+| Backend logic | service, command, transaction, domain rule, scheduled job | Eksik |
+| API | REST, OpenAPI, custom endpoint, webhook, GraphQL/gRPC adapter | Kısmen var |
+| Auth | Email/password, OAuth, 2FA, password reset, session/JWT | Kısmen var |
+| Authorization | Role, permission, ownership, tenant, policy, row-level access | Kısmen var |
+| Security | CORS, CSRF, headers, rate limit, secrets, audit, scanning | Kısmen var |
+| Database runtime | SQLite, PostgreSQL, MySQL, Redis/cache, migrations | SQLite başlangıcı var |
+| File/media | Upload, image processing, storage provider, download permission | Eksik |
+| Email/notification | SMTP, provider adapter, template, queue, retry | Eksik |
+| Realtime | WebSocket, SSE, presence, live table updates, notifications | Eksik |
+| Payments | Product, price, checkout, subscription, invoice, webhook | Eksik |
+| Background jobs | Queue, cron, retry, delayed task, worker target | Eksik |
+| Search | Full-text, external search provider, indexing, facets | Eksik |
+| Testing | Unit, API, UI, e2e, fixture, generated benchmark tests | Eksik |
+| Observability | Logging, metrics, tracing, health check, error reporting | Eksik |
+| Deployment | Docker, VPS, preview, cloud adapter, env management, rollback | Kısmen var |
+| Performance | Bundle policy, cache, CDN, lazy loading, query optimization | Eksik |
+| Accessibility | Semantic UI rules, keyboard nav, contrast, aria validation | Başlangıç gerekli |
+| SEO/content | Meta, sitemap, robots, CMS/content pages, markdown routes | Başlangıç gerekli |
+| Plugin ecosystem | Extension manifest, versioning, docs, install, trust model | Eksik |
+| IDE support | Syntax highlight, autocomplete, diagnostics, refactor UI | Eksik |
+| Migration/refactor | Rename, move, split, schema migration, UI profile migration | Eksik |
+
+### Yüzde Kilometre Taşları
+
+Bu yüzdeler kesin matematik değil, web kapasitesini takip etmek için çalışma ölçüsüdür.
+
+```text
+%20  MVP web app
+     entity, page, CRUD, basic auth, basic role, validation, generated app
+
+%40  Admin/dashboard web
+     relation, workflow, table tools, i18n label, inline UI, Docker, docs, affected graph
+
+%60  Flexible product UI
+     layout composition, routing, modal/tabs/drawer, responsive rules, richer components
+
+%75  Business application platform
+     custom query, custom action, backend service, transaction, file upload, email, jobs
+
+%90  Production web platform
+     PostgreSQL/MySQL, migrations, tests, observability, cache, search, realtime, payments
+
+%100 Full web coverage model
+     plugin ecosystem, cloud/provider adapters, IDE support, versioned migrations,
+     security hardening, performance/a11y/SEO policies, enterprise deployment workflows
+```
+
+### Öncelikli Büyük Aşamalar
+
+%100'e giderken en doğru sıra şu olmalıdır:
+
+1. UI composition ve layout dilini kur.
+2. Routing ve sayfa hiyerarşisini genişlet.
+3. Custom query ve custom action sistemini ekle.
+4. Backend service/logic syntax'ını ekle.
+5. Database migration ve PostgreSQL runtime desteğini tamamla.
+6. File upload ve storage adapterlerini ekle.
+7. Email, notification ve background job sistemini ekle.
+8. Realtime, cache ve full-text search katmanını ekle.
+9. Test generator ve benchmark komutlarını ekle.
+10. Payment ve webhook provider adapterlerini ekle.
+11. Observability, health check ve production logging ekle.
+12. Plugin/extension sistemini standartlaştır.
+13. IDE autocomplete, diagnostics ve refactor araçlarını ekle.
+14. Accessibility, SEO ve performance policy kontrollerini dil seviyesine çıkar.
+15. Çoklu deployment hedeflerini ve rollback akışlarını tamamla.
+
+### Dilde Kalması Gereken Denge
+
+BlackLang webde %100'e giderken şu riski sürekli kontrol etmelidir:
+
+```text
+çok özellik
+  +
+çok syntax
+  =
+AI için tekrar zorlaşan dil
+```
+
+Bu yüzden her yeni web yeteneği eklenmeden önce şu sorular sorulmalıdır:
+
+- Bu özellik web projelerinde sık mı kullanılıyor?
+- AI bunu normal stack'te yazarken çok dosya ve çok token harcıyor mu?
+- BlackLang bunu daha kısa ve deterministik anlatabiliyor mu?
+- Validator hatayı erken yakalayabiliyor mu?
+- Generated output test edilebilir mi?
+- Bu core özellik mi, yoksa extension mı olmalı?
+- AI ajanı bu özelliği kısa bir docs/explain çıktısından öğrenebilir mi?
+
+### Nihai Hedef
+
+Nihai web hedefi şudur:
+
+> Bir kullanıcı veya AI ajanı, modern bir web uygulamasının veri modelini, arayüzünü, iş mantığını, güvenliğini, entegrasyonlarını, testlerini ve deployment akışını BlackLang ile tarif edebilmeli; generator da bunu seçilen web target için çalışan, test edilebilir ve production'a hazırlanabilir çıktıya dönüştürebilmelidir.
+
 ## Aşama 0: Proje Zemini
 
 Bu aşamada henüz tam bir dil yoktur. Ama proje standardı oluşturulur.

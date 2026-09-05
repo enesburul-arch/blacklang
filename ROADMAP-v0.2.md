@@ -127,6 +127,19 @@ This phase starts locale-aware generated UI text without adding runtime language
 - [ ] Add date, number, and currency formatting
 - [ ] Add RTL layout support
 
+## Phase 27: Full Web Coverage Plan
+
+This phase makes the long-term web target measurable instead of vague.
+
+- [x] Define what "100% web coverage" means for BlackLang
+- [x] Separate core language features from provider/plugin extensions
+- [x] Add a coverage matrix for frontend, backend, database, security, deployment, testing, and ecosystem work
+- [x] Add percentage milestones from MVP web app to full web coverage model
+- [x] Add the priority order for reaching full web coverage
+- [ ] Turn the coverage matrix into tracked implementation issues
+- [ ] Add a `black benchmark` coverage report command
+- [ ] Publish coverage status on the documentation site
+
 ## v0.2 Exit Criteria
 
 v0.2 is ready when:

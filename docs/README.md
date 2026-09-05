@@ -26,6 +26,7 @@ It should explain:
 - How i18n locale and field label translations work
 - How security CORS policy is declared without hardcoding deployment origins
 - How Docker deployment intent generates production runtime files
+- How BlackLang compares with common web languages without overstating current capability
 - How AI agents should use the language
 
 ## Planned Structure
@@ -48,6 +49,7 @@ docs/
 ├── ai-agents/
 ├── examples/
 ├── benchmarks/
+│   └── language-comparison-v0.2.md
 ├── llms.txt
 └── llms-full.txt
 ```

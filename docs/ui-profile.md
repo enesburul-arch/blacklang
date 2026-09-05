@@ -16,14 +16,16 @@ profile UICompact {
   baseline table color width style density zebra
   baseline button bg color radius size variant
 
-  mode box color width style pt pr pb pl radius place
-  mode text color size weight align
-  mode table color width style density zebra
-  mode button bg color radius size variant
+  ui box = color width style pt pr pb pl radius place;
+  ui text = color size weight align;
+  ui table = color width style density zebra;
+  ui button = bg color radius size variant;
 }
 ```
 
-Each `mode` line defines a left-to-right slot order.
+Each `ui <mode> = <slot...>;` line defines a left-to-right generator slot order.
+
+Legacy `mode <name> <slot...>` lines are still accepted for backward compatibility.
 
 Each `baseline` line defines the frozen prefix for the matching mode after the theme has `locked true`.
 
@@ -68,6 +70,7 @@ text.align  = left
 ## Rules
 
 - Slots are positional and read left to right.
+- `ui <mode> = <slot...>;` is the preferred profile syntax for generator reading order.
 - `|` separates multiple UI mode groups.
 - Missing trailing values use CSS generation defaults.
 - Extra values are errors.
@@ -101,7 +104,7 @@ blackthm WarehouseTheme {
   profile UICompact {
     version 2
     baseline box color width style
-    mode box color width style shadow
+    ui box = color width style shadow;
   }
 }
 ```
@@ -116,7 +119,7 @@ blackthm WarehouseTheme {
   profile UICompact {
     version 2
     baseline box color width style
-    mode box color shadow width style
+    ui box = color shadow width style;
   }
 }
 ```

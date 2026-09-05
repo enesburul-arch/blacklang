@@ -60,6 +60,32 @@ func TestParseTheme(t *testing.T) {
 	}
 }
 
+func TestParseThemeAcceptsGeneratorUISlotOrderSyntax(t *testing.T) {
+	theme, diagnostics := ParseTheme("theme.blackthm", `blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  profile UICompact {
+    version 1
+    ui box = color width style pt pr pb pl radius place;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if len(theme.Profile.Modes) != 4 {
+		t.Fatalf("expected four ui slot orders, got %#v", theme.Profile.Modes)
+	}
+	if strings.Join(theme.Profile.Modes[0].Slots, " ") != "color width style pt pr pb pl radius place" {
+		t.Fatalf("unexpected box slot order: %#v", theme.Profile.Modes[0])
+	}
+}
+
 func TestInspectThemeUsesConfigPath(t *testing.T) {
 	root := t.TempDir()
 	writeTestFile(t, filepath.Join(root, "blacklang.toml"), `theme = "theme.blackthm"

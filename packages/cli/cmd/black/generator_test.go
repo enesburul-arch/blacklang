@@ -815,6 +815,80 @@ page Products {
 	}
 }
 
+func TestBuildWebUsesThemeSlotOrderForInlineUICSS(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required ui text 16 "#172026" left semibold
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table 1 border solid compact true
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	validateDiagnostics := Validate(program)
+	if len(validateDiagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", validateDiagnostics)
+	}
+
+	theme, themeDiagnostics := ParseTheme("theme.blackthm", `blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  profile UICompact {
+    version 1
+    ui box = color width style pt pr pb pl radius place;
+    ui text = size color align weight;
+    ui table = width color style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+	if len(themeDiagnostics) != 0 {
+		t.Fatalf("expected no theme diagnostics, got %#v", themeDiagnostics)
+	}
+
+	outDir := t.TempDir()
+	if _, diagnostics := BuildWebWithTheme(program, outDir, &theme); len(diagnostics) != 0 {
+		t.Fatalf("expected no build diagnostics, got %#v", diagnostics)
+	}
+
+	styles, err := os.ReadFile(filepath.Join(outDir, "src", "styles.css"))
+	if err != nil {
+		t.Fatalf("expected generated styles: %v", err)
+	}
+	stylesText := string(styles)
+	for _, value := range []string{
+		".bl-ui-field-product-name {",
+		"font-size: 16px;",
+		"color: #172026;",
+		"text-align: left;",
+		"font-weight: 600;",
+		"border: 1px solid #d8dee4;",
+	} {
+		if !strings.Contains(stylesText, value) {
+			t.Fatalf("expected generated inline UI CSS to contain %q, got:\n%s", value, stylesText)
+		}
+	}
+}
+
 func TestBuildWebUsesLowerCamelIdentifiersForCompoundEntityNames(t *testing.T) {
 	source := `app InventoryControl
 

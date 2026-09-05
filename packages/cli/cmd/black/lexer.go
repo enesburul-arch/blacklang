@@ -252,7 +252,7 @@ func tokensToStatements(tokens []sourceToken) []sourceStatement {
 }
 
 func isBlackSymbol(char rune) bool {
-	return char == '{' || char == '}' || char == ','
+	return char == '{' || char == '}' || char == ',' || char == ';'
 }
 
 func isBlackOperatorStart(char rune) bool {

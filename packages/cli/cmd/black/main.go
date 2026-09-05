@@ -536,7 +536,29 @@ func runBuild(args []string) {
 		os.Exit(1)
 	}
 
-	files, buildDiagnostics := BuildWeb(project.Program, project.OutDir)
+	var theme *ThemeDecl
+	if project.Config.Theme != "" {
+		loadedTheme, themeDiagnostics := LoadTheme(project.Config.Theme)
+		if len(themeDiagnostics) > 0 {
+			if irOutput {
+				printDiagnosticsIR("build", themeDiagnostics)
+				os.Exit(1)
+			}
+			printBuildResult(jsonOutput, BuildResult{
+				Success: false,
+				Command: "build",
+				Version: version,
+				File:    project.SourcePath,
+				OutDir:  project.OutDir,
+				Summary: project.Summary(),
+				Errors:  themeDiagnostics,
+			})
+			os.Exit(1)
+		}
+		theme = &loadedTheme
+	}
+
+	files, buildDiagnostics := BuildWebWithTheme(project.Program, project.OutDir, theme)
 	if buildDiagnostics == nil {
 		buildDiagnostics = []Diagnostic{}
 	}

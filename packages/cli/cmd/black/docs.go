@@ -96,7 +96,7 @@ black agent startup --ir`,
 	},
 	"theme": {
 		Keyword: "theme",
-		Purpose: "Inspects .blackthm UI theme/profile files before theme-driven CSS generation exists.",
+		Purpose: "Inspects .blackthm UI theme/profile files used by AI agents and the CSS generator.",
 		Syntax:  "black theme inspect [file] [--json|--ir]",
 		Example: `black theme inspect --json
 black theme inspect examples/warehouse/theme.blackthm --json
@@ -108,7 +108,8 @@ black theme inspect examples/warehouse/theme.blackthm --ir`,
 			"Theme inspect returns profile.modeGroups for standard box, text, table, and button semantics.",
 			"When locked is true, baseline lines freeze existing mode slot prefixes.",
 			"Hex colors should be quoted because # starts a comment outside strings.",
-			"CSS generation from theme intent is planned for later Phase 20 steps.",
+			"`ui <mode> = <slot...>;` declares the generator reading order for one UI mode.",
+			"black build uses the configured .blackthm profile when mapping compact inline UI values to CSS properties.",
 			"Treat .blackthm files as source assets, not generated output.",
 		},
 		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_STANDARD_UI_MODE", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
@@ -116,12 +117,12 @@ black theme inspect examples/warehouse/theme.blackthm --ir`,
 	"ui-profile": {
 		Keyword: "ui-profile",
 		Purpose: "Documents compact positional UI mode slot rules used by .blackthm profiles.",
-		Syntax:  "baseline <mode> <slot...>; mode <name> <slot...> -> ui <mode> <values...> [| <mode> <values...>...]",
+		Syntax:  "baseline <mode> <slot...>; ui <mode> = <slot...>; -> ui <mode> <values...> [| <mode> <values...>...]",
 		Example: `profile UICompact {
   version 2
   baseline box color width style pt pr pb pl radius place
-  mode box color width style pt pr pb pl radius place shadow
-  mode text color size weight align
+  ui box = color width style pt pr pb pl radius place shadow;
+  ui text = color size weight align;
 }
 
 form {
@@ -130,6 +131,7 @@ form {
 }`,
 		AgentNotes: []string{
 			"Read profile.modes[].slots from black theme inspect --json before writing inline UI intent.",
+			"Use `ui <mode> = <slot...>;` to declare the generator reading order for that mode.",
 			"Slots are positional and are read left to right.",
 			"Trailing missing values use CSS generation defaults.",
 			"Extra values are errors because they cannot map to a known slot.",
@@ -143,13 +145,13 @@ form {
 	"ui-modes": {
 		Keyword: "ui-modes",
 		Purpose: "Documents the standard BlackLang UI mode groups used by web theme profiles.",
-		Syntax:  "mode box <slots...>; mode text <slots...>; mode table <slots...>; mode button <slots...>",
+		Syntax:  "ui box = <slots...>; ui text = <slots...>; ui table = <slots...>; ui button = <slots...>;",
 		Example: `profile UICompact {
   version 1
-  mode box color width style pt pr pb pl radius place
-  mode text color size weight align
-  mode table color width style density zebra
-  mode button bg color radius size variant
+  ui box = color width style pt pr pb pl radius place;
+  ui text = color size weight align;
+  ui table = color width style density zebra;
+  ui button = bg color radius size variant;
 }`,
 		AgentNotes: []string{
 			"box is for container border, spacing, radius, and placement.",

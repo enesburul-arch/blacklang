@@ -8,6 +8,8 @@ Inline UI intent keeps styling instructions near the field, form, table, or acti
 
 The web generator now turns supported inline UI intent into stable CSS classes in `src/styles.css`.
 
+When `blacklang.toml` points to a `.blackthm` file, `black build` reads `ui <mode> = <slot...>;` lines as the generator order for these compact values.
+
 ## Syntax
 
 ```black

@@ -215,10 +215,10 @@ blackthm WarehouseTheme {
     baseline table color width style density zebra
     baseline button bg color radius size variant
 
-    mode box color width style pt pr pb pl radius place
-    mode text color size weight align
-    mode table color width style density zebra
-    mode button bg color radius size variant
+    ui box = color width style pt pr pb pl radius place;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
   }
 }
 ```
@@ -247,7 +247,9 @@ black theme inspect --json
 - Current mode slots must keep baseline slots as their exact prefix.
 - After profile lock, existing slots are immutable and new slots are append-only.
 
-This phase validates and exposes theme/profile metadata plus compact slot profile rules and locked append-only checks. CSS generation from theme intent comes later in Phase 20.
+`ui <mode> = <slot...>;` is the generator reading order for compact inline UI values. Legacy `mode <name> <slot...>` lines are still accepted for backward compatibility.
+
+This phase validates and exposes theme/profile metadata plus compact slot profile rules and locked append-only checks. `black build` uses the configured `.blackthm` profile order when mapping inline UI intent to generated CSS.
 
 Standard mode groups:
 
@@ -291,7 +293,7 @@ Current rule:
 - Action button UI accepts `button`.
 - Values are positional and should follow the active `.blackthm` profile mode slots.
 - Generated web output appends stable `.bl-ui-*` classes to `src/styles.css`.
-- The current generator uses standard v0.2 slots and safe defaults; full `.blackthm` token resolution remains a later extension.
+- The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots and safe defaults.
 
 ## Current Diagnostic Documentation
 

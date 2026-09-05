@@ -45,11 +45,12 @@ Agent rule:
 2. Read the returned `readFirst` files that exist.
 3. Run `black theme inspect --json` before writing inline UI intent when a theme file exists.
 4. Use returned `profile.modeGroups`, `profile.rules`, and `profile.modes[].slots` as the source of truth for compact UI values.
-5. When `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
-6. Use `black docs ui --json` before editing inline UI intent in `.black` files.
-7. Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
-8. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-9. Modify `.black` and `.blackthm` source files, not generated output.
-10. Run `black format --check --json`, `black lint --json`, and `black build`.
-11. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-12. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+5. Use `.blackthm` `ui <mode> = <slot...>;` lines as the generator reading order for compact UI values.
+6. When `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
+7. Use `black docs ui --json` before editing inline UI intent in `.black` files.
+8. Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
+9. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+10. Modify `.black` and `.blackthm` source files, not generated output.
+11. Run `black format --check --json`, `black lint --json`, and `black build`.
+12. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+13. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

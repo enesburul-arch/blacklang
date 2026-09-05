@@ -220,7 +220,7 @@ AI agents should run this before editing an unfamiliar project so they can learn
 
 Draft v0.2 supports separate `.blackthm` files for UI theme and compact UI profile metadata.
 
-Theme files are source assets. They are not generated CSS. They exist so the compiler and AI agents can inspect UI token names and positional mode slots before inline UI intent and CSS generation are implemented.
+Theme files are source assets. They are not generated CSS. They exist so the compiler, generator, and AI agents can inspect UI token names and positional mode slots before compact inline UI values are mapped to CSS.
 
 Projects can point to a theme file from `blacklang.toml`:
 
@@ -248,10 +248,10 @@ blackthm WarehouseTheme {
     baseline table color width style density zebra
     baseline button bg color radius size variant
 
-    mode box color width style pt pr pb pl radius place
-    mode text color size weight align
-    mode table color width style density zebra
-    mode button bg color radius size variant
+    ui box = color width style pt pr pb pl radius place;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
   }
 }
 ```
@@ -323,8 +323,9 @@ Current compact UI profile rules:
 
 - Mode slot order is positional and read left to right.
 - Inline syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
+- `ui <mode> = <slot...>;` defines the generator reading order for compact inline UI values.
 - `|` separates multiple UI mode groups on one source line.
-- Missing trailing values use defaults in later CSS generation phases.
+- Missing trailing values use CSS generation defaults.
 - Extra values are errors because they cannot map to known slots.
 - A slot name may appear only once inside the same mode.
 - Web UI profiles must include the standard `box`, `text`, `table`, and `button` modes.
@@ -339,7 +340,7 @@ For example, this locked profile change is valid because `shadow` is appended:
 profile UICompact {
   version 2
   baseline box color width style
-  mode box color width style shadow
+  ui box = color width style shadow;
 }
 ```
 
@@ -349,11 +350,13 @@ This change is invalid because `shadow` is inserted before locked slots:
 profile UICompact {
   version 2
   baseline box color width style
-  mode box color shadow width style
+  ui box = color shadow width style;
 }
 ```
 
 It returns `NON_APPEND_ONLY_UI_SLOT`.
+
+Legacy `mode <name> <slot...>` lines are still accepted for backward compatibility, but the preferred generator order syntax is `ui <mode> = <slot...>;`.
 
 Profile migration tooling for intentional reorder operations is planned for later Phase 20 steps.
 
@@ -437,7 +440,7 @@ field   .bl-ui-field-<entity>-<field>
 action  .bl-ui-action-<page>-<action>
 ```
 
-The current generator uses the standard v0.2 slots for `box`, `text`, `table`, and `button`. Missing trailing values fall back to safe defaults. Full `.blackthm` token resolution remains a later extension.
+The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots for `box`, `text`, `table`, and `button`. Missing trailing values fall back to safe defaults. Full `.blackthm` token value resolution remains a later extension.
 
 ## Current Diagnostic Documentation
 

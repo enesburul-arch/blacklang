@@ -526,8 +526,8 @@ page Products {
         <p>
           `.blackthm`, BlackLang'in UI tema ve profil bilgisini raw CSS yerine
           deterministik kaynak olarak saklaması için eklenen ilk dosya formatıdır.
-          Bu aşamada CSS üretmez; compiler ve AI ajanlar için token, mode ve slot sırasını
-          okunabilir hale getirir.
+          Generator artık bu dosyadaki okuma sırasını kullanarak kompakt inline UI
+          değerlerini CSS property'lerine bağlayabilir.
         </p>
         <div class="code-panel">
           <div class="code-title">Warehouse theme profile</div>
@@ -548,10 +548,10 @@ page Products {
     baseline table color width style density zebra
     baseline button bg color radius size variant
 
-    mode box color width style pt pr pb pl radius place
-    mode text color size weight align
-    mode table color width style density zebra
-    mode button bg color radius size variant
+    ui box = color width style pt pr pb pl radius place;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
   }
 }</code></pre>
         </div>
@@ -564,14 +564,14 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
           Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
           `profile.modeGroups` standart UI gruplarını, `profile.baselines` kilitli sırayı,
           `profile.modes[].slots` ise güncel sırayı gösterir. Compiler, locked profilde
-          mode satırlarının baseline ile başlamasını zorunlu tutar.
+          UI slot sırasının baseline ile başlamasını zorunlu tutar.
         </p>
       </section>
 
       <section id="ui-profile">
         <h2>ui-profile</h2>
         <p>
-          UI profile, ileride `.black` içinde yazılacak kompakt `ui` satırlarının hangi
+          UI profile, `.black` içinde yazılan kompakt `ui` satırlarının hangi
           sırayla okunacağını belirler. Amaç, CSS benzeri uzun anahtarlar yazmadan
           generator için tek anlamlı bir stil niyeti vermektir.
         </p>
@@ -584,21 +584,22 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
   baseline table color width style density zebra
   baseline button bg color radius size variant
 
-  mode box color width style pt pr pb pl radius place
-  mode text color size weight align
-  mode table color width style density zebra
-  mode button bg color radius size variant
+  ui box = color width style pt pr pb pl radius place;
+  ui text = color size weight align;
+  ui table = color width style density zebra;
+  ui button = bg color radius size variant;
 }</code></pre>
         </div>
         <div class="code-panel">
-          <div class="code-title">Planned inline mapping</div>
+          <div class="code-title">Inline mapping</div>
           <pre><code class="language-black">ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left</code></pre>
         </div>
         <p>
           Değerler soldan sağa okunur. Eksik sondaki değerler default alır, fazladan
           değer hata sayılır, aynı mode içinde aynı slot iki kez yazılamaz. Profile
           kilitlendiğinde mevcut slotlar taşınamaz; yeni slotlar sadece sona eklenir.
-          Araya slot eklenirse compiler `NON_APPEND_ONLY_UI_SLOT` hatası verir.
+          `ui <mode> = <slot...>;` generator'ın okuma sırasıdır. Araya slot eklenirse
+          compiler `NON_APPEND_ONLY_UI_SLOT` hatası verir.
         </p>
       </section>
 
@@ -641,7 +642,7 @@ button  generated veya explicit action control stilleri</code></pre>
         <p>
           Standart gruplardan biri eksikse `black theme inspect --json`
           `MISSING_STANDARD_UI_MODE` diagnostic kodu döner. Bu kural, inline UI intent
-          aşamasına geçmeden önce her projenin aynı temel görsel sözlüğü paylaşmasını sağlar.
+          ve CSS generation aşamalarında her projenin aynı temel görsel sözlüğü paylaşmasını sağlar.
         </p>
       </section>
 

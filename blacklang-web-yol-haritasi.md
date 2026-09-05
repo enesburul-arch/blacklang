@@ -2107,10 +2107,10 @@ blackthm WarehouseTheme {
     baseline table color width style density zebra
     baseline button bg color radius size variant
 
-    mode box color width style pt pr pb pl radius place shadow
-    mode text color size weight align
-    mode table color width style density zebra
-    mode button bg color radius size variant
+    ui box = color width style pt pr pb pl radius place shadow;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
   }
 }
 ```
@@ -2125,12 +2125,12 @@ Yeni slotlar sadece baseline sonrasına eklenebilir.
 Bu yüzden aşağıdaki kullanım hatalıdır:
 
 ```blackthm
-mode box color width shadow style pt pr pb pl radius place
+ui box = color width shadow style pt pr pb pl radius place;
 ```
 
 Çünkü `shadow` araya eklenmiştir ve eski UI satırlarının anlamını kaydırabilir. Compiler bu durumda `NON_APPEND_ONLY_UI_SLOT` hatası verir.
 
-`black theme inspect --json` çıktısındaki `profile.modeGroups`, bu standart grupların ne işe yaradığını, hangi elementlere uygulanacağını ve default slot sırasını gösterir. Standart gruplardan biri eksikse compiler `MISSING_STANDARD_UI_MODE` hatası verir.
+`ui <mode> = <slot...>;` satırı generator'ın o mode için değerleri hangi sırayla okuyacağını belirler. `black theme inspect --json` çıktısındaki `profile.modeGroups`, bu standart grupların ne işe yaradığını, hangi elementlere uygulanacağını ve default slot sırasını gösterir. Standart gruplardan biri eksikse compiler `MISSING_STANDARD_UI_MODE` hatası verir.
 
 ### Mevcut v0.2 Uygulaması: Inline UI Intent
 
@@ -2159,7 +2159,7 @@ page Products {
 }
 ```
 
-Compiler bu aşamada UI intent bilgisini parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web target için stable `.bl-ui-*` class kurallarıyla CSS üretir.
+Compiler bu aşamada UI intent bilgisini parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web target için stable `.bl-ui-*` class kurallarıyla CSS üretir. `black build`, `blacklang.toml` içinde `theme = ...` varsa generator okuma sırasını `.blackthm` profilinden alır.
 
 Üretilen class düzeni:
 

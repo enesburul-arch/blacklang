@@ -2,7 +2,7 @@
 
 This document defines the first `.blackthm` file format.
 
-`.blackthm` files are source assets. They are not generated CSS. Their purpose is to describe UI tokens and compact UI mode slot profiles in a deterministic way that humans, AI agents, and the compiler can inspect.
+`.blackthm` files are source assets. They are not generated CSS. Their purpose is to describe UI tokens and compact UI mode slot profiles in a deterministic way that humans, AI agents, the compiler, and the generator can inspect.
 
 ## File Role
 
@@ -46,10 +46,10 @@ blackthm WarehouseTheme {
     baseline table color width style density zebra
     baseline button bg color radius size variant
 
-    mode box color width style pt pr pb pl radius place
-    mode text color size weight align
-    mode table color width style density zebra
-    mode button bg color radius size variant
+    ui box = color width style pt pr pb pl radius place;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
   }
 }
 ```
@@ -65,9 +65,10 @@ blackthm WarehouseTheme {
 - Hex colors must be quoted because `#` starts a comment outside quoted strings.
 - A theme must contain one `profile <Name> { ... }`.
 - A profile must contain `version <number>`.
-- A profile must contain one or more `mode` lines.
+- A profile must contain one or more `ui <mode> = <slot...>;` generator order lines.
 - A locked profile must contain `baseline <mode> <slot...>` lines.
-- `mode <name> <slot...>` defines the left-to-right slot order for compact inline UI intent.
+- `ui <mode> = <slot...>;` defines the left-to-right slot order for compact inline UI intent.
+- Legacy `mode <name> <slot...>` lines are still accepted for backward compatibility.
 - A slot name may appear only once inside one mode.
 - Web UI profiles must contain standard `box`, `text`, `table`, and `button` mode groups.
 - In locked profiles, every baseline must be a prefix of the matching current mode.
@@ -139,7 +140,7 @@ When a profile is locked, baseline lines record the frozen prefix:
 profile UICompact {
   version 2
   baseline box color width style pt pr pb pl radius place
-  mode box color width style pt pr pb pl radius place shadow
+  ui box = color width style pt pr pb pl radius place shadow;
 }
 ```
 
@@ -151,7 +152,7 @@ This is invalid:
 profile UICompact {
   version 2
   baseline box color width style pt pr pb pl radius place
-  mode box color width shadow style pt pr pb pl radius place
+  ui box = color width shadow style pt pr pb pl radius place;
 }
 ```
 
@@ -178,7 +179,7 @@ black theme inspect examples/warehouse/theme.blackthm --json
 black theme inspect examples/warehouse/theme.blackthm --ir
 ```
 
-In this phase, `black theme inspect` reads and validates `.blackthm` metadata. Inline `.black` UI intent can already generate CSS; full CSS generation directly from `.blackthm` token resolution is planned for later Phase 20 steps.
+In this phase, `black theme inspect` reads and validates `.blackthm` metadata. `black build` uses the configured profile order when mapping compact inline UI values to CSS properties. Full `.blackthm` token value resolution is planned for later Phase 20 steps.
 
 ## AI Agent Rule
 

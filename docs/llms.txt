@@ -53,7 +53,9 @@ Use `black agent startup --json` first when entering an unfamiliar BlackLang pro
 
 Use `black theme inspect --json` to inspect `.blackthm` UI token and profile metadata.
 
-Use returned `profile.rules` and `profile.modes[].slots` before writing future compact inline UI intent.
+Use returned `profile.rules` and `profile.modes[].slots` before writing compact inline UI intent.
+
+Use `.blackthm` `ui <mode> = <slot...>;` lines as the generator reading order for compact UI values.
 
 When a theme has `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
 

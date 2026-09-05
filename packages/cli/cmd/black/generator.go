@@ -18,8 +18,13 @@ var supportedComparisonOperators = setOf(
 )
 
 func BuildWeb(program Program, outDir string) ([]GeneratedFile, []Diagnostic) {
+	return BuildWebWithTheme(program, outDir, nil)
+}
+
+func BuildWebWithTheme(program Program, outDir string, theme *ThemeDecl) ([]GeneratedFile, []Diagnostic) {
 	generator := webGenerator{
 		program: program,
+		theme:   theme,
 		outDir:  outDir,
 		files:   []GeneratedFile{},
 	}
@@ -78,6 +83,7 @@ func BuildWeb(program Program, outDir string) ([]GeneratedFile, []Diagnostic) {
 
 type webGenerator struct {
 	program     Program
+	theme       *ThemeDecl
 	outDir      string
 	files       []GeneratedFile
 	diagnostics []Diagnostic
@@ -1761,16 +1767,16 @@ func (g *webGenerator) inlineUICSS() string {
 
 	for _, page := range g.program.Pages {
 		if len(page.Table.UI) > 0 {
-			rules = append(rules, inlineUIRulesFor("."+g.tableUIClass(page), "table", page.Table.UI)...)
+			rules = append(rules, g.inlineUIRulesFor("."+g.tableUIClass(page), "table", page.Table.UI)...)
 		}
 		if len(page.Form.UI) > 0 {
-			rules = append(rules, inlineUIRulesFor("."+g.formUIClass(page), "form", page.Form.UI)...)
+			rules = append(rules, g.inlineUIRulesFor("."+g.formUIClass(page), "form", page.Form.UI)...)
 		}
 		for _, actionUI := range page.ActionUI {
 			if len(actionUI.UI) == 0 {
 				continue
 			}
-			rules = append(rules, inlineUIRulesFor("."+g.actionUIClass(page, actionUI.Action), "button", actionUI.UI)...)
+			rules = append(rules, g.inlineUIRulesFor("."+g.actionUIClass(page, actionUI.Action), "button", actionUI.UI)...)
 		}
 
 		entity, ok := g.findEntity(page.Source)
@@ -1787,7 +1793,7 @@ func (g *webGenerator) inlineUICSS() string {
 				continue
 			}
 			seenFieldRules[className] = true
-			rules = append(rules, inlineUIRulesFor("."+className, "field", field.UI)...)
+			rules = append(rules, g.inlineUIRulesFor("."+className, "field", field.UI)...)
 		}
 	}
 
@@ -1813,14 +1819,15 @@ func (g *webGenerator) inlineUICSS() string {
 	return strings.TrimRight(builder.String(), "\n") + "\n"
 }
 
-func inlineUIRulesFor(selector string, target string, intents []UIIntent) []uiCSSRule {
+func (g *webGenerator) inlineUIRulesFor(selector string, target string, intents []UIIntent) []uiCSSRule {
 	rules := []uiCSSRule{}
 	for _, intent := range intents {
+		values := g.uiSlotValues(intent)
 		switch intent.Mode {
 		case "box":
-			rules = append(rules, uiCSSRule{selector: selector, declarations: boxUIDeclarations(intent.Values)})
+			rules = append(rules, uiCSSRule{selector: selector, declarations: boxUIDeclarations(values)})
 		case "text":
-			textDeclarations := textUIDeclarations(intent.Values)
+			textDeclarations := textUIDeclarations(values)
 			rules = append(rules, uiCSSRule{selector: selector, declarations: textDeclarations})
 			switch target {
 			case "form":
@@ -1829,29 +1836,57 @@ func inlineUIRulesFor(selector string, target string, intents []UIIntent) []uiCS
 				rules = append(rules, uiCSSRule{selector: selector + " th, " + selector + " td", declarations: textDeclarations})
 			}
 		case "table":
-			rules = append(rules, tableUIRules(selector, intent.Values)...)
+			rules = append(rules, tableUIRules(selector, values)...)
 		case "button":
 			buttonSelector := selector
 			if target == "form" {
 				buttonSelector += " button"
 			}
-			rules = append(rules, uiCSSRule{selector: buttonSelector, declarations: buttonUIDeclarations(intent.Values)})
+			rules = append(rules, uiCSSRule{selector: buttonSelector, declarations: buttonUIDeclarations(values)})
 		}
 	}
 	return rules
 }
 
-func boxUIDeclarations(values []string) []string {
+func (g *webGenerator) uiSlotValues(intent UIIntent) map[string]string {
+	slots := g.uiSlotsForMode(intent.Mode)
+	values := map[string]string{}
+	for index, slot := range slots {
+		if index >= len(intent.Values) {
+			break
+		}
+		if value := uiValue(intent.Values, index); value != "" {
+			values[slot] = value
+		}
+	}
+	return values
+}
+
+func (g *webGenerator) uiSlotsForMode(mode string) []string {
+	if g.theme != nil {
+		for _, declaredMode := range g.theme.Profile.Modes {
+			if declaredMode.Name == mode && len(declaredMode.Slots) > 0 {
+				return declaredMode.Slots
+			}
+		}
+	}
+	if group, ok := standardUIModeGroup(mode); ok {
+		return group.DefaultSlots
+	}
+	return []string{}
+}
+
+func boxUIDeclarations(values map[string]string) []string {
 	declarations := []string{}
-	color := uiValue(values, 0)
-	width := uiValue(values, 1)
-	style := uiValue(values, 2)
-	pt := uiValue(values, 3)
-	pr := uiValue(values, 4)
-	pb := uiValue(values, 5)
-	pl := uiValue(values, 6)
-	radius := uiValue(values, 7)
-	place := uiValue(values, 8)
+	color := uiSlotValue(values, "color")
+	width := uiSlotValue(values, "width")
+	style := uiSlotValue(values, "style")
+	pt := uiSlotValue(values, "pt")
+	pr := uiSlotValue(values, "pr")
+	pb := uiSlotValue(values, "pb")
+	pl := uiSlotValue(values, "pl")
+	radius := uiSlotValue(values, "radius")
+	place := uiSlotValue(values, "place")
 
 	if color != "" {
 		declarations = append(declarations, "border-color: "+cssColor(color)+";")
@@ -1874,29 +1909,29 @@ func boxUIDeclarations(values []string) []string {
 	return declarations
 }
 
-func textUIDeclarations(values []string) []string {
+func textUIDeclarations(values map[string]string) []string {
 	declarations := []string{}
-	if color := uiValue(values, 0); color != "" {
+	if color := uiSlotValue(values, "color"); color != "" {
 		declarations = append(declarations, "color: "+cssColor(color)+";")
 	}
-	if size := uiValue(values, 1); size != "" {
+	if size := uiSlotValue(values, "size"); size != "" {
 		declarations = append(declarations, "font-size: "+cssLength(size)+";")
 	}
-	if weight := uiValue(values, 2); weight != "" {
+	if weight := uiSlotValue(values, "weight"); weight != "" {
 		declarations = append(declarations, "font-weight: "+cssFontWeight(weight)+";")
 	}
-	if align := uiValue(values, 3); align != "" {
+	if align := uiSlotValue(values, "align"); align != "" {
 		declarations = append(declarations, "text-align: "+align+";")
 	}
 	return declarations
 }
 
-func tableUIRules(selector string, values []string) []uiCSSRule {
-	color := cssColor(uiValue(values, 0))
-	width := cssLength(uiValue(values, 1))
-	style := uiValue(values, 2)
-	density := strings.ToLower(uiValue(values, 3))
-	zebra := strings.ToLower(uiValue(values, 4))
+func tableUIRules(selector string, values map[string]string) []uiCSSRule {
+	color := cssColor(uiSlotValue(values, "color"))
+	width := cssLength(uiSlotValue(values, "width"))
+	style := uiSlotValue(values, "style")
+	density := strings.ToLower(uiSlotValue(values, "density"))
+	zebra := strings.ToLower(uiSlotValue(values, "zebra"))
 
 	if color == "" {
 		color = "#d8dee4"
@@ -1949,12 +1984,12 @@ func tableUIRules(selector string, values []string) []uiCSSRule {
 	return rules
 }
 
-func buttonUIDeclarations(values []string) []string {
-	bg := cssColor(uiValue(values, 0))
-	color := cssColor(uiValue(values, 1))
-	radius := cssRadius(uiValue(values, 2))
-	size := strings.ToLower(uiValue(values, 3))
-	variant := strings.ToLower(uiValue(values, 4))
+func buttonUIDeclarations(values map[string]string) []string {
+	bg := cssColor(uiSlotValue(values, "bg", "background"))
+	color := cssColor(uiSlotValue(values, "color"))
+	radius := cssRadius(uiSlotValue(values, "radius"))
+	size := strings.ToLower(uiSlotValue(values, "size"))
+	variant := strings.ToLower(uiSlotValue(values, "variant"))
 
 	if bg == "" {
 		bg = "#1f6feb"
@@ -2011,6 +2046,15 @@ func buttonUIDeclarations(values []string) []string {
 		)
 	}
 	return declarations
+}
+
+func uiSlotValue(values map[string]string, names ...string) string {
+	for _, name := range names {
+		if value := values[name]; value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func uiValue(values []string, index int) string {

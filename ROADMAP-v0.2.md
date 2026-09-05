@@ -49,6 +49,7 @@ This phase starts the BlackLang-native UI layer instead of forcing users or AI a
 - [x] Add mode groups such as `box`, `text`, `table`, and `button`
 - [x] Support inline UI intent near fields, forms, tables, and buttons
 - [x] Generate CSS from UI intent
+- [x] Make CSS generation read `.blackthm` `ui <mode> = <slot...>;` order
 - [ ] Add migration rules for UI profile changes
 
 ## Phase 21: Query, Actions, and Data Logic

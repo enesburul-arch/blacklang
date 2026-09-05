@@ -138,8 +138,8 @@ func TestFindUIProfileDoc(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected ui-profile docs")
 	}
-	if !strings.Contains(doc.Syntax, "mode <name> <slot...>") {
-		t.Fatalf("expected ui-profile docs to mention mode slots, got %#v", doc)
+	if !strings.Contains(doc.Syntax, "ui <mode> = <slot...>") {
+		t.Fatalf("expected ui-profile docs to mention generator ui slot order, got %#v", doc)
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "DUPLICATE_UI_SLOT") {
 		t.Fatalf("expected ui-profile docs to mention duplicate slot diagnostics, got %#v", doc)
@@ -154,7 +154,7 @@ func TestFindUIModesDoc(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected ui-modes docs")
 	}
-	if !strings.Contains(doc.Syntax, "mode box") {
+	if !strings.Contains(doc.Syntax, "ui box") {
 		t.Fatalf("expected ui-modes docs to mention standard modes, got %#v", doc)
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "MISSING_STANDARD_UI_MODE") {

@@ -20,14 +20,16 @@ button  action control styling for generated and explicit buttons
 ```blackthm
 profile UICompact {
   version 1
-  mode box color width style pt pr pb pl radius place
-  mode text color size weight align
-  mode table color width style density zebra
-  mode button bg color radius size variant
+  ui box = color width style pt pr pb pl radius place;
+  ui text = color size weight align;
+  ui table = color width style density zebra;
+  ui button = bg color radius size variant;
 }
 ```
 
 Web profiles must include all four standard modes. Custom modes can be added later, but the standard modes keep common web UI work predictable for AI agents.
+
+Legacy `mode <name> <slot...>` lines are still accepted, but `ui <mode> = <slot...>;` is the preferred generator order syntax.
 
 ## Inspect Output
 

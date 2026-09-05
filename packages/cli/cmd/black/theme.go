@@ -18,23 +18,7 @@ func InspectTheme(args []string) ThemeInspectResult {
 		file = "theme.blackthm"
 	}
 
-	source, err := os.ReadFile(file)
-	if err != nil {
-		return ThemeInspectResult{
-			Success: false,
-			Command: "theme inspect",
-			Version: version,
-			File:    file,
-			Errors: []Diagnostic{{
-				File:       file,
-				Code:       "FILE_READ_ERROR",
-				Message:    err.Error(),
-				Suggestion: "Pass a readable .blackthm file path or set theme in blacklang.toml.",
-			}},
-		}
-	}
-
-	theme, diagnostics := ParseTheme(file, string(source))
+	theme, diagnostics := LoadTheme(file)
 	return ThemeInspectResult{
 		Success: len(diagnostics) == 0,
 		Command: "theme inspect",
@@ -43,6 +27,19 @@ func InspectTheme(args []string) ThemeInspectResult {
 		Theme:   theme,
 		Errors:  diagnostics,
 	}
+}
+
+func LoadTheme(file string) (ThemeDecl, []Diagnostic) {
+	source, err := os.ReadFile(file)
+	if err != nil {
+		return ThemeDecl{}, []Diagnostic{{
+			File:       file,
+			Code:       "FILE_READ_ERROR",
+			Message:    err.Error(),
+			Suggestion: "Pass a readable .blackthm file path or set theme in blacklang.toml.",
+		}}
+	}
+	return ParseTheme(file, string(source))
 }
 
 func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
@@ -177,7 +174,7 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 			theme.Profile.Baselines = append(theme.Profile.Baselines, newUIModeDecl(parts[1], slots, statement.Position))
 		case "mode":
 			if section != "profile" || len(parts) < 3 || !isThemeIdentifier(parts[1]) {
-				addDiagnostic(statement.Position, "INVALID_UI_MODE", "UI modes must be declared inside a profile with `mode <name> <slot...>`.", "Use `mode box color width style pt pr pb pl radius place` inside `profile UICompact`.")
+				addDiagnostic(statement.Position, "INVALID_UI_MODE", "UI modes must be declared inside a profile with `mode <name> <slot...>` or `ui <mode> = <slot...>;`.", "Use `ui box = color width style pt pr pb pl radius place;` inside `profile UICompact`.")
 				continue
 			}
 			slots := parts[2:]
@@ -196,8 +193,31 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 			}
 			modeNames[parts[1]] = statement.Position
 			theme.Profile.Modes = append(theme.Profile.Modes, newUIModeDecl(parts[1], slots, statement.Position))
+		case "ui":
+			parts = withoutTrailingSemicolon(parts)
+			if section != "profile" || len(parts) < 5 || !isThemeIdentifier(parts[1]) || parts[2] != "=" {
+				addDiagnostic(statement.Position, "INVALID_UI_MODE", "Generator UI slot order must use `ui <mode> = <slot...>;` inside a profile.", "Use `ui box = color width style pt pr pb pl radius place;`.")
+				continue
+			}
+			modeName := parts[1]
+			slots := parts[3:]
+			validSlots, duplicateSlot := validateUISlotList(slots)
+			if !validSlots {
+				addDiagnostic(statement.Position, "INVALID_UI_MODE", "UI mode slots must be simple identifiers.", "Use slot names such as color, width, style, pt, pr, pb, pl, radius, or place.")
+				continue
+			}
+			if duplicateSlot != "" {
+				addDiagnostic(statement.Position, "DUPLICATE_UI_SLOT", fmt.Sprintf("UI mode %s repeats slot %s.", modeName, duplicateSlot), "Keep each slot once per mode so positional values map to one property.")
+				continue
+			}
+			if previous, ok := modeNames[modeName]; ok {
+				addDiagnostic(statement.Position, "DUPLICATE_UI_MODE", fmt.Sprintf("UI mode %s is already declared.", modeName), fmt.Sprintf("Keep one mode declaration. First declaration is at line %d.", previous.Line))
+				continue
+			}
+			modeNames[modeName] = statement.Position
+			theme.Profile.Modes = append(theme.Profile.Modes, newUIModeDecl(modeName, slots, statement.Position))
 		default:
-			addDiagnostic(statement.Position, "INVALID_THEME_DECLARATION", fmt.Sprintf("Unsupported .blackthm statement %q.", parts[0]), "Use blackthm, version, target, locked, token, profile, baseline, or mode.")
+			addDiagnostic(statement.Position, "INVALID_THEME_DECLARATION", fmt.Sprintf("Unsupported .blackthm statement %q.", parts[0]), "Use blackthm, version, target, locked, token, profile, baseline, mode, or ui.")
 		}
 	}
 
@@ -214,7 +234,7 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 		addDiagnostic(theme.Profile.Position, "MISSING_UI_PROFILE_VERSION", "UI profile must declare a version.", "Add `version 1` inside the profile block.")
 	}
 	if theme.Profile.Name != "" && len(theme.Profile.Modes) == 0 {
-		addDiagnostic(theme.Profile.Position, "MISSING_UI_MODES", "UI profile must declare at least one mode.", "Add a mode such as `mode box color width style pt pr pb pl radius place`.")
+		addDiagnostic(theme.Profile.Position, "MISSING_UI_MODES", "UI profile must declare at least one generator UI slot order.", "Add a slot order such as `ui box = color width style pt pr pb pl radius place;`.")
 	}
 	if theme.Profile.Name != "" && len(theme.Profile.Modes) > 0 {
 		validateStandardUIModeGroups(theme.Profile, theme.Locked, addDiagnostic)
@@ -308,9 +328,9 @@ func validateStandardUIModeGroups(profile UIProfileDecl, locked bool, addDiagnos
 		if !group.Required || modes[group.Name] {
 			continue
 		}
-		suggestion := fmt.Sprintf("Add `mode %s %s` to the profile.", group.Name, strings.Join(group.DefaultSlots, " "))
+		suggestion := fmt.Sprintf("Add `ui %s = %s;` to the profile.", group.Name, strings.Join(group.DefaultSlots, " "))
 		if locked {
-			suggestion = fmt.Sprintf("Add `baseline %s %s` and `mode %s %s` to the locked profile.", group.Name, strings.Join(group.DefaultSlots, " "), group.Name, strings.Join(group.DefaultSlots, " "))
+			suggestion = fmt.Sprintf("Add `baseline %s %s` and `ui %s = %s;` to the locked profile.", group.Name, strings.Join(group.DefaultSlots, " "), group.Name, strings.Join(group.DefaultSlots, " "))
 		}
 		addDiagnostic(profile.Position, "MISSING_STANDARD_UI_MODE", fmt.Sprintf("UI profile is missing required standard mode %s.", group.Name), suggestion)
 	}
@@ -389,6 +409,13 @@ func withoutOpeningBrace(parts []string) []string {
 		clean = append(clean, part)
 	}
 	return clean
+}
+
+func withoutTrailingSemicolon(parts []string) []string {
+	if len(parts) == 0 || parts[len(parts)-1] != ";" {
+		return parts
+	}
+	return parts[:len(parts)-1]
 }
 
 func parsePositiveThemeInt(value string) (int, bool) {

@@ -78,6 +78,22 @@ black docs diagnostics --json`,
 		},
 		Errors: []string{"FILE_READ_ERROR", "UNKNOWN_TABLE_COLUMN", "UNKNOWN_AFFECTED_SYMBOL", "HARDCODED_TOKEN"},
 	},
+	"agent": {
+		Keyword: "agent",
+		Purpose: "Prints the project startup checklist an AI agent should follow before editing BlackLang source.",
+		Syntax:  "black agent startup [file] [--json|--ir]",
+		Example: `black agent startup --json
+black agent startup examples/warehouse/app.black --json
+black agent startup --ir`,
+		AgentNotes: []string{
+			"Use black agent startup --json as the first command after entering an unfamiliar BlackLang project.",
+			"The readFirst array tells the agent which local files to read before editing.",
+			"The checklist array gives a deterministic project entry workflow.",
+			"The commands array lists validation, inspection, build, and source-security commands with resolved source/out paths.",
+			"If success is false, use the errors array before making source changes.",
+		},
+		Errors: []string{"UNKNOWN_AGENT_COMMAND", "FILE_READ_ERROR", "FORMAT_REQUIRED", "HARDCODED_TOKEN"},
+	},
 	"docs": {
 		Keyword: "docs",
 		Purpose: "Prints compact BlackLang reference entries for one keyword or every known keyword.",

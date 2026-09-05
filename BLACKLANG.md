@@ -121,6 +121,7 @@ black lint --json
 black validate --json
 black inspect --json
 black inspect --affected Product.stock --json
+black agent startup --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -171,6 +172,19 @@ black inspect app.black --affected Product.stock --json
 The affected output tells AI agents which entities, pages, roles, workflows, states, components, APIs, and generated files may change when a symbol is edited.
 
 Use it before renaming or changing important fields such as `status`, relation fields, workflow source entities, or role-scoped fields.
+
+## Current Agent Startup Command
+
+Draft v0.2 supports a deterministic startup checklist for AI agents:
+
+```bash
+black agent startup --json
+black agent startup app.black --json
+```
+
+The output tells an agent which local files to read first, which `.black` source file is the source of truth, which generated directory should be treated as rebuildable output, and which commands to run before and after edits.
+
+Agents should run this when entering an unfamiliar BlackLang project instead of guessing the project workflow from memory.
 
 ## Current Diagnostic Documentation
 

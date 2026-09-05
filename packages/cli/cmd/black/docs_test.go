@@ -104,6 +104,19 @@ func TestFindDiagnosticsDoc(t *testing.T) {
 	}
 }
 
+func TestFindAgentDoc(t *testing.T) {
+	doc, ok := FindDoc("agent")
+	if !ok {
+		t.Fatalf("expected agent docs")
+	}
+	if !strings.Contains(doc.Syntax, "agent startup") {
+		t.Fatalf("expected agent docs to mention startup, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "UNKNOWN_AGENT_COMMAND") {
+		t.Fatalf("expected agent docs to mention UNKNOWN_AGENT_COMMAND, got %#v", doc)
+	}
+}
+
 func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
 	if err != nil {

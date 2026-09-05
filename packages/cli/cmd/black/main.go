@@ -44,6 +44,8 @@ func main() {
 		runDocs(args[1:])
 	case "explain":
 		runExplain(args[1:])
+	case "agent":
+		runAgent(args[1:])
 	case "security":
 		runSecurity(args[1:])
 	case "package":
@@ -182,6 +184,7 @@ Commands:
   inspect     Print project summary or affected graph for humans or AI agents
   docs        Print compact language docs for one keyword or all keywords
   explain     Print action-oriented docs for one keyword
+  agent       Print AI agent startup checklist output
   security    Scan BlackLang source for source-security risks
   package     Create deployable artifacts without protected source files
   version     Print CLI version
@@ -715,7 +718,7 @@ func runDocs(args []string) {
 		result.Errors = []Diagnostic{{
 			Code:       "UNKNOWN_DOC_KEYWORD",
 			Message:    fmt.Sprintf("No docs entry exists for %q.", keyword),
-			Suggestion: "Use syntax, version, docs, explain, format, lint, app, auth, role, access, entity, layout, page, table, form, actions, search, filter, paginate, workflow, state, component, blackir, openapi, security, audit, or csrf.",
+			Suggestion: "Use syntax, version, docs, explain, agent, diagnostics, format, lint, app, auth, role, access, entity, layout, page, table, form, actions, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, audit, or csrf.",
 		}}
 	}
 
@@ -780,6 +783,65 @@ func runExplain(args []string) {
 	if !result.Success {
 		os.Exit(1)
 	}
+}
+
+func runAgent(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printAgentHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	startupArgs := args
+	if len(args) > 0 && args[0] == "startup" {
+		startupArgs = args[1:]
+	} else if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_AGENT_COMMAND",
+			Message:    fmt.Sprintf("No agent command exists for %q.", args[0]),
+			Suggestion: "Use `black agent startup --json`.",
+		}
+		printCommandError("agent", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+
+	result := AgentStartupChecklist(startupArgs)
+	if irOutput {
+		if result.Success {
+			fmt.Print(FormatAgentStartupIR(result))
+		} else {
+			printDiagnosticsIR("agent startup", result.Errors)
+		}
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+
+	printAgentStartupResult(result)
+	if !result.Success {
+		os.Exit(1)
+	}
+}
+
+func printAgentHelp() {
+	fmt.Println(`BlackLang agent
+
+Usage:
+  black agent startup [file] [options]
+  black agent [options]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
 }
 
 func printExplainHelp() {
@@ -1001,6 +1063,41 @@ func printAffectedItems(label string, items []AffectedItem) {
 			continue
 		}
 		fmt.Printf("- %s: %s\n", item.Name, item.Reason)
+	}
+}
+
+func printAgentStartupResult(result AgentStartupResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+
+	fmt.Println("agent startup ok")
+	if result.Config.LanguageVersion != "" {
+		fmt.Printf("language: %s\n", result.Config.LanguageVersion)
+	}
+	if result.Config.Target != "" {
+		fmt.Printf("target: %s\n", result.Config.Target)
+	}
+	fmt.Printf("source: %s\n", result.Config.Source)
+	fmt.Printf("out: %s\n", result.Config.Out)
+	fmt.Printf("app: %s\n", result.Summary.App)
+	fmt.Println("read first:")
+	for _, file := range result.ReadFirst {
+		status := "missing"
+		if file.Exists {
+			status = "exists"
+		}
+		fmt.Printf("- %s (%s): %s\n", file.Path, status, file.Purpose)
+	}
+	fmt.Println("checklist:")
+	for _, item := range result.Checklist {
+		fmt.Printf("%d. %s\n", item.Step, item.Action)
 	}
 }
 

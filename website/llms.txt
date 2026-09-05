@@ -19,6 +19,7 @@ Read first:
 - `#roles` for role and access rules.
 - `#security` for source security rules.
 - `#cli` for machine-readable commands.
+- `#ai-agents` for `black agent startup --json` project entry output.
 - `#errors` for diagnostic JSON shape and code families.
 - `/diagnostics.md` for the stable diagnostic code reference.
 - `#ai-agents` for agent workflow.
@@ -31,9 +32,10 @@ Read first:
 
 Agent rule:
 
-1. Read local `AGENTS.md`, `BLACKLANG.md`, `SPEC.md`, and `blacklang.toml` when available.
-2. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-3. Modify `.black` source files, not generated output.
-4. Run `black format --check --json`, `black lint --json`, and `black build`.
-5. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-6. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+1. Run `black agent startup --json` when available.
+2. Read the returned `readFirst` files that exist.
+3. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+4. Modify `.black` source files, not generated output.
+5. Run `black format --check --json`, `black lint --json`, and `black build`.
+6. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+7. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

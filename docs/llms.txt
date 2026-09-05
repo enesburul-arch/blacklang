@@ -12,6 +12,7 @@ Read these pages first:
 - /cli/parse
 - /cli/validate
 - /cli/inspect
+- /cli/agent-startup
 - /cli/docs
 - /ai-agents/codex
 - /ai-agents/learning-cost
@@ -38,6 +39,8 @@ Important principle:
 BlackLang may be unknown to AI models at first. Use local docs, version-aware CLI output, and JSON diagnostics as the source of truth.
 
 Use BlackIR when a compact AI-readable project summary is better than verbose JSON.
+
+Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
 
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 

@@ -580,6 +580,7 @@ api StockWebhook {
         <div class="code-panel">
           <div class="code-title">AI dostu komutlar</div>
           <pre><code class="language-bash">black version --json
+black agent startup --json
 black format --check --json
 black lint --json
 black parse examples/warehouse/app.black --json
@@ -592,6 +593,8 @@ black explain entity --json
 black security scan --json</code></pre>
         </div>
         <p>
+          `agent startup`, AI ajanına proje girişinde okunacak dosyaları, source/out yollarını,
+          generated dosya sınırlarını ve doğrulama komutlarını tek JSON çıktıda verir.
           `lint` format, parse, validate ve source-security bulgularını tek raporda toplar.
           `inspect --affected`, bir entity, field, page, role, workflow, state, component
           veya api değiştiğinde hangi kaynak parçalarının ve generated dosyaların etkileneceğini
@@ -650,16 +653,32 @@ HARDCODED_*   likely secret is stored in source</code></pre>
         </p>
         <div class="code-panel">
           <div class="code-title">Agent başlangıç akışı</div>
-          <pre><code>1. Read AGENTS.md
-2. Read BLACKLANG.md
-3. Check blacklang.toml
-4. Run black inspect --json or --ir
-5. Run black inspect --affected Product.stock --json before high-impact edits
-6. Edit only .black source files
-7. Run black format --check --json
-8. Run black lint --json
-9. Run black build
-10. Do not manually edit generated files</code></pre>
+          <pre><code>1. Run black agent startup --json
+2. Read returned readFirst files that exist
+3. Run black inspect --json or --ir
+4. Run black inspect --affected Product.stock --json before high-impact edits
+5. Edit only .black source files
+6. Run black format --check --json
+7. Run black lint --json
+8. Run black build
+9. Do not manually edit generated files</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Startup JSON özeti</div>
+          <pre><code class="language-json">{
+  "command": "agent startup",
+  "readFirst": [
+    { "path": "AGENTS.md", "exists": true },
+    { "path": "blacklang.toml", "exists": true },
+    { "path": "docs/diagnostics.md", "exists": true }
+  ],
+  "sourceFiles": ["examples/warehouse/app.black"],
+  "generatedDirs": ["generated"],
+  "commands": [
+    { "name": "inspect", "command": "black inspect examples/warehouse/app.black --json" },
+    { "name": "lint", "command": "black lint examples/warehouse/app.black --json" }
+  ]
+}</code></pre>
         </div>
         <p>
           Hedef sıfır öğrenme maliyeti değildir. Hedef, ilk öğrenmeden sonra tekrar eden

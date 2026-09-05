@@ -196,6 +196,39 @@ type ExplainResult struct {
 	Errors     []Diagnostic `json:"errors"`
 }
 
+type AgentStartupResult struct {
+	Success       bool                 `json:"success"`
+	Command       string               `json:"command"`
+	Version       string               `json:"version"`
+	Config        ConfigInfo           `json:"config"`
+	Summary       Summary              `json:"summary"`
+	ReadFirst     []AgentReadFile      `json:"readFirst"`
+	SourceFiles   []string             `json:"sourceFiles"`
+	GeneratedDirs []string             `json:"generatedDirs"`
+	Checklist     []AgentChecklistItem `json:"checklist"`
+	Commands      []AgentCommand       `json:"commands"`
+	Policies      []string             `json:"policies"`
+	Errors        []Diagnostic         `json:"errors"`
+}
+
+type AgentReadFile struct {
+	Path    string `json:"path"`
+	Purpose string `json:"purpose"`
+	Exists  bool   `json:"exists"`
+}
+
+type AgentChecklistItem struct {
+	Step   int    `json:"step"`
+	Action string `json:"action"`
+	Reason string `json:"reason"`
+}
+
+type AgentCommand struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
+	Purpose string `json:"purpose"`
+}
+
 type DocEntry struct {
 	Keyword    string   `json:"keyword"`
 	Purpose    string   `json:"purpose"`

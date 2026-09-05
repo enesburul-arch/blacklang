@@ -145,7 +145,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 32,
+  "count": 33,
   "docs": [
     {
       "keyword": "entity",
@@ -161,6 +161,56 @@ JSON shape:
 ```
 
 The `docs` array is sorted by keyword for deterministic AI context. Agents should use `black docs --all --json` when entering an unfamiliar BlackLang project, and `black docs <keyword> --json` for focused edits.
+
+## Current Agent Startup Command
+
+Draft v0.2 supports a deterministic project entry checklist:
+
+```bash
+black agent startup --json
+black agent startup app.black --json
+black agent startup --ir
+```
+
+When the file argument is omitted, the CLI reads `blacklang.toml` and uses the configured `source` and `out` paths.
+
+JSON shape:
+
+```json
+{
+  "success": true,
+  "command": "agent startup",
+  "version": "0.1.0-dev",
+  "config": {
+    "languageVersion": "0.1",
+    "target": "web",
+    "source": "examples/warehouse/app.black",
+    "out": "generated"
+  },
+  "summary": {
+    "app": "Warehouse",
+    "entities": 3,
+    "pages": 3
+  },
+  "readFirst": [
+    {
+      "path": "AGENTS.md",
+      "purpose": "Local rules for AI agents working in this project.",
+      "exists": true
+    }
+  ],
+  "sourceFiles": ["examples/warehouse/app.black"],
+  "generatedDirs": ["generated"],
+  "checklist": [],
+  "commands": [],
+  "policies": [],
+  "errors": []
+}
+```
+
+If the project currently has parse, validation, or file-read diagnostics, the command still returns the startup checklist but sets `success` to `false` and fills `errors`.
+
+AI agents should run this before editing an unfamiliar project so they can learn local files, generated output boundaries, validation commands, and source-security rules from one stable compiler output.
 
 ## Current Diagnostic Documentation
 
@@ -664,6 +714,7 @@ black docs entity --json
 black docs page --json
 black explain table --json
 black explain entity --json
+black agent startup --json
 black inspect app.black --affected Product.stock --json
 ```
 
@@ -1028,6 +1079,7 @@ black build <file> --out generated --json
 black validate --ir
 black build --ir
 black inspect --ir
+black agent startup --json
 black docs entity --ir
 black docs --all --json
 black explain entity --json

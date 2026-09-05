@@ -37,7 +37,7 @@ This phase helps humans and AI agents edit `.black` files with less guesswork.
 - [x] Add `black explain <keyword> --json`
 - [x] Add `black inspect --affected <symbol> --json`
 - [x] Add stable diagnostic documentation
-- [ ] Add agent startup checklist output
+- [x] Add agent startup checklist output
 
 ## Phase 20: UI and Theme Language
 

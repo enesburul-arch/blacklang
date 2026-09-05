@@ -293,6 +293,7 @@ UNSUPPORTED_STATE_MODAL_DEFAULT
 
 ```text
 MISSING_AFFECTED_SYMBOL
+UNKNOWN_AGENT_COMMAND
 UNKNOWN_AFFECTED_SYMBOL
 UNKNOWN_DOC_KEYWORD
 UNKNOWN_EXPLAIN_KEYWORD
@@ -319,4 +320,3 @@ UNCLOSED_*    add the missing closing quote or brace
 UNEXPECTED_*  move the token to a valid block or remove it
 HARDCODED_*   move secret values to env or a secret manager
 ```
-

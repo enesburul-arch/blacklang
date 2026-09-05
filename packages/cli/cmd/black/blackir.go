@@ -390,6 +390,46 @@ func FormatExplainIR(result ExplainResult) string {
 	return builder.String()
 }
 
+func FormatAgentStartupIR(result AgentStartupResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("agent startup ok\n")
+	if result.Config.LanguageVersion != "" {
+		builder.WriteString(fmt.Sprintf("language %s\n", result.Config.LanguageVersion))
+	}
+	if result.Config.Target != "" {
+		builder.WriteString(fmt.Sprintf("target %s\n", result.Config.Target))
+	}
+	builder.WriteString(fmt.Sprintf("source %s\n", result.Config.Source))
+	builder.WriteString(fmt.Sprintf("out %s\n", result.Config.Out))
+	if result.Summary.App != "" {
+		builder.WriteString(fmt.Sprintf("app %s\n", result.Summary.App))
+	}
+	if len(result.ReadFirst) > 0 {
+		builder.WriteString("readFirst\n")
+		for _, file := range result.ReadFirst {
+			exists := "missing"
+			if file.Exists {
+				exists = "exists"
+			}
+			builder.WriteString(fmt.Sprintf("  %s %s purpose %q\n", exists, file.Path, file.Purpose))
+		}
+	}
+	if len(result.Checklist) > 0 {
+		builder.WriteString("checklist\n")
+		for _, item := range result.Checklist {
+			builder.WriteString(fmt.Sprintf("  %d action %q reason %q\n", item.Step, item.Action, item.Reason))
+		}
+	}
+	if len(result.Commands) > 0 {
+		builder.WriteString("commands\n")
+		for _, command := range result.Commands {
+			builder.WriteString(fmt.Sprintf("  %s %q\n", command.Name, command.Command))
+		}
+	}
+	return builder.String()
+}
+
 func printDiagnosticsIR(command string, diagnostics []Diagnostic) {
 	var builder strings.Builder
 	builder.WriteString("blackir 0.1\n")

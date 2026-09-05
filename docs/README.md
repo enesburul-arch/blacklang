@@ -19,6 +19,7 @@ It should explain:
 - How JSON diagnostics work
 - How `.blackthm` theme profile files work
 - How compact UI profile slots are read
+- How standard UI mode groups work
 - How locked UI profiles enforce append-only slot changes
 - How AI agents should use the language
 
@@ -66,6 +67,7 @@ docs/
 - Errors: Error code reference
 - Reference: Theme profile
 - Reference: UI profile rules
+- Reference: UI modes
 
 ## Documentation Rule
 

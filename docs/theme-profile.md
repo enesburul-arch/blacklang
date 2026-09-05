@@ -69,6 +69,7 @@ blackthm WarehouseTheme {
 - A locked profile must contain `baseline <mode> <slot...>` lines.
 - `mode <name> <slot...>` defines the left-to-right slot order for compact inline UI intent.
 - A slot name may appear only once inside one mode.
+- Web UI profiles must contain standard `box`, `text`, `table`, and `button` mode groups.
 - In locked profiles, every baseline must be a prefix of the matching current mode.
 - In locked profiles, new slots are valid only when appended after the baseline prefix.
 
@@ -88,6 +89,20 @@ blackthm WarehouseTheme {
   "existingSlotsAfterLock": "immutable",
   "newSlotsAfterLock": "append-only"
 }
+```
+
+The same output includes `profile.modeGroups`, a stable machine-readable list of standard groups:
+
+```json
+[
+  {
+    "name": "box",
+    "purpose": "Container box styling for border, spacing, radius, and placement.",
+    "appliesTo": ["form", "table", "component", "panel"],
+    "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
+    "required": true
+  }
+]
 ```
 
 The planned inline UI line:
@@ -141,6 +156,17 @@ profile UICompact {
 ```
 
 It reports `NON_APPEND_ONLY_UI_SLOT` because the old slot order changed.
+
+## Standard Mode Groups
+
+```text
+box     container border, spacing, radius, and placement
+text    typography for labels, headings, helper text, and body copy
+table   table-specific border, density, and row pattern styling
+button  action control styling for generated and explicit buttons
+```
+
+If a web profile is missing one of these modes, `black theme inspect --json` reports `MISSING_STANDARD_UI_MODE`.
 
 ## Current CLI
 

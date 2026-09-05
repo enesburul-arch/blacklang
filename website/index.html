@@ -57,6 +57,7 @@
         <a href="#component">component</a>
         <a href="#theme">theme</a>
         <a href="#ui-profile">ui-profile</a>
+        <a href="#ui-modes">ui-modes</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cli">CLI</a>
@@ -560,9 +561,9 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
         </div>
         <p>
           Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
-          `profile.baselines` kilitli sırayı, `profile.modes[].slots` ise güncel sırayı
-          gösterir. Compiler, locked profilde mode satırlarının baseline ile başlamasını
-          zorunlu tutar.
+          `profile.modeGroups` standart UI gruplarını, `profile.baselines` kilitli sırayı,
+          `profile.modes[].slots` ise güncel sırayı gösterir. Compiler, locked profilde
+          mode satırlarının baseline ile başlamasını zorunlu tutar.
         </p>
       </section>
 
@@ -579,9 +580,13 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
   version 1
   baseline box color width style pt pr pb pl radius place
   baseline text color size weight align
+  baseline table color width style density zebra
+  baseline button bg color radius size variant
 
   mode box color width style pt pr pb pl radius place
   mode text color size weight align
+  mode table color width style density zebra
+  mode button bg color radius size variant
 }</code></pre>
         </div>
         <div class="code-panel">
@@ -593,6 +598,49 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
           değer hata sayılır, aynı mode içinde aynı slot iki kez yazılamaz. Profile
           kilitlendiğinde mevcut slotlar taşınamaz; yeni slotlar sadece sona eklenir.
           Araya slot eklenirse compiler `NON_APPEND_ONLY_UI_SLOT` hatası verir.
+        </p>
+      </section>
+
+      <section id="ui-modes">
+        <h2>ui-modes</h2>
+        <p>
+          Standart UI mode grupları, kompakt `ui` satırlarının hangi görsel bağlama ait
+          olduğunu compiler ve AI ajanı için açık hale getirir. Web profilleri `box`,
+          `text`, `table` ve `button` gruplarını içermelidir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Standart gruplar</div>
+          <pre><code>box     form, panel ve component container stilleri
+text    label, heading, help text ve body typography
+table   tablo border, density ve row pattern stilleri
+button  generated veya explicit action control stilleri</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Theme inspect JSON</div>
+          <pre><code class="language-json">{
+  "profile": {
+    "modeGroups": [
+      {
+        "name": "box",
+        "required": true,
+        "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
+        "appliesTo": ["form", "table", "component", "panel"]
+      }
+    ],
+    "modes": [
+      {
+        "name": "box",
+        "standard": true,
+        "slots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"]
+      }
+    ]
+  }
+}</code></pre>
+        </div>
+        <p>
+          Standart gruplardan biri eksikse `black theme inspect --json`
+          `MISSING_STANDARD_UI_MODE` diagnostic kodu döner. Bu kural, inline UI intent
+          aşamasına geçmeden önce her projenin aynı temel görsel sözlüğü paylaşmasını sağlar.
         </p>
       </section>
 
@@ -669,6 +717,7 @@ black build examples/warehouse/app.black --json
 black inspect --ir
 black inspect examples/project-management/app.black --affected ProjectTask.status --json
 black theme inspect --json
+black docs ui-modes --json
 black docs --all --json
 black explain entity --json
 black security scan --json</code></pre>

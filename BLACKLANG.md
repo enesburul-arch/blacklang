@@ -130,6 +130,7 @@ black inspect --affected Product.stock --json
 black agent startup --json
 black theme inspect --json
 black docs ui-profile --json
+black docs ui-modes --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -210,9 +211,13 @@ blackthm WarehouseTheme {
     version 1
     baseline box color width style pt pr pb pl radius place
     baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
 
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 ```
@@ -236,11 +241,19 @@ black theme inspect --json
 - Missing trailing values use defaults.
 - Extra values are errors.
 - Duplicate slots inside one mode are errors.
+- Web UI profiles require standard `box`, `text`, `table`, and `button` modes.
 - Locked profiles require `baseline <mode> <slot...>` lines.
 - Current mode slots must keep baseline slots as their exact prefix.
 - After profile lock, existing slots are immutable and new slots are append-only.
 
 This phase validates and exposes theme/profile metadata plus compact slot profile rules and locked append-only checks. CSS generation from theme intent comes later in Phase 20.
+
+Standard mode groups:
+
+- `box`: container border, spacing, radius, and placement
+- `text`: typography for labels, headings, helper text, and body copy
+- `table`: table-specific borders, density, and row patterns
+- `button`: action control styling
 
 ## Current Diagnostic Documentation
 

@@ -2093,6 +2093,7 @@ Bu yaklaşımın amacı:
 ### Mevcut v0.2 Uygulaması: `.blackthm` Lock Baseline
 
 v0.2 içinde bu kararın ilk çalışan karşılığı `.blackthm` dosyasıdır. Profil kilitliyse current `mode` satırlarının eski sırayı bozmadığını anlamak için `baseline` satırları kullanılır.
+Web UI profilleri ayrıca standart `box`, `text`, `table` ve `button` mode gruplarını içermelidir. Böylece compiler, IDE ve AI ajanı bir UI satırının container, typography, table veya action control alanına ait olduğunu tahmin etmeden anlayabilir.
 
 ```blackthm
 blackthm WarehouseTheme {
@@ -2102,7 +2103,14 @@ blackthm WarehouseTheme {
   profile UICompact {
     version 2
     baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style pt pr pb pl radius place shadow
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 ```
@@ -2121,6 +2129,8 @@ mode box color width shadow style pt pr pb pl radius place
 ```
 
 Çünkü `shadow` araya eklenmiştir ve eski UI satırlarının anlamını kaydırabilir. Compiler bu durumda `NON_APPEND_ONLY_UI_SLOT` hatası verir.
+
+`black theme inspect --json` çıktısındaki `profile.modeGroups`, bu standart grupların ne işe yaradığını, hangi elementlere uygulanacağını ve default slot sırasını gösterir. Standart gruplardan biri eksikse compiler `MISSING_STANDARD_UI_MODE` hatası verir.
 
 ## Aşama 27: Internationalization
 

@@ -19,6 +19,7 @@ Read these pages first:
 - /reference/blackir
 - /reference/theme-profile
 - /reference/ui-profile
+- /reference/ui-modes
 
 Core local files in this repository:
 
@@ -29,6 +30,7 @@ Core local files in this repository:
 - docs/diagnostics.md
 - docs/theme-profile.md
 - docs/ui-profile.md
+- docs/ui-modes.md
 - examples/warehouse/app.black
 - examples/warehouse/theme.blackthm
 - examples/crm/app.black
@@ -52,6 +54,8 @@ Use `black theme inspect --json` to inspect `.blackthm` UI token and profile met
 Use returned `profile.rules` and `profile.modes[].slots` before writing future compact inline UI intent.
 
 When a theme has `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
+
+Use `black docs ui-modes --json` or `profile.modeGroups` to understand the standard box, text, table, and button groups.
 
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 

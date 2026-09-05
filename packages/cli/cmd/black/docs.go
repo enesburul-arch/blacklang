@@ -105,12 +105,13 @@ black theme inspect examples/warehouse/theme.blackthm --ir`,
 			"Use .blackthm for deterministic UI tokens and mode slot profile metadata.",
 			"Set theme = \"path/to/theme.blackthm\" in blacklang.toml so agents can discover it.",
 			"Theme inspect returns profile.rules so agents know how compact inline UI values will be read.",
+			"Theme inspect returns profile.modeGroups for standard box, text, table, and button semantics.",
 			"When locked is true, baseline lines freeze existing mode slot prefixes.",
 			"Hex colors should be quoted because # starts a comment outside strings.",
 			"CSS generation from theme intent is planned for later Phase 20 steps.",
 			"Treat .blackthm files as source assets, not generated output.",
 		},
-		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
+		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_STANDARD_UI_MODE", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
 	},
 	"ui-profile": {
 		Keyword: "ui-profile",
@@ -135,8 +136,30 @@ form {
 			"Each slot name may appear only once inside a mode.",
 			"After a profile is locked, existing slots are immutable and new slots are append-only.",
 			"Locked profiles require baseline lines so the compiler can verify mode slots still start with the frozen order.",
+			"Web profiles must include the standard box, text, table, and button mode groups.",
 		},
-		Errors: []string{"INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
+		Errors: []string{"INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_STANDARD_UI_MODE", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
+	},
+	"ui-modes": {
+		Keyword: "ui-modes",
+		Purpose: "Documents the standard BlackLang UI mode groups used by web theme profiles.",
+		Syntax:  "mode box <slots...>; mode text <slots...>; mode table <slots...>; mode button <slots...>",
+		Example: `profile UICompact {
+  version 1
+  mode box color width style pt pr pb pl radius place
+  mode text color size weight align
+  mode table color width style density zebra
+  mode button bg color radius size variant
+}`,
+		AgentNotes: []string{
+			"box is for container border, spacing, radius, and placement.",
+			"text is for typography on labels, headings, helper text, and body copy.",
+			"table is for table-specific border, density, and row pattern styling.",
+			"button is for action control styling such as submit, create, edit, and delete buttons.",
+			"black theme inspect --json returns profile.modeGroups with purpose, appliesTo, and defaultSlots.",
+			"Missing standard modes return MISSING_STANDARD_UI_MODE.",
+		},
+		Errors: []string{"MISSING_STANDARD_UI_MODE"},
 	},
 	"docs": {
 		Keyword: "docs",

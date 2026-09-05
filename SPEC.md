@@ -147,7 +147,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 35,
+  "count": 36,
   "docs": [
     {
       "keyword": "entity",
@@ -292,8 +292,25 @@ JSON shape:
         "existingSlotsAfterLock": "immutable",
         "newSlotsAfterLock": "append-only"
       },
+      "modeGroups": [
+        {
+          "name": "box",
+          "purpose": "Container box styling for border, spacing, radius, and placement.",
+          "appliesTo": ["form", "table", "component", "panel"],
+          "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
+          "required": true
+        }
+      ],
       "baselines": [],
-      "modes": []
+      "modes": [
+        {
+          "name": "box",
+          "standard": true,
+          "purpose": "Container box styling for border, spacing, radius, and placement.",
+          "appliesTo": ["form", "table", "component", "panel"],
+          "slots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"]
+        }
+      ]
     }
   },
   "errors": []
@@ -310,6 +327,8 @@ Current compact UI profile rules:
 - Missing trailing values use defaults in later CSS generation phases.
 - Extra values are errors because they cannot map to known slots.
 - A slot name may appear only once inside the same mode.
+- Web UI profiles must include the standard `box`, `text`, `table`, and `button` modes.
+- `profile.modeGroups` tells AI agents what each standard mode means and where it applies.
 - Locked profiles must include `baseline <mode> <slot...>` lines.
 - Current mode slots must start with the exact baseline slot sequence.
 - After a profile is locked, existing slots are immutable and new slots are append-only.
@@ -337,6 +356,17 @@ profile UICompact {
 It returns `NON_APPEND_ONLY_UI_SLOT`.
 
 Profile migration tooling for intentional reorder operations is planned for later Phase 20 steps.
+
+Current standard UI mode groups:
+
+```text
+box     container border, spacing, radius, and placement
+text    typography for labels, headings, helper text, and body copy
+table   table-specific border, density, and row pattern styling
+button  action control styling for submit and page action buttons
+```
+
+If any standard mode is missing, `black theme inspect --json` returns `MISSING_STANDARD_UI_MODE`.
 
 ## Current Diagnostic Documentation
 
@@ -844,6 +874,7 @@ black explain entity --json
 black agent startup --json
 black theme inspect --json
 black docs ui-profile --json
+black docs ui-modes --json
 black inspect app.black --affected Product.stock --json
 ```
 

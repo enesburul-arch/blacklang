@@ -54,10 +54,11 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 		Locked:  false,
 		Tokens:  []ThemeToken{},
 		Profile: UIProfileDecl{
-			Version:   0,
-			Rules:     defaultUIProfileRules(),
-			Baselines: []UIModeDecl{},
-			Modes:     []UIModeDecl{},
+			Version:    0,
+			Rules:      defaultUIProfileRules(),
+			ModeGroups: standardUIModeGroups(),
+			Baselines:  []UIModeDecl{},
+			Modes:      []UIModeDecl{},
 		},
 	}
 	section := ""
@@ -173,11 +174,7 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 				continue
 			}
 			baselineNames[parts[1]] = statement.Position
-			theme.Profile.Baselines = append(theme.Profile.Baselines, UIModeDecl{
-				Name:     parts[1],
-				Slots:    slots,
-				Position: statement.Position,
-			})
+			theme.Profile.Baselines = append(theme.Profile.Baselines, newUIModeDecl(parts[1], slots, statement.Position))
 		case "mode":
 			if section != "profile" || len(parts) < 3 || !isThemeIdentifier(parts[1]) {
 				addDiagnostic(statement.Position, "INVALID_UI_MODE", "UI modes must be declared inside a profile with `mode <name> <slot...>`.", "Use `mode box color width style pt pr pb pl radius place` inside `profile UICompact`.")
@@ -198,11 +195,7 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 				continue
 			}
 			modeNames[parts[1]] = statement.Position
-			theme.Profile.Modes = append(theme.Profile.Modes, UIModeDecl{
-				Name:     parts[1],
-				Slots:    slots,
-				Position: statement.Position,
-			})
+			theme.Profile.Modes = append(theme.Profile.Modes, newUIModeDecl(parts[1], slots, statement.Position))
 		default:
 			addDiagnostic(statement.Position, "INVALID_THEME_DECLARATION", fmt.Sprintf("Unsupported .blackthm statement %q.", parts[0]), "Use blackthm, version, target, locked, token, profile, baseline, or mode.")
 		}
@@ -222,6 +215,9 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 	}
 	if theme.Profile.Name != "" && len(theme.Profile.Modes) == 0 {
 		addDiagnostic(theme.Profile.Position, "MISSING_UI_MODES", "UI profile must declare at least one mode.", "Add a mode such as `mode box color width style pt pr pb pl radius place`.")
+	}
+	if theme.Profile.Name != "" && len(theme.Profile.Modes) > 0 {
+		validateStandardUIModeGroups(theme.Profile, theme.Locked, addDiagnostic)
 	}
 	if theme.Locked && theme.Profile.Name != "" {
 		validateLockedUIProfile(theme.Profile, addDiagnostic)
@@ -243,6 +239,80 @@ func defaultUIProfileRules() UIProfileRules {
 		LockBaseline:           "required-when-locked",
 		ExistingSlotsAfterLock: "immutable",
 		NewSlotsAfterLock:      "append-only",
+	}
+}
+
+func standardUIModeGroups() []UIModeGroup {
+	return []UIModeGroup{
+		{
+			Name:         "box",
+			Purpose:      "Container box styling for border, spacing, radius, and placement.",
+			AppliesTo:    []string{"form", "table", "component", "panel"},
+			DefaultSlots: []string{"color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"},
+			Required:     true,
+		},
+		{
+			Name:         "text",
+			Purpose:      "Typography styling for labels, headings, helper text, and body copy.",
+			AppliesTo:    []string{"label", "heading", "help", "body"},
+			DefaultSlots: []string{"color", "size", "weight", "align"},
+			Required:     true,
+		},
+		{
+			Name:         "table",
+			Purpose:      "Table-specific styling for borders, density, and row patterns.",
+			AppliesTo:    []string{"table", "columns", "rows"},
+			DefaultSlots: []string{"color", "width", "style", "density", "zebra"},
+			Required:     true,
+		},
+		{
+			Name:         "button",
+			Purpose:      "Action control styling for generated and explicit buttons.",
+			AppliesTo:    []string{"button", "actions", "submit"},
+			DefaultSlots: []string{"bg", "color", "radius", "size", "variant"},
+			Required:     true,
+		},
+	}
+}
+
+func standardUIModeGroup(name string) (UIModeGroup, bool) {
+	for _, group := range standardUIModeGroups() {
+		if group.Name == name {
+			return group, true
+		}
+	}
+	return UIModeGroup{}, false
+}
+
+func newUIModeDecl(name string, slots []string, position Position) UIModeDecl {
+	mode := UIModeDecl{
+		Name:     name,
+		Standard: false,
+		Slots:    slots,
+		Position: position,
+	}
+	if group, ok := standardUIModeGroup(name); ok {
+		mode.Standard = true
+		mode.Purpose = group.Purpose
+		mode.AppliesTo = append([]string(nil), group.AppliesTo...)
+	}
+	return mode
+}
+
+func validateStandardUIModeGroups(profile UIProfileDecl, locked bool, addDiagnostic func(Position, string, string, string)) {
+	modes := map[string]bool{}
+	for _, mode := range profile.Modes {
+		modes[mode.Name] = true
+	}
+	for _, group := range profile.ModeGroups {
+		if !group.Required || modes[group.Name] {
+			continue
+		}
+		suggestion := fmt.Sprintf("Add `mode %s %s` to the profile.", group.Name, strings.Join(group.DefaultSlots, " "))
+		if locked {
+			suggestion = fmt.Sprintf("Add `baseline %s %s` and `mode %s %s` to the locked profile.", group.Name, strings.Join(group.DefaultSlots, " "), group.Name, strings.Join(group.DefaultSlots, " "))
+		}
+		addDiagnostic(profile.Position, "MISSING_STANDARD_UI_MODE", fmt.Sprintf("UI profile is missing required standard mode %s.", group.Name), suggestion)
 	}
 }
 

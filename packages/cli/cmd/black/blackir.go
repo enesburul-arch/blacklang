@@ -459,11 +459,17 @@ func FormatThemeIR(result ThemeInspectResult) string {
 			theme.Profile.Rules.ExistingSlotsAfterLock,
 			theme.Profile.Rules.NewSlotsAfterLock,
 		))
+		if len(theme.Profile.ModeGroups) > 0 {
+			builder.WriteString("  groups\n")
+			for _, group := range theme.Profile.ModeGroups {
+				builder.WriteString(fmt.Sprintf("    %s required %t slots %s applies %s\n", group.Name, group.Required, strings.Join(group.DefaultSlots, " "), strings.Join(group.AppliesTo, " ")))
+			}
+		}
 		for _, baseline := range theme.Profile.Baselines {
 			builder.WriteString(fmt.Sprintf("  baseline %s slots %s\n", baseline.Name, strings.Join(baseline.Slots, " ")))
 		}
 		for _, mode := range theme.Profile.Modes {
-			builder.WriteString(fmt.Sprintf("  mode %s slots %s\n", mode.Name, strings.Join(mode.Slots, " ")))
+			builder.WriteString(fmt.Sprintf("  mode %s standard %t slots %s\n", mode.Name, mode.Standard, strings.Join(mode.Slots, " ")))
 		}
 	}
 	return builder.String()

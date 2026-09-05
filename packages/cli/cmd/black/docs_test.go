@@ -149,6 +149,19 @@ func TestFindUIProfileDoc(t *testing.T) {
 	}
 }
 
+func TestFindUIModesDoc(t *testing.T) {
+	doc, ok := FindDoc("ui-modes")
+	if !ok {
+		t.Fatalf("expected ui-modes docs")
+	}
+	if !strings.Contains(doc.Syntax, "mode box") {
+		t.Fatalf("expected ui-modes docs to mention standard modes, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "MISSING_STANDARD_UI_MODE") {
+		t.Fatalf("expected ui-modes docs to mention missing standard mode diagnostics, got %#v", doc)
+	}
+}
+
 func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
 	if err != nil {

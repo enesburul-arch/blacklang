@@ -117,6 +117,7 @@ black inspect --ir
 black inspect --affected Product.stock --json
 black agent startup --json
 black theme inspect --json
+black docs ui-modes --json
 black docs entity --ir
 black docs diagnostics --json
 black docs --all --json
@@ -138,6 +139,7 @@ Implemented so far:
 - `theme inspect --json` command for `.blackthm` UI theme/profile files
 - Compact UI slot profile rules in `theme inspect` output
 - Append-only slot checks for locked UI profiles
+- Standard UI mode groups for `box`, `text`, `table`, and `button`
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`
@@ -225,6 +227,8 @@ Implemented so far:
 - [Agent Guide](AGENTS.md)
 - [Diagnostic Codes](docs/diagnostics.md)
 - [Theme Profile](docs/theme-profile.md)
+- [UI Profile](docs/ui-profile.md)
+- [UI Modes](docs/ui-modes.md)
 - [Warehouse Benchmark v0.1](benchmarks/warehouse-v0.1.md)
 - [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)
 - [InventoryControl Benchmark v0.2](benchmarks/inventory-v0.2.md)

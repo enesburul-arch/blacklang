@@ -73,6 +73,18 @@ text.align  = left
 - After a profile is locked, new slots are append-only.
 - Locked profiles require one baseline for each current mode.
 - A locked mode must start with the exact baseline slot sequence.
+- Web profiles must include standard `box`, `text`, `table`, and `button` mode groups.
+
+## Standard Mode Groups
+
+```text
+box     container border, spacing, radius, and placement
+text    typography for labels, headings, helper text, and body copy
+table   table-specific border, density, and row pattern styling
+button  action control styling for generated and explicit buttons
+```
+
+`black theme inspect --json` returns these groups in `profile.modeGroups`.
 
 ## Locked Append-Only Example
 

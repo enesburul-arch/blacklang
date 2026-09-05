@@ -266,12 +266,21 @@ type ThemeToken struct {
 }
 
 type UIProfileDecl struct {
-	Name      string         `json:"name"`
-	Version   int            `json:"version"`
-	Rules     UIProfileRules `json:"rules"`
-	Baselines []UIModeDecl   `json:"baselines,omitempty"`
-	Modes     []UIModeDecl   `json:"modes"`
-	Position  Position       `json:"position"`
+	Name       string         `json:"name"`
+	Version    int            `json:"version"`
+	Rules      UIProfileRules `json:"rules"`
+	ModeGroups []UIModeGroup  `json:"modeGroups"`
+	Baselines  []UIModeDecl   `json:"baselines,omitempty"`
+	Modes      []UIModeDecl   `json:"modes"`
+	Position   Position       `json:"position"`
+}
+
+type UIModeGroup struct {
+	Name         string   `json:"name"`
+	Purpose      string   `json:"purpose"`
+	AppliesTo    []string `json:"appliesTo"`
+	DefaultSlots []string `json:"defaultSlots"`
+	Required     bool     `json:"required"`
 }
 
 type UIProfileRules struct {
@@ -287,9 +296,12 @@ type UIProfileRules struct {
 }
 
 type UIModeDecl struct {
-	Name     string   `json:"name"`
-	Slots    []string `json:"slots"`
-	Position Position `json:"position"`
+	Name      string   `json:"name"`
+	Standard  bool     `json:"standard"`
+	Purpose   string   `json:"purpose,omitempty"`
+	AppliesTo []string `json:"appliesTo,omitempty"`
+	Slots     []string `json:"slots"`
+	Position  Position `json:"position"`
 }
 
 type ConfigInfo struct {

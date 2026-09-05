@@ -20,6 +20,8 @@ func TestParseTheme(t *testing.T) {
     version 1
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 `)
@@ -44,8 +46,14 @@ func TestParseTheme(t *testing.T) {
 	if theme.Profile.Rules.LockBaseline != "required-when-locked" {
 		t.Fatalf("expected lock baseline rule, got %#v", theme.Profile.Rules)
 	}
-	if len(theme.Profile.Modes) != 2 {
-		t.Fatalf("expected two modes, got %#v", theme.Profile.Modes)
+	if len(theme.Profile.ModeGroups) != 4 {
+		t.Fatalf("expected four standard mode groups, got %#v", theme.Profile.ModeGroups)
+	}
+	if len(theme.Profile.Modes) != 4 {
+		t.Fatalf("expected four modes, got %#v", theme.Profile.Modes)
+	}
+	if !theme.Profile.Modes[0].Standard || !strings.Contains(theme.Profile.Modes[0].Purpose, "Container") {
+		t.Fatalf("expected box mode to be recognized as standard, got %#v", theme.Profile.Modes[0])
 	}
 	if strings.Join(theme.Profile.Modes[0].Slots, " ") != "color width style pt pr pb pl radius place" {
 		t.Fatalf("unexpected box slots: %#v", theme.Profile.Modes[0])
@@ -64,6 +72,9 @@ func TestInspectThemeUsesConfigPath(t *testing.T) {
   profile UICompact {
     version 1
     mode box color width
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 `)
@@ -127,6 +138,22 @@ func TestParseThemeRejectsDuplicateUISlot(t *testing.T) {
 	}
 }
 
+func TestParseThemeRequiresStandardUIModes(t *testing.T) {
+	_, diagnostics := ParseTheme("theme.blackthm", `blackthm BrokenTheme {
+  version 1
+
+  profile UICompact {
+    version 1
+    mode box color width
+  }
+}
+`)
+	codes := diagnosticCodes(diagnostics)
+	if !codes["MISSING_STANDARD_UI_MODE"] {
+		t.Fatalf("expected MISSING_STANDARD_UI_MODE, got %#v", diagnostics)
+	}
+}
+
 func TestParseLockedThemeAllowsAppendOnlySlots(t *testing.T) {
 	theme, diagnostics := ParseTheme("theme.blackthm", `blackthm LockedTheme {
   version 2
@@ -135,15 +162,22 @@ func TestParseLockedThemeAllowsAppendOnlySlots(t *testing.T) {
   profile UICompact {
     version 2
     baseline box color width style
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style shadow
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 `)
 	if len(diagnostics) != 0 {
 		t.Fatalf("expected append-only locked profile to pass, got %#v", diagnostics)
 	}
-	if len(theme.Profile.Baselines) != 1 {
-		t.Fatalf("expected one baseline, got %#v", theme.Profile.Baselines)
+	if len(theme.Profile.Baselines) != 4 {
+		t.Fatalf("expected four baselines, got %#v", theme.Profile.Baselines)
 	}
 	if strings.Join(theme.Profile.Modes[0].Slots, " ") != "color width style shadow" {
 		t.Fatalf("expected appended slot to be preserved, got %#v", theme.Profile.Modes[0])
@@ -225,7 +259,14 @@ func TestFormatThemeIR(t *testing.T) {
   profile UICompact {
     version 2
     baseline box color width
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width shadow
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
   }
 }
 `)
@@ -246,9 +287,11 @@ func TestFormatThemeIR(t *testing.T) {
 		"theme WarehouseTheme version 2 target web locked true",
 		"color primary \"#2563eb\"",
 		"profile UICompact version 2",
+		"groups",
+		"box required true slots color width style pt pr pb pl radius place",
 		"baseline required-when-locked",
 		"baseline box slots color width",
-		"mode box slots color width shadow",
+		"mode box standard true slots color width shadow",
 	} {
 		if !strings.Contains(ir, value) {
 			t.Fatalf("expected IR to contain %q, got:\n%s", value, ir)

@@ -1254,6 +1254,33 @@ The `message` modifier overrides the generated validation message for that field
 sku text required regex "^[A-Z0-9]+$" message "Use uppercase letters and numbers"
 ```
 
+## Current Internationalization
+
+Draft v0.2 supports a first i18n layer for generated field labels:
+
+```black
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}
+```
+
+Rules:
+
+- Use one `i18n` block per project.
+- `default` declares the locale used by generated web output today.
+- `locales` declares accepted locale names.
+- The default locale must be included in `locales`.
+- Top-level `label` blocks currently target entity fields with `Entity.field`.
+- Generated web UI uses the default locale translation first.
+- If no translation exists, generated UI falls back to the field `label "Text"` modifier, then title-cased field name.
+- Runtime language switching, date format, number format, currency format, and RTL support are later extensions.
+
 Entity-level `validate` lines compare two fields on the same entity:
 
 ```black

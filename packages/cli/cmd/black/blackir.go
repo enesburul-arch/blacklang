@@ -42,6 +42,24 @@ func FormatBlackIR(program Program) string {
 		}
 	}
 
+	if program.I18N != nil {
+		builder.WriteString("\ni18n")
+		if program.I18N.Default != "" {
+			builder.WriteString(fmt.Sprintf(" default %s", program.I18N.Default))
+		}
+		if len(program.I18N.Locales) > 0 {
+			builder.WriteString(" locales ")
+			builder.WriteString(strings.Join(program.I18N.Locales, " "))
+		}
+		builder.WriteString("\n")
+	}
+	for _, label := range program.Labels {
+		builder.WriteString(fmt.Sprintf("\nlabel %s\n", label.Target))
+		for _, translation := range label.Translations {
+			builder.WriteString(fmt.Sprintf("  %s %s\n", translation.Locale, quoteBlackString(translation.Text)))
+		}
+	}
+
 	for _, entity := range program.Entities {
 		builder.WriteString(fmt.Sprintf("\nentity %s\n", entity.Name))
 		for _, field := range entity.Fields {

@@ -3632,7 +3632,8 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 			if !ok {
 				continue
 			}
-			builder.WriteString(fmt.Sprintf("          <label>\n            %s Filter\n            <input type=\"text\" value={filters.%s} onChange={(event) => updateFilter(%q, event.target.value)} placeholder=\"Filter %s\" />\n          </label>\n", fieldLabel(field), field.Name, field.Name, fieldLabel(field)))
+			label := g.fieldLabel(entity, field)
+			builder.WriteString(fmt.Sprintf("          <label>\n            %s Filter\n            <input type=\"text\" value={filters.%s} onChange={(event) => updateFilter(%q, event.target.value)} placeholder=\"Filter %s\" />\n          </label>\n", label, field.Name, field.Name, label))
 		}
 		builder.WriteString("        </div>\n")
 	}
@@ -3643,7 +3644,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		if !ok {
 			continue
 		}
-		builder.WriteString(fmt.Sprintf("          {permissions.fields.%s !== false && <label className=\"inline-control\"><input checked={visibleColumns.%s} type=\"checkbox\" onChange={() => toggleColumn(%q)} /> %s</label>}\n", field.Name, field.Name, field.Name, fieldLabel(field)))
+		builder.WriteString(fmt.Sprintf("          {permissions.fields.%s !== false && <label className=\"inline-control\"><input checked={visibleColumns.%s} type=\"checkbox\" onChange={() => toggleColumn(%q)} /> %s</label>}\n", field.Name, field.Name, field.Name, g.fieldLabel(entity, field)))
 	}
 	builder.WriteString("        </div>\n")
 	builder.WriteString("        {error && <div className=\"error\" role=\"alert\">{error}</div>}\n")
@@ -3660,7 +3661,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		if !ok {
 			continue
 		}
-		builder.WriteString(fmt.Sprintf("            {visibleColumns.%s && permissions.fields.%s !== false && <th>%s</th>}\n", field.Name, field.Name, fieldLabel(field)))
+		builder.WriteString(fmt.Sprintf("            {visibleColumns.%s && permissions.fields.%s !== false && <th>%s</th>}\n", field.Name, field.Name, g.fieldLabel(entity, field)))
 	}
 	if hasAction(page, "archive") || hasAction(page, "restore") {
 		builder.WriteString("            <th>Status</th>\n")
@@ -3724,7 +3725,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("            <div><dt>ID</dt><dd>{selectedItem.id}</dd></div>\n")
 	builder.WriteString("            <div><dt>Status</dt><dd>{selectedItem.archivedAt ? \"Archived\" : \"Active\"}</dd></div>\n")
 	for _, field := range entity.Fields {
-		builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && <div><dt>%s</dt><dd>{%s}</dd></div>}\n", field.Name, fieldLabel(field), g.itemRenderExpression("selectedItem", field)))
+		builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && <div><dt>%s</dt><dd>{%s}</dd></div>}\n", field.Name, g.fieldLabel(entity, field), g.itemRenderExpression("selectedItem", field)))
 	}
 	builder.WriteString("          </dl>\n")
 	builder.WriteString("        )}\n")
@@ -3748,10 +3749,11 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 			}
 			if g.isRelationField(field) {
 				optionsName := relationOptionsStateName(field)
-				builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <select%s disabled={%s.length === 0} value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)}>\n                <option value=\"\">%s</option>\n                {%s.map((option) => (\n                  <option key={option.id} value={option.id}>{%s}</option>\n                ))}\n              </select>\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s{%s.length === 0 && <span className=\"field-note\">Create a %s record before selecting %s.</span>}\n            </label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), fieldLabel(field), selectAttributes(field), optionsName, field.Name, field.Name, fieldPlaceholder(field, "Select "+fieldLabel(field)), optionsName, g.relationOptionLabelExpression("option", field.Type), field.Name, field.Name, helpElement(field), optionsName, field.Type, fieldLabel(field)))
+				label := g.fieldLabel(entity, field)
+				builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <select%s disabled={%s.length === 0} value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)}>\n                <option value=\"\">%s</option>\n                {%s.map((option) => (\n                  <option key={option.id} value={option.id}>{%s}</option>\n                ))}\n              </select>\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s{%s.length === 0 && <span className=\"field-note\">Create a %s record before selecting %s.</span>}\n            </label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), label, selectAttributes(field), optionsName, field.Name, field.Name, fieldPlaceholder(field, "Select "+label), optionsName, g.relationOptionLabelExpression("option", field.Type), field.Name, field.Name, helpElement(field), optionsName, field.Type, label))
 				continue
 			}
-			builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <input%s%s value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)} />\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s%s</label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), fieldLabel(field), inputAttributes(field), placeholderAttribute(field), field.Name, field.Name, field.Name, field.Name, g.formComponentPreview(field), helpElement(field)))
+			builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <input%s%s value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)} />\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s%s</label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), g.fieldLabel(entity, field), inputAttributes(field), placeholderAttribute(field), field.Name, field.Name, field.Name, field.Name, g.formComponentPreview(field), helpElement(field)))
 		}
 		builder.WriteString("          </div>\n")
 		builder.WriteString("          <div className=\"toolbar\">\n")
@@ -3840,7 +3842,7 @@ func (g *webGenerator) formValidationFunction(page PageDecl, entity EntityDecl) 
 		if !ok {
 			continue
 		}
-		builder.WriteString(g.formValidationFieldBlock(field))
+		builder.WriteString(g.formValidationFieldBlock(entity, field))
 	}
 	builder.WriteString(g.formEntityValidationBlocks(entity, page.Form.Fields))
 	builder.WriteString("  return errors;\n")
@@ -3848,10 +3850,10 @@ func (g *webGenerator) formValidationFunction(page PageDecl, entity EntityDecl) 
 	return builder.String()
 }
 
-func (g *webGenerator) formValidationFieldBlock(field FieldDecl) string {
+func (g *webGenerator) formValidationFieldBlock(entity EntityDecl, field FieldDecl) string {
 	var builder strings.Builder
 	name := field.Name
-	label := fieldLabel(field)
+	label := g.fieldLabel(entity, field)
 	if g.isRelationField(field) {
 		if hasModifier(field, "required") {
 			builder.WriteString(fmt.Sprintf("  if (form.%s.trim() === \"\") {\n", name))
@@ -4783,6 +4785,31 @@ func fieldLabel(field FieldDecl) string {
 		return label
 	}
 	return title(field.Name)
+}
+
+func (g *webGenerator) fieldLabel(entity EntityDecl, field FieldDecl) string {
+	if label := g.defaultFieldLabelTranslation(entity.Name, field.Name); label != "" {
+		return label
+	}
+	return fieldLabel(field)
+}
+
+func (g *webGenerator) defaultFieldLabelTranslation(entityName string, fieldName string) string {
+	if g.program.I18N == nil || g.program.I18N.Default == "" {
+		return ""
+	}
+	target := entityName + "." + fieldName
+	for _, label := range g.program.Labels {
+		if label.Target != target {
+			continue
+		}
+		for _, translation := range label.Translations {
+			if translation.Locale == g.program.I18N.Default {
+				return translation.Text
+			}
+		}
+	}
+	return ""
 }
 
 func fieldPlaceholder(field FieldDecl, fallback string) string {

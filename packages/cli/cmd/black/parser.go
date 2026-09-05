@@ -38,6 +38,10 @@ func (p *parser) parse() {
 			index = p.parseAuth(index, parts)
 		case "database":
 			index = p.parseDatabase(index, parts)
+		case "i18n":
+			index = p.parseI18N(index, parts)
+		case "label":
+			index = p.parseLabelTranslation(index, parts)
 		case "entity":
 			index = p.parseEntity(index, parts)
 		case "role":
@@ -55,7 +59,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, entity, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -163,6 +167,95 @@ func (p *parser) parseDatabase(start int, parts []string) int {
 	}
 
 	p.addError(lineNumber, 1, "UNCLOSED_DATABASE", "Database block is missing a closing brace.", "Add `}` after the database block.")
+	return len(p.lines) - 1
+}
+
+func (p *parser) parseI18N(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_I18N_DECLARATION", "I18n declaration must be `i18n {`.", "Example: `i18n { default tr locales tr, en }`.")
+		return start
+	}
+	if p.program.I18N != nil {
+		p.addError(lineNumber, 1, "DUPLICATE_I18N", "Only one i18n declaration is allowed.", "Keep a single `i18n` block per project.")
+		return start
+	}
+
+	i18n := I18NDecl{
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.I18N = &i18n
+			return index
+		}
+
+		switch rowParts[0] {
+		case "default":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_I18N_DEFAULT", "I18n default locale must be `default locale`.", "Example: `default tr`.")
+				continue
+			}
+			if i18n.Default != "" {
+				p.addError(currentLine, 1, "DUPLICATE_I18N_DEFAULT", "I18n default locale is already declared.", "Keep one default locale inside i18n.")
+				continue
+			}
+			i18n.Default = rowParts[1]
+		case "locales":
+			locales := parseList(rowParts[1:])
+			if len(locales) == 0 {
+				p.addError(currentLine, 1, "INVALID_I18N_LOCALES", "I18n locales must include at least one locale.", "Example: `locales tr, en`.")
+				continue
+			}
+			if len(i18n.Locales) > 0 {
+				p.addError(currentLine, 1, "DUPLICATE_I18N_LOCALES", "I18n locales are already declared.", "Keep one locales list inside i18n.")
+				continue
+			}
+			i18n.Locales = locales
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_I18N_TOKEN", fmt.Sprintf("Unexpected i18n token %q.", rowParts[0]), "Use default or locales inside i18n.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_I18N", "I18n block is missing a closing brace.", "Add `}` after the i18n block.")
+	return len(p.lines) - 1
+}
+
+func (p *parser) parseLabelTranslation(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 3 || parts[2] != "{" {
+		p.addError(lineNumber, 1, "INVALID_LABEL_DECLARATION", "Label translation declaration must be `label Entity.field {`.", "Example: `label Product.name { tr \"Ürün Adı\" }`.")
+		return start
+	}
+
+	label := LabelTranslationDecl{
+		Target:       parts[1],
+		Translations: []TranslationValue{},
+		Position:     p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Labels = append(p.program.Labels, label)
+			return index
+		}
+		if len(rowParts) != 2 {
+			p.addError(currentLine, 1, "INVALID_LABEL_TRANSLATION", "Label translation must be `locale \"Text\"`.", "Example: `tr \"Ürün Adı\"`.")
+			continue
+		}
+		label.Translations = append(label.Translations, TranslationValue{
+			Locale:   rowParts[0],
+			Text:     rowParts[1],
+			Position: p.position(currentLine, 1),
+		})
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_LABEL", fmt.Sprintf("Label translation %s is missing a closing brace.", label.Target), "Add `}` after label translations.")
 	return len(p.lines) - 1
 }
 

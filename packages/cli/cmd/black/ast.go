@@ -324,17 +324,19 @@ type Summary struct {
 }
 
 type Program struct {
-	App        AppDecl         `json:"app"`
-	Auth       *AuthDecl       `json:"auth,omitempty"`
-	Database   *DatabaseDecl   `json:"database,omitempty"`
-	Entities   []EntityDecl    `json:"entities"`
-	Roles      []RoleDecl      `json:"roles,omitempty"`
-	APIs       []APIDecl       `json:"apis,omitempty"`
-	Layouts    []LayoutDecl    `json:"layouts,omitempty"`
-	Pages      []PageDecl      `json:"pages"`
-	Workflows  []WorkflowDecl  `json:"workflows,omitempty"`
-	States     []StateDecl     `json:"states,omitempty"`
-	Components []ComponentDecl `json:"components,omitempty"`
+	App        AppDecl                `json:"app"`
+	Auth       *AuthDecl              `json:"auth,omitempty"`
+	Database   *DatabaseDecl          `json:"database,omitempty"`
+	I18N       *I18NDecl              `json:"i18n,omitempty"`
+	Labels     []LabelTranslationDecl `json:"labels,omitempty"`
+	Entities   []EntityDecl           `json:"entities"`
+	Roles      []RoleDecl             `json:"roles,omitempty"`
+	APIs       []APIDecl              `json:"apis,omitempty"`
+	Layouts    []LayoutDecl           `json:"layouts,omitempty"`
+	Pages      []PageDecl             `json:"pages"`
+	Workflows  []WorkflowDecl         `json:"workflows,omitempty"`
+	States     []StateDecl            `json:"states,omitempty"`
+	Components []ComponentDecl        `json:"components,omitempty"`
 }
 
 type AppDecl struct {
@@ -368,6 +370,24 @@ type DatabaseDecl struct {
 
 type EnvRef struct {
 	Name     string   `json:"name,omitempty"`
+	Position Position `json:"position"`
+}
+
+type I18NDecl struct {
+	Default  string   `json:"default,omitempty"`
+	Locales  []string `json:"locales,omitempty"`
+	Position Position `json:"position"`
+}
+
+type LabelTranslationDecl struct {
+	Target       string             `json:"target"`
+	Translations []TranslationValue `json:"translations,omitempty"`
+	Position     Position           `json:"position"`
+}
+
+type TranslationValue struct {
+	Locale   string   `json:"locale"`
+	Text     string   `json:"text"`
 	Position Position `json:"position"`
 }
 

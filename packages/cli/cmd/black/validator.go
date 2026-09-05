@@ -99,6 +99,8 @@ func (v *semanticValidator) validate() {
 	v.validateAuth()
 	v.validateDatabase()
 	entityIndex := v.validateEntities()
+	v.validateI18N()
+	v.validateLabelTranslations(entityIndex)
 	roleIndex := v.validateRoles(entityIndex)
 	v.validateAPIs()
 	layoutIndex := v.validateLayouts()
@@ -176,6 +178,110 @@ func (v *semanticValidator) validateAPIs() {
 			if !supportedFieldTypes[query.Type] {
 				v.addDiagnostic(query.Position, "UNSUPPORTED_API_QUERY_TYPE", fmt.Sprintf("API %s query parameter %s uses unsupported type %q.", api.Name, query.Name, query.Type), "Use primitive field types for API query parameters.")
 			}
+		}
+	}
+}
+
+func (v *semanticValidator) validateI18N() {
+	if v.program.I18N == nil {
+		return
+	}
+
+	i18n := v.program.I18N
+	if i18n.Default == "" {
+		v.addDiagnostic(i18n.Position, "MISSING_I18N_DEFAULT", "I18n declaration is missing a default locale.", "Add `default tr` inside i18n.")
+	} else if !isThemeIdentifier(i18n.Default) {
+		v.addDiagnostic(i18n.Position, "INVALID_LOCALE", fmt.Sprintf("I18n default locale %q is invalid.", i18n.Default), "Use locale names such as tr, en, or en-US.")
+	}
+
+	if len(i18n.Locales) == 0 {
+		v.addDiagnostic(i18n.Position, "MISSING_I18N_LOCALES", "I18n declaration is missing locales.", "Add `locales tr, en` inside i18n.")
+		return
+	}
+
+	locales := map[string]Position{}
+	for _, locale := range i18n.Locales {
+		if !isThemeIdentifier(locale) {
+			v.addDiagnostic(i18n.Position, "INVALID_LOCALE", fmt.Sprintf("I18n locale %q is invalid.", locale), "Use locale names such as tr, en, or en-US.")
+			continue
+		}
+		if existing, ok := locales[locale]; ok {
+			v.addDiagnostic(i18n.Position, "DUPLICATE_LOCALE", fmt.Sprintf("I18n locale %s is declared more than once.", locale), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+			continue
+		}
+		locales[locale] = i18n.Position
+	}
+
+	if i18n.Default != "" && locales[i18n.Default].Line == 0 {
+		v.addDiagnostic(i18n.Position, "UNKNOWN_DEFAULT_LOCALE", fmt.Sprintf("I18n default locale %s is not listed in locales.", i18n.Default), "Add the default locale to the locales list.")
+	}
+}
+
+func (v *semanticValidator) validateLabelTranslations(entityIndex map[string]EntityDecl) {
+	if len(v.program.Labels) == 0 {
+		return
+	}
+	if v.program.I18N == nil {
+		v.addDiagnostic(v.program.Labels[0].Position, "MISSING_I18N", "Label translations require an i18n block.", "Add `i18n { default tr locales tr, en }` before label translation blocks.")
+	}
+
+	locales := map[string]bool{}
+	defaultLocale := ""
+	if v.program.I18N != nil {
+		defaultLocale = v.program.I18N.Default
+		for _, locale := range v.program.I18N.Locales {
+			locales[locale] = true
+		}
+	}
+
+	targets := map[string]LabelTranslationDecl{}
+	for _, label := range v.program.Labels {
+		if existing, ok := targets[label.Target]; ok {
+			v.addDiagnostic(label.Position, "DUPLICATE_LABEL_TARGET", fmt.Sprintf("Label target %s is already defined.", label.Target), fmt.Sprintf("First definition is at %s:%d.", existing.Position.File, existing.Position.Line))
+			continue
+		}
+		targets[label.Target] = label
+
+		entityName, fieldName, ok := splitLabelTarget(label.Target)
+		if !ok {
+			v.addDiagnostic(label.Position, "INVALID_LABEL_TARGET", fmt.Sprintf("Label target %s is invalid.", label.Target), "Use `label Entity.field { ... }`.")
+		} else if entity, exists := entityIndex[entityName]; !exists {
+			v.addDiagnostic(label.Position, "UNKNOWN_LABEL_TARGET", fmt.Sprintf("Label target %s references unknown entity %s.", label.Target, entityName), "Use an existing entity and field.")
+		} else if _, exists := fieldIndex(entity)[fieldName]; !exists {
+			v.addDiagnostic(label.Position, "UNKNOWN_LABEL_TARGET", fmt.Sprintf("Label target %s references unknown field %s.%s.", label.Target, entityName, fieldName), "Use an existing entity field.")
+		}
+
+		if len(label.Translations) == 0 {
+			v.addDiagnostic(label.Position, "MISSING_LABEL_TRANSLATION", fmt.Sprintf("Label target %s has no translations.", label.Target), "Add locale text lines such as `tr \"Ürün Adı\"`.")
+			continue
+		}
+
+		translationLocales := map[string]Position{}
+		hasDefault := defaultLocale == ""
+		for _, translation := range label.Translations {
+			if translation.Locale == "" || translation.Text == "" {
+				v.addDiagnostic(translation.Position, "MISSING_LABEL_TRANSLATION", fmt.Sprintf("Label target %s has an empty locale or text.", label.Target), "Write `locale \"Text\"`.")
+				continue
+			}
+			if !isThemeIdentifier(translation.Locale) {
+				v.addDiagnostic(translation.Position, "INVALID_LOCALE", fmt.Sprintf("Label target %s uses invalid locale %q.", label.Target, translation.Locale), "Use locale names such as tr, en, or en-US.")
+				continue
+			}
+			if len(locales) > 0 && !locales[translation.Locale] {
+				v.addDiagnostic(translation.Position, "UNKNOWN_LABEL_LOCALE", fmt.Sprintf("Label target %s uses locale %s that is not listed in i18n.locales.", label.Target, translation.Locale), "Add the locale to `locales`, or remove this translation line.")
+				continue
+			}
+			if existing, ok := translationLocales[translation.Locale]; ok {
+				v.addDiagnostic(translation.Position, "DUPLICATE_LABEL_LOCALE", fmt.Sprintf("Label target %s repeats locale %s.", label.Target, translation.Locale), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+				continue
+			}
+			translationLocales[translation.Locale] = translation.Position
+			if translation.Locale == defaultLocale {
+				hasDefault = true
+			}
+		}
+		if !hasDefault {
+			v.addDiagnostic(label.Position, "MISSING_DEFAULT_LABEL_TRANSLATION", fmt.Sprintf("Label target %s has no %s translation.", label.Target, defaultLocale), "Add a translation for the default locale.")
 		}
 	}
 }
@@ -551,6 +657,25 @@ func apiPathParamNames(path string) []string {
 		}
 	}
 	return names
+}
+
+func splitLabelTarget(target string) (string, string, bool) {
+	parts := strings.Split(target, ".")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	if !isThemeIdentifier(parts[0]) || !isThemeIdentifier(parts[1]) {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
+}
+
+func fieldIndex(entity EntityDecl) map[string]FieldDecl {
+	fields := map[string]FieldDecl{}
+	for _, field := range entity.Fields {
+		fields[field.Name] = field
+	}
+	return fields
 }
 
 func (v *semanticValidator) validatePages(entityIndex map[string]EntityDecl, layoutIndex map[string]LayoutDecl, roleIndex map[string]RoleDecl) map[string]PageDecl {

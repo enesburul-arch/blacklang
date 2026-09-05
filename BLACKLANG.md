@@ -354,6 +354,31 @@ entity Product {
 
 The generated web app uses labels in forms, table headers, and detail fields.
 
+## Current Internationalization
+
+Draft v0.2 supports a first i18n layer for generated field labels:
+
+```black
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}
+```
+
+Current rule:
+
+- Use one `i18n` block per project.
+- The default locale must be included in `locales`.
+- Top-level `label` blocks currently target entity fields with `Entity.field`.
+- Generated web UI uses the default locale translation first.
+- If no translation exists, generated UI falls back to the field `label "Text"` modifier, then title-cased field name.
+- Runtime language switching, date format, number format, currency format, and RTL support come later.
+
 ## Current Field Placeholders
 
 Draft v0.1 supports field placeholders as entity field modifiers:

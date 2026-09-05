@@ -364,6 +364,46 @@ page Products {
 	}
 }
 
+func TestValidateI18NAndLabelTranslationErrors(t *testing.T) {
+	source := `app Warehouse
+
+i18n {
+  default fr
+  locales tr, tr
+}
+
+label Product.name {
+  en "Product Name"
+  en "Name"
+}
+
+label Product.missing {
+  tr "Eksik"
+  tr "Tekrar"
+  de "Fehlt"
+}
+
+entity Product {
+  name text
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"DUPLICATE_LOCALE", "UNKNOWN_DEFAULT_LOCALE", "MISSING_DEFAULT_LABEL_TRANSLATION", "DUPLICATE_LABEL_LOCALE", "UNKNOWN_LABEL_TARGET", "UNKNOWN_LABEL_LOCALE"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateEntityValidation(t *testing.T) {
 	source := `app Warehouse
 

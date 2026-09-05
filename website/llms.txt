@@ -22,6 +22,7 @@ Read first:
 - `#ui-profile` for compact positional UI slot rules.
 - `#ui-modes` for standard box, text, table, and button UI mode groups.
 - `#inline-ui` for compact UI intent inside `.black` source.
+- `#i18n` for locale and label translation rules.
 - `#security` for source security rules.
 - `#cli` for machine-readable commands.
 - `#ai-agents` for `black agent startup --json` project entry output.
@@ -31,6 +32,7 @@ Read first:
 - `/ui-profile.md` for compact UI slot profile rules.
 - `/ui-modes.md` for standard UI mode group semantics.
 - `/inline-ui.md` for inline UI intent placement rules.
+- `/i18n.md` for locale and field label translation rules.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
@@ -50,8 +52,9 @@ Agent rule:
 7. Use `black docs ui --json` before editing inline UI intent in `.black` files.
 8. Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
 9. Table/form/action UI identity can use `id Identifier` and `class ClassName...`; generated names are kebab-case.
-10. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-11. Modify `.black` and `.blackthm` source files, not generated output.
-12. Run `black format --check --json`, `black lint --json`, and `black build`.
-13. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-14. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+10. Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
+11. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+12. Modify `.black` and `.blackthm` source files, not generated output.
+13. Run `black format --check --json`, `black lint --json`, and `black build`.
+14. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+15. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

@@ -286,6 +286,47 @@ page Products {
 		},
 		Errors: []string{"INVALID_DATABASE_DECLARATION", "DUPLICATE_DATABASE", "INVALID_DATABASE_URL", "MISSING_DATABASE_URL", "INVALID_ENV_NAME"},
 	},
+	"i18n": {
+		Keyword: "i18n",
+		Purpose: "Declares supported locales and the default locale for generated application text.",
+		Syntax:  "i18n { default <locale>; locales <locale...> }; label <Entity>.<field> { <locale> \"Text\" }",
+		Example: `i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}`,
+		AgentNotes: []string{
+			"Use one i18n block per project.",
+			"The default locale must be included in locales.",
+			"Locale names can use letters, numbers, underscores, and hyphens, such as tr, en, or en-US.",
+			"Top-level label blocks currently target entity fields with Entity.field.",
+			"Generated web UI uses the default locale translation for field labels when present.",
+			"If no translation exists, generated UI falls back to the field label modifier, then title-cased field name.",
+		},
+		Errors: []string{"INVALID_I18N_DECLARATION", "DUPLICATE_I18N", "INVALID_I18N_DEFAULT", "DUPLICATE_I18N_DEFAULT", "MISSING_I18N_DEFAULT", "INVALID_I18N_LOCALES", "DUPLICATE_I18N_LOCALES", "MISSING_I18N_LOCALES", "INVALID_LOCALE", "DUPLICATE_LOCALE", "UNKNOWN_DEFAULT_LOCALE", "INVALID_LABEL_DECLARATION", "INVALID_LABEL_TRANSLATION", "UNCLOSED_LABEL", "MISSING_I18N", "DUPLICATE_LABEL_TARGET", "INVALID_LABEL_TARGET", "UNKNOWN_LABEL_TARGET", "MISSING_LABEL_TRANSLATION", "UNKNOWN_LABEL_LOCALE", "DUPLICATE_LABEL_LOCALE", "MISSING_DEFAULT_LABEL_TRANSLATION"},
+	},
+	"label": {
+		Keyword: "label",
+		Purpose: "Sets fallback field labels or per-locale field label translations.",
+		Syntax:  "fieldName type label \"Text\" | label <Entity>.<field> { <locale> \"Text\" }",
+		Example: `name text required label "Product Name"
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}`,
+		AgentNotes: []string{
+			"Use the field modifier form for a single fallback label.",
+			"Use the top-level block form with i18n when multiple locales are needed.",
+			"Top-level label translations override the field modifier for generated default-locale UI labels.",
+			"Keep storage field names stable; change displayed text with label metadata.",
+		},
+		Errors: []string{"MISSING_LABEL_VALUE", "INVALID_LABEL_DECLARATION", "INVALID_LABEL_TRANSLATION", "DUPLICATE_LABEL_TARGET", "INVALID_LABEL_TARGET", "UNKNOWN_LABEL_TARGET", "MISSING_LABEL_TRANSLATION", "UNKNOWN_LABEL_LOCALE", "DUPLICATE_LABEL_LOCALE", "MISSING_DEFAULT_LABEL_TRANSLATION"},
+	},
 	"entity": {
 		Keyword: "entity",
 		Purpose: "Declares stored application data and its fields.",

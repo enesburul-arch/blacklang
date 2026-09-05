@@ -33,7 +33,7 @@
 
       <label class="nav-search">
         <span>Menüde ara</span>
-        <input type="search" id="navSearch" placeholder="entity, theme, security..." />
+        <input type="search" id="navSearch" placeholder="entity, i18n, security..." />
       </label>
 
       <nav aria-label="BlackLang dokümantasyon menüsü">
@@ -59,6 +59,7 @@
         <a href="#ui-profile">ui-profile</a>
         <a href="#ui-modes">ui-modes</a>
         <a href="#inline-ui">inline-ui</a>
+        <a href="#i18n">i18n</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cli">CLI</a>
@@ -719,6 +720,42 @@ form    .bl-ui-form-&lt;page&gt;
 field   .bl-ui-field-&lt;entity&gt;-&lt;field&gt;
 action  .bl-ui-action-&lt;page&gt;-&lt;action&gt;</code></pre>
         </div>
+      </section>
+
+      <section id="i18n">
+        <h2>i18n</h2>
+        <p>
+          `i18n`, generated web uygulamasında kullanılacak varsayılan dili ve desteklenen
+          locale listesini tanımlar. İlk çalışan kapsam field label çevirileridir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Locale ve field label translation</div>
+          <pre><code class="language-black">i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}</code></pre>
+        </div>
+        <p>
+          Generator default locale çevirisini form label, table header, detail label,
+          column visibility label, filter label ve frontend validation label alanlarında
+          kullanır. Çeviri yoksa önce field üzerindeki `label "Text"`, sonra field adının
+          title-case hali kullanılır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated label fallback sırası</div>
+          <pre><code>1. label Product.name { tr "Ürün Adı" }
+2. name text label "Product Name"
+3. name -> Name</code></pre>
+        </div>
+        <p>
+          Runtime dil değiştirme, translation key sistemi, placeholder/help/message çevirileri,
+          date/number/currency formatları ve RTL desteği sonraki genişleme alanlarıdır.
+        </p>
       </section>
 
       <section id="api">

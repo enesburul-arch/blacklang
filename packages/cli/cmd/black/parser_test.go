@@ -183,6 +183,39 @@ page Products {
 	}
 }
 
+func TestParseI18NAndLabelTranslations(t *testing.T) {
+	source := `app Warehouse
+
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.I18N == nil || program.I18N.Default != "tr" || len(program.I18N.Locales) != 2 {
+		t.Fatalf("expected i18n declaration, got %#v", program.I18N)
+	}
+	if len(program.Labels) != 1 || program.Labels[0].Target != "Product.name" {
+		t.Fatalf("expected Product.name label translation, got %#v", program.Labels)
+	}
+	if program.Labels[0].Translations[0].Locale != "tr" || program.Labels[0].Translations[0].Text != "Ürün Adı" {
+		t.Fatalf("expected Turkish translation, got %#v", program.Labels[0].Translations)
+	}
+}
+
 func TestParseReportsInvalidTableSort(t *testing.T) {
 	source := `app Warehouse
 

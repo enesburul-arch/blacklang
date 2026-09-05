@@ -112,6 +112,21 @@ This phase grows the examples from Warehouse into reusable app patterns.
 - [x] Add project management example
 - [x] Add template benchmark reports
 
+## Phase 26: I18n MVP
+
+This phase starts locale-aware generated UI text without adding runtime language switching yet.
+
+- [x] Parse top-level `i18n` default/locales declarations
+- [x] Parse top-level `label Entity.field` translation blocks
+- [x] Validate locale lists, default locale, label targets, and duplicate translations
+- [x] Include i18n and label translations in JSON/BlackIR outputs
+- [x] Generate default-locale field labels in web output
+- [x] Add human and AI documentation for i18n
+- [ ] Add runtime language switching
+- [ ] Add placeholder/help/message translations
+- [ ] Add date, number, and currency formatting
+- [ ] Add RTL layout support
+
 ## v0.2 Exit Criteria
 
 v0.2 is ready when:

@@ -14,6 +14,31 @@ database {
   url env DATABASE_URL
 }
 
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.sku {
+  tr "Stok Kodu"
+  en "SKU"
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}
+
+label Product.stock {
+  tr "Stok Adedi"
+  en "Stock Count"
+}
+
+label Product.price {
+  tr "Birim Fiyat"
+  en "Unit Price"
+}
+
 entity Product {
   sku text required unique length 3..40
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders" ui text text 14 semibold left

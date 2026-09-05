@@ -22,6 +22,7 @@ It should explain:
 - How standard UI mode groups work
 - How inline UI intent is written near fields, forms, tables, and action buttons
 - How locked UI profiles enforce append-only slot changes
+- How i18n locale and field label translations work
 - How AI agents should use the language
 
 ## Planned Structure
@@ -34,6 +35,7 @@ docs/
 ├── errors/
 ├── install.md
 ├── github-publish.md
+├── i18n.md
 ├── inline-ui.md
 ├── release-artifacts.md
 ├── npm-wrapper.md
@@ -71,6 +73,7 @@ docs/
 - Reference: UI profile rules
 - Reference: UI modes
 - Reference: Inline UI intent
+- Reference: I18n
 
 ## Documentation Rule
 

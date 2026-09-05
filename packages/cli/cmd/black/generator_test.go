@@ -824,6 +824,74 @@ page Products {
 	}
 }
 
+func TestBuildWebUsesDefaultLocaleFieldLabels(t *testing.T) {
+	source := `app Warehouse
+
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.name {
+  tr "Ürün Adı"
+  en "Product Name"
+}
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    search name
+    filter name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create, edit
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	validateDiagnostics := Validate(program)
+	if len(validateDiagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", validateDiagnostics)
+	}
+
+	outDir := t.TempDir()
+	if _, diagnostics := BuildWeb(program, outDir); len(diagnostics) != 0 {
+		t.Fatalf("expected no build diagnostics, got %#v", diagnostics)
+	}
+
+	page, err := os.ReadFile(filepath.Join(outDir, "src", "pages", "ProductsPage.tsx"))
+	if err != nil {
+		t.Fatalf("expected generated products page: %v", err)
+	}
+	pageText := string(page)
+	for _, value := range []string{
+		`Ürün Adı Filter`,
+		`Filter Ürün Adı`,
+		`<th>Ürün Adı</th>`,
+		`<dt>Ürün Adı</dt>`,
+		`
+              Ürün Adı
+              <input`,
+	} {
+		if !strings.Contains(pageText, value) {
+			t.Fatalf("expected generated page to contain %q, got:\n%s", value, pageText)
+		}
+	}
+}
+
 func TestBuildWebUsesThemeSlotOrderForInlineUICSS(t *testing.T) {
 	source := `app Warehouse
 

@@ -2231,6 +2231,41 @@ label Product.name {
 }
 ```
 
+### Mevcut Durum
+
+Bu aşamanın ilk çalışan parçası eklendi. BlackLang artık top-level `i18n` bloğunu ve entity field hedefli `label Entity.field { ... }` translation bloklarını okuyabilir:
+
+```black
+i18n {
+  default tr
+  locales tr, en
+}
+
+label Product.stock {
+  tr "Stok Adedi"
+  en "Stock Count"
+}
+```
+
+Compiler bu bilgiyi parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web generator default locale çevirisini field label olarak kullanır. Translation yoksa eski `label "Text"` modifier'ı, o da yoksa title-cased field adı kullanılır.
+
+İlk kapsam:
+
+- `i18n.default`
+- `i18n.locales`
+- `label Entity.field`
+- default locale field label generation
+- locale ve target validation
+- JSON/BlackIR visibility
+
+Sonraki genişleme:
+
+- runtime dil değiştirme
+- translation key sistemi
+- placeholder/help/message çevirileri
+- date/number/currency format
+- RTL layout desteği
+
 ## Aşama 28: Security Katmanı
 
 Security sonradan eklenen bir süs değil, dil seviyesinde temsil edilen bir alan olmalıdır.

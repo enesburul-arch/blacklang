@@ -247,14 +247,14 @@ func standardUIModeGroups() []UIModeGroup {
 		{
 			Name:         "box",
 			Purpose:      "Container box styling for border, spacing, radius, and placement.",
-			AppliesTo:    []string{"form", "table", "component", "panel"},
+			AppliesTo:    []string{"field", "form", "table", "component", "panel"},
 			DefaultSlots: []string{"color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"},
 			Required:     true,
 		},
 		{
 			Name:         "text",
 			Purpose:      "Typography styling for labels, headings, helper text, and body copy.",
-			AppliesTo:    []string{"label", "heading", "help", "body"},
+			AppliesTo:    []string{"field", "form", "table", "label", "heading", "help", "body"},
 			DefaultSlots: []string{"color", "size", "weight", "align"},
 			Required:     true,
 		},
@@ -268,7 +268,7 @@ func standardUIModeGroups() []UIModeGroup {
 		{
 			Name:         "button",
 			Purpose:      "Action control styling for generated and explicit buttons.",
-			AppliesTo:    []string{"button", "actions", "submit"},
+			AppliesTo:    []string{"button", "action", "actions", "submit"},
 			DefaultSlots: []string{"bg", "color", "radius", "size", "variant"},
 			Required:     true,
 		},

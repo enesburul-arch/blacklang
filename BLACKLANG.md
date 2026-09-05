@@ -129,6 +129,7 @@ black inspect --json
 black inspect --affected Product.stock --json
 black agent startup --json
 black theme inspect --json
+black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
 black docs entity --json
@@ -237,7 +238,7 @@ black theme inspect --json
 `theme inspect` also exposes compact UI profile rules:
 
 - Slots are read left to right.
-- Future inline UI syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
+- Inline UI syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
 - Missing trailing values use defaults.
 - Extra values are errors.
 - Duplicate slots inside one mode are errors.
@@ -254,6 +255,42 @@ Standard mode groups:
 - `text`: typography for labels, headings, helper text, and body copy
 - `table`: table-specific borders, density, and row patterns
 - `button`: action control styling
+
+## Current Inline UI Intent
+
+Draft v0.2 can parse and validate compact `ui` intent inside `.black` source:
+
+```black
+entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create
+  action create ui button primary white 6 md solid
+}
+```
+
+Current rule:
+
+- Field UI accepts `box` and `text`.
+- Form UI accepts `box`, `text`, and `button`.
+- Table UI accepts `box`, `text`, and `table`.
+- Action button UI accepts `button`.
+- Values are positional and should follow the active `.blackthm` profile mode slots.
+- CSS generation from inline UI intent is planned for the next Phase 20 step.
 
 ## Current Diagnostic Documentation
 

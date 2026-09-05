@@ -24,4 +24,8 @@
     <loc>https://black.muenspeak.com/ui-modes.md</loc>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://black.muenspeak.com/inline-ui.md</loc>
+    <priority>0.7</priority>
+  </url>
 </urlset>

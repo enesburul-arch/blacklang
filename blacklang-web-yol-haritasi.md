@@ -2132,6 +2132,44 @@ mode box color width shadow style pt pr pb pl radius place
 
 `black theme inspect --json` çıktısındaki `profile.modeGroups`, bu standart grupların ne işe yaradığını, hangi elementlere uygulanacağını ve default slot sırasını gösterir. Standart gruplardan biri eksikse compiler `MISSING_STANDARD_UI_MODE` hatası verir.
 
+### Mevcut v0.2 Uygulaması: Inline UI Intent
+
+`.black` içinde field, form, table ve action button yanına kompakt `ui` niyeti yazılabilir. Bu, CSS yazmadan görsel niyeti kaynak dosyada ilgili öğenin yanında tutar.
+
+```black
+entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create
+  action create ui button primary white 6 md solid
+}
+```
+
+Compiler bu aşamada UI intent bilgisini parse eder, validate eder ve JSON/BlackIR çıktısına taşır. CSS üretimi bir sonraki Phase 20 adımıdır.
+
+Geçerli bağlam kuralı:
+
+```text
+field   box, text
+form    box, text, button
+table   box, text, table
+button  button
+```
+
 ## Aşama 27: Internationalization
 
 Çok dilli uygulamalar için metinler kaynak koddan ayrılmalıdır.

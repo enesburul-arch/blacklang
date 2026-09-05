@@ -26,6 +26,10 @@ func FormatBlackIR(program Program) string {
 						builder.WriteString(modifier.Value)
 					}
 				}
+				if len(field.UI) > 0 {
+					builder.WriteString(" ")
+					builder.WriteString(formatUIIntentLine(field.UI))
+				}
 				builder.WriteString("\n")
 			}
 		}
@@ -49,6 +53,10 @@ func FormatBlackIR(program Program) string {
 					builder.WriteString(" ")
 					builder.WriteString(modifier.Value)
 				}
+			}
+			if len(field.UI) > 0 {
+				builder.WriteString(" ")
+				builder.WriteString(formatUIIntentLine(field.UI))
 			}
 			builder.WriteString("\n")
 		}
@@ -136,14 +144,29 @@ func FormatBlackIR(program Program) string {
 		if page.Table.Paginate > 0 {
 			builder.WriteString(fmt.Sprintf("  paginate %d\n", page.Table.Paginate))
 		}
+		if len(page.Table.UI) > 0 {
+			builder.WriteString("  table-ui ")
+			builder.WriteString(formatUIIntentSegments(page.Table.UI))
+			builder.WriteString("\n")
+		}
 		if len(page.Form.Fields) > 0 {
 			builder.WriteString("  form ")
 			builder.WriteString(strings.Join(page.Form.Fields, " "))
 			builder.WriteString("\n")
 		}
+		if len(page.Form.UI) > 0 {
+			builder.WriteString("  form-ui ")
+			builder.WriteString(formatUIIntentSegments(page.Form.UI))
+			builder.WriteString("\n")
+		}
 		if len(page.Actions) > 0 {
 			builder.WriteString("  actions ")
 			builder.WriteString(strings.Join(page.Actions, " "))
+			builder.WriteString("\n")
+		}
+		for _, actionUI := range page.ActionUI {
+			builder.WriteString(fmt.Sprintf("  action-ui %s ", actionUI.Action))
+			builder.WriteString(formatUIIntentSegments(actionUI.UI))
 			builder.WriteString("\n")
 		}
 		if len(page.Access) > 0 {
@@ -199,6 +222,23 @@ func FormatBlackIR(program Program) string {
 	}
 
 	return builder.String()
+}
+
+func formatUIIntentLine(intents []UIIntent) string {
+	if len(intents) == 0 {
+		return ""
+	}
+	return "ui " + formatUIIntentSegments(intents)
+}
+
+func formatUIIntentSegments(intents []UIIntent) string {
+	segments := []string{}
+	for _, intent := range intents {
+		parts := []string{intent.Mode}
+		parts = append(parts, intent.Values...)
+		segments = append(segments, strings.Join(parts, " "))
+	}
+	return strings.Join(segments, " | ")
 }
 
 func FormatValidationIR(result ValidateResult) string {

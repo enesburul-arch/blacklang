@@ -20,6 +20,7 @@ It should explain:
 - How `.blackthm` theme profile files work
 - How compact UI profile slots are read
 - How standard UI mode groups work
+- How inline UI intent is written near fields, forms, tables, and action buttons
 - How locked UI profiles enforce append-only slot changes
 - How AI agents should use the language
 
@@ -33,6 +34,7 @@ docs/
 ├── errors/
 ├── install.md
 ├── github-publish.md
+├── inline-ui.md
 ├── release-artifacts.md
 ├── npm-wrapper.md
 ├── ai-agents/
@@ -68,6 +70,7 @@ docs/
 - Reference: Theme profile
 - Reference: UI profile rules
 - Reference: UI modes
+- Reference: Inline UI intent
 
 ## Documentation Rule
 

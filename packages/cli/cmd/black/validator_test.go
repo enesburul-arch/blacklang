@@ -248,6 +248,79 @@ entity Product {
 	}
 }
 
+func TestValidateInlineUIIntent(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create, edit
+  action create ui button primary white 6 md solid
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateInlineUIIntentErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text ui button primary white
+  sku text ui text black | text white
+  status text ui sparkle bright
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name, sku, status
+    ui button primary white
+  }
+
+  actions create
+  action edit ui button primary white
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNKNOWN_ACTION_UI"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateEntityValidation(t *testing.T) {
 	source := `app Warehouse
 

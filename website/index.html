@@ -58,6 +58,7 @@
         <a href="#theme">theme</a>
         <a href="#ui-profile">ui-profile</a>
         <a href="#ui-modes">ui-modes</a>
+        <a href="#inline-ui">inline-ui</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cli">CLI</a>
@@ -624,7 +625,7 @@ button  generated veya explicit action control stilleri</code></pre>
         "name": "box",
         "required": true,
         "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
-        "appliesTo": ["form", "table", "component", "panel"]
+        "appliesTo": ["field", "form", "table", "component", "panel"]
       }
     ],
     "modes": [
@@ -641,6 +642,51 @@ button  generated veya explicit action control stilleri</code></pre>
           Standart gruplardan biri eksikse `black theme inspect --json`
           `MISSING_STANDARD_UI_MODE` diagnostic kodu döner. Bu kural, inline UI intent
           aşamasına geçmeden önce her projenin aynı temel görsel sözlüğü paylaşmasını sağlar.
+        </p>
+      </section>
+
+      <section id="inline-ui">
+        <h2>inline-ui</h2>
+        <p>
+          `ui`, görsel niyeti `.black` dosyasında ilgili field, form, table veya action
+          button yanında tutar. Bu aşamada CSS üretmez; parser, validator ve JSON/IR
+          çıktıları için intent bilgisini taşır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Field, table, form ve action button</div>
+          <pre><code class="language-black">entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create
+  action create ui button primary white 6 md solid
+}</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Geçerli mode bağlamları</div>
+          <pre><code>field   box, text
+form    box, text, button
+table   box, text, table
+button  button</code></pre>
+        </div>
+        <p>
+          `action create ui button ...`, aynı page içindeki `actions create` listesine
+          bağlıdır. Mode hataları `UNSUPPORTED_UI_MODE`, yanlış bağlamlar
+          `UNSUPPORTED_UI_TARGET_MODE`, tekrar eden mode kullanımı `DUPLICATE_UI_INTENT`
+          olarak raporlanır. Field satırında normal modifier'lar `ui` öncesinde kalmalıdır.
         </p>
       </section>
 
@@ -717,6 +763,7 @@ black build examples/warehouse/app.black --json
 black inspect --ir
 black inspect examples/project-management/app.black --affected ProjectTask.status --json
 black theme inspect --json
+black docs ui --json
 black docs ui-modes --json
 black docs --all --json
 black explain entity --json

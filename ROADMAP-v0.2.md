@@ -47,7 +47,7 @@ This phase starts the BlackLang-native UI layer instead of forcing users or AI a
 - [x] Define compact UI slot profile rules
 - [x] Make UI slots append-only after profile lock
 - [x] Add mode groups such as `box`, `text`, `table`, and `button`
-- [ ] Support inline UI intent near fields, forms, tables, and buttons
+- [x] Support inline UI intent near fields, forms, tables, and buttons
 - [ ] Generate CSS from UI intent
 - [ ] Add migration rules for UI profile changes
 

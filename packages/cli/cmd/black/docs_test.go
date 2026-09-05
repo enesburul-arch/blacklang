@@ -71,7 +71,7 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 			t.Fatalf("expected doc %q to include purpose and syntax, got %#v", doc.Keyword, doc)
 		}
 	}
-	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page"} {
+	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui"} {
 		if !found[keyword] {
 			t.Fatalf("expected docs to include %q", keyword)
 		}
@@ -159,6 +159,19 @@ func TestFindUIModesDoc(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "MISSING_STANDARD_UI_MODE") {
 		t.Fatalf("expected ui-modes docs to mention missing standard mode diagnostics, got %#v", doc)
+	}
+}
+
+func TestFindUIDoc(t *testing.T) {
+	doc, ok := FindDoc("ui")
+	if !ok {
+		t.Fatalf("expected ui docs")
+	}
+	if !strings.Contains(doc.Syntax, "ui <mode> <values...>") {
+		t.Fatalf("expected ui docs to mention inline syntax, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "UNKNOWN_ACTION_UI") {
+		t.Fatalf("expected ui docs to mention action diagnostics, got %#v", doc)
 	}
 }
 

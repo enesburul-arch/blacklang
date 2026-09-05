@@ -95,17 +95,17 @@ The same output includes `profile.modeGroups`, a stable machine-readable list of
 
 ```json
 [
-  {
-    "name": "box",
-    "purpose": "Container box styling for border, spacing, radius, and placement.",
-    "appliesTo": ["form", "table", "component", "panel"],
-    "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
-    "required": true
-  }
+    {
+      "name": "box",
+      "purpose": "Container box styling for border, spacing, radius, and placement.",
+      "appliesTo": ["field", "form", "table", "component", "panel"],
+      "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
+      "required": true
+    }
 ]
 ```
 
-The planned inline UI line:
+An inline UI line:
 
 ```black
 ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
@@ -166,6 +166,8 @@ table   table-specific border, density, and row pattern styling
 button  action control styling for generated and explicit buttons
 ```
 
+Inline `.black` source uses these groups near fields, forms, tables, and page action buttons. Use `black docs ui --json` for the exact inline placement rules.
+
 If a web profile is missing one of these modes, `black theme inspect --json` reports `MISSING_STANDARD_UI_MODE`.
 
 ## Current CLI
@@ -180,7 +182,7 @@ In this phase, `black theme inspect` reads and validates `.blackthm` metadata. C
 
 ## AI Agent Rule
 
-AI agents should inspect the theme before writing future inline UI intent:
+AI agents should inspect the theme before writing inline UI intent:
 
 ```bash
 black theme inspect --json

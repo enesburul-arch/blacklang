@@ -147,7 +147,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 36,
+  "count": 37,
   "docs": [
     {
       "keyword": "entity",
@@ -296,7 +296,7 @@ JSON shape:
         {
           "name": "box",
           "purpose": "Container box styling for border, spacing, radius, and placement.",
-          "appliesTo": ["form", "table", "component", "panel"],
+          "appliesTo": ["field", "form", "table", "component", "panel"],
           "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
           "required": true
         }
@@ -307,7 +307,7 @@ JSON shape:
           "name": "box",
           "standard": true,
           "purpose": "Container box styling for border, spacing, radius, and placement.",
-          "appliesTo": ["form", "table", "component", "panel"],
+          "appliesTo": ["field", "form", "table", "component", "panel"],
           "slots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"]
         }
       ]
@@ -322,8 +322,8 @@ Hex colors should be quoted because `#` starts a comment outside quoted strings.
 Current compact UI profile rules:
 
 - Mode slot order is positional and read left to right.
-- Future inline syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
-- `|` separates multiple UI mode groups on one source line in later inline UI phases.
+- Inline syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
+- `|` separates multiple UI mode groups on one source line.
 - Missing trailing values use defaults in later CSS generation phases.
 - Extra values are errors because they cannot map to known slots.
 - A slot name may appear only once inside the same mode.
@@ -367,6 +367,66 @@ button  action control styling for submit and page action buttons
 ```
 
 If any standard mode is missing, `black theme inspect --json` returns `MISSING_STANDARD_UI_MODE`.
+
+## Current Inline UI Intent
+
+Draft v0.2 supports compact inline UI intent inside `.black` source. This records visual intent near the field, form, table, or action button it belongs to. It does not generate CSS yet; CSS generation is the next Phase 20 step.
+
+Syntax:
+
+```black
+ui <mode> <values...> [| <mode> <values...>...]
+```
+
+Current supported placements:
+
+```black
+entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create
+  action create ui button primary white 6 md solid
+}
+```
+
+JSON shape on parsed fields, forms, tables, and action UI declarations:
+
+```json
+{
+  "ui": [
+    {
+      "mode": "text",
+      "values": ["#172026", "14", "semibold", "left"]
+    }
+  ]
+}
+```
+
+Current semantic rules:
+
+- Field UI can use `box` and `text`.
+- Form UI can use `box`, `text`, and `button`.
+- Table UI can use `box`, `text`, and `table`.
+- Action button UI can use `button`.
+- `action <name> ui button ...` must reference an action listed in `actions`.
+- Repeating the same UI mode in the same scope returns `DUPLICATE_UI_INTENT`.
+- Unknown mode names return `UNSUPPORTED_UI_MODE`.
+- Mode names that do not apply to the current target return `UNSUPPORTED_UI_TARGET_MODE`.
+- Malformed UI lines return `INVALID_UI_INTENT` or `INVALID_ACTION_UI`.
 
 ## Current Diagnostic Documentation
 
@@ -873,6 +933,7 @@ black explain table --json
 black explain entity --json
 black agent startup --json
 black theme inspect --json
+black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
 black inspect app.black --affected Product.stock --json

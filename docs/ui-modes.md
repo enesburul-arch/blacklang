@@ -38,7 +38,7 @@ Web profiles must include all four standard modes. Custom modes can be added lat
   {
     "name": "box",
     "purpose": "Container box styling for border, spacing, radius, and placement.",
-    "appliesTo": ["form", "table", "component", "panel"],
+    "appliesTo": ["field", "form", "table", "component", "panel"],
     "defaultSlots": ["color", "width", "style", "pt", "pr", "pb", "pl", "radius", "place"],
     "required": true
   }
@@ -55,4 +55,10 @@ If a profile is missing a standard mode, the compiler reports:
 MISSING_STANDARD_UI_MODE
 ```
 
-AI agents should read `profile.modeGroups` before writing future inline UI intent so they can choose the correct group instead of guessing.
+AI agents should read `profile.modeGroups` before writing inline UI intent so they can choose the correct group instead of guessing.
+
+For inline `.black` placement rules, use:
+
+```bash
+black docs ui --json
+```

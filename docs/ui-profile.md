@@ -4,7 +4,7 @@ This document defines the compact positional UI slot rules used by `.blackthm` p
 
 ## Purpose
 
-The UI profile keeps future inline UI intent short and deterministic without making the compiler guess which value belongs to which style property.
+The UI profile keeps inline UI intent short and deterministic without making the compiler guess which value belongs to which style property.
 
 ## Profile Syntax
 
@@ -27,7 +27,7 @@ Each `mode` line defines a left-to-right slot order.
 
 Each `baseline` line defines the frozen prefix for the matching mode after the theme has `locked true`.
 
-## Planned Inline Syntax
+## Inline Syntax
 
 ```black
 ui <mode> <values...> [| <mode> <values...>...]
@@ -36,7 +36,10 @@ ui <mode> <values...> [| <mode> <values...>...]
 Example:
 
 ```black
-ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+form {
+  fields email, password
+  ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+}
 ```
 
 With the profile above, the first group maps to:
@@ -124,7 +127,8 @@ The compiler reports `NON_APPEND_ONLY_UI_SLOT`.
 
 ```bash
 black theme inspect --json
+black docs ui --json
 black docs ui-profile --json
 ```
 
-AI agents should use `profile.rules` and `profile.modes[].slots` from `black theme inspect --json` before writing future inline UI intent.
+AI agents should use `profile.rules`, `profile.modeGroups`, and `profile.modes[].slots` from `black theme inspect --json` before writing inline UI intent.

@@ -406,6 +406,7 @@ type FieldDecl struct {
 	Name      string     `json:"name"`
 	Type      string     `json:"type"`
 	Modifiers []Modifier `json:"modifiers"`
+	UI        []UIIntent `json:"ui,omitempty"`
 	Position  Position   `json:"position"`
 }
 
@@ -432,14 +433,15 @@ type Modifier struct {
 }
 
 type PageDecl struct {
-	Name     string    `json:"name"`
-	Layout   string    `json:"layout,omitempty"`
-	Source   string    `json:"source"`
-	Table    TableDecl `json:"table"`
-	Form     FormDecl  `json:"form"`
-	Actions  []string  `json:"actions"`
-	Access   []string  `json:"access,omitempty"`
-	Position Position  `json:"position"`
+	Name     string           `json:"name"`
+	Layout   string           `json:"layout,omitempty"`
+	Source   string           `json:"source"`
+	Table    TableDecl        `json:"table"`
+	Form     FormDecl         `json:"form"`
+	Actions  []string         `json:"actions"`
+	ActionUI []ActionUIIntent `json:"actionUI,omitempty"`
+	Access   []string         `json:"access,omitempty"`
+	Position Position         `json:"position"`
 }
 
 type LayoutDecl struct {
@@ -453,11 +455,12 @@ type SidebarDecl struct {
 }
 
 type TableDecl struct {
-	Columns  []string `json:"columns"`
-	Search   []string `json:"search"`
-	Sort     SortDecl `json:"sort,omitempty"`
-	Paginate int      `json:"paginate,omitempty"`
-	Filters  []string `json:"filters,omitempty"`
+	Columns  []string   `json:"columns"`
+	Search   []string   `json:"search"`
+	Sort     SortDecl   `json:"sort,omitempty"`
+	Paginate int        `json:"paginate,omitempty"`
+	Filters  []string   `json:"filters,omitempty"`
+	UI       []UIIntent `json:"ui,omitempty"`
 }
 
 type SortDecl struct {
@@ -466,7 +469,20 @@ type SortDecl struct {
 }
 
 type FormDecl struct {
-	Fields []string `json:"fields"`
+	Fields []string   `json:"fields"`
+	UI     []UIIntent `json:"ui,omitempty"`
+}
+
+type UIIntent struct {
+	Mode     string   `json:"mode"`
+	Values   []string `json:"values"`
+	Position Position `json:"position"`
+}
+
+type ActionUIIntent struct {
+	Action   string     `json:"action"`
+	UI       []UIIntent `json:"ui"`
+	Position Position   `json:"position"`
 }
 
 type WorkflowDecl struct {

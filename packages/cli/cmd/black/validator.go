@@ -48,6 +48,13 @@ var supportedActions = setOf(
 	"restore",
 )
 
+var supportedInlineUIModes = setOf(
+	"box",
+	"text",
+	"table",
+	"button",
+)
+
 var supportedAuthStrategies = setOf(
 	"emailPassword",
 )
@@ -229,6 +236,7 @@ func (v *semanticValidator) validateAuth() {
 			}
 			v.validateConstraintModifier("auth user", "", field, modifier)
 		}
+		v.validateInlineUI("auth user field", "user."+field.Name, field.UI, inlineUIModesForTarget("field"))
 	}
 }
 
@@ -374,6 +382,7 @@ func (v *semanticValidator) validateFields(entity EntityDecl, entityIndex map[st
 			}
 			v.validateConstraintModifier("field", entity.Name, field, modifier)
 		}
+		v.validateInlineUI("field", entity.Name+"."+field.Name, field.UI, inlineUIModesForTarget("field"))
 	}
 	v.validateEntityValidations(entity, fieldIndex)
 }
@@ -656,12 +665,70 @@ func (v *semanticValidator) validatePageFields(page PageDecl, source EntityDecl)
 	if page.Table.Paginate < 0 {
 		v.addDiagnostic(page.Position, "UNSUPPORTED_PAGE_SIZE", fmt.Sprintf("Page %s table uses unsupported page size %d.", page.Name, page.Table.Paginate), "Use a positive whole number, such as `paginate 25`.")
 	}
+
+	v.validateInlineUI("table", page.Name+".table", page.Table.UI, inlineUIModesForTarget("table"))
+	v.validateInlineUI("form", page.Name+".form", page.Form.UI, inlineUIModesForTarget("form"))
 }
 
 func (v *semanticValidator) validateActions(page PageDecl) {
+	actions := map[string]bool{}
 	for _, action := range page.Actions {
+		actions[action] = true
 		if !supportedActions[action] {
 			v.addDiagnostic(page.Position, "UNSUPPORTED_ACTION", fmt.Sprintf("Page %s uses unsupported action %q.", page.Name, action), "Use create, edit, delete, archive, or restore in v0.1.")
+		}
+	}
+
+	actionModeIndex := map[string]Position{}
+	for _, actionUI := range page.ActionUI {
+		if !actions[actionUI.Action] {
+			v.addDiagnostic(actionUI.Position, "UNKNOWN_ACTION_UI", fmt.Sprintf("Page %s declares UI for action %s but that action is not listed.", page.Name, actionUI.Action), fmt.Sprintf("Add `%s` to the page actions list, or remove the action UI line.", actionUI.Action))
+		}
+		v.validateInlineUI("button", page.Name+"."+actionUI.Action, actionUI.UI, inlineUIModesForTarget("button"))
+		for _, intent := range actionUI.UI {
+			key := actionUI.Action + "." + intent.Mode
+			if existing, ok := actionModeIndex[key]; ok {
+				if existing.File == intent.Position.File && existing.Line == intent.Position.Line && existing.Column == intent.Position.Column {
+					continue
+				}
+				v.addDiagnostic(intent.Position, "DUPLICATE_UI_INTENT", fmt.Sprintf("Page %s action %s repeats UI mode %s.", page.Name, actionUI.Action, intent.Mode), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+				continue
+			}
+			actionModeIndex[key] = intent.Position
+		}
+	}
+}
+
+func inlineUIModesForTarget(target string) map[string]bool {
+	switch target {
+	case "field":
+		return setOf("box", "text")
+	case "form":
+		return setOf("box", "text", "button")
+	case "table":
+		return setOf("box", "text", "table")
+	case "button":
+		return setOf("button")
+	default:
+		return supportedInlineUIModes
+	}
+}
+
+func (v *semanticValidator) validateInlineUI(scope string, name string, intents []UIIntent, allowedModes map[string]bool) {
+	seenModes := map[string]Position{}
+	for _, intent := range intents {
+		if existing, ok := seenModes[intent.Mode]; ok {
+			v.addDiagnostic(intent.Position, "DUPLICATE_UI_INTENT", fmt.Sprintf("%s %s repeats UI mode %s.", title(scope), name, intent.Mode), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+			continue
+		}
+		seenModes[intent.Mode] = intent.Position
+
+		if !supportedInlineUIModes[intent.Mode] {
+			v.addDiagnostic(intent.Position, "UNSUPPORTED_UI_MODE", fmt.Sprintf("%s %s uses unsupported UI mode %q.", title(scope), name, intent.Mode), "Use box, text, table, or button.")
+			continue
+		}
+		if !allowedModes[intent.Mode] {
+			v.addDiagnostic(intent.Position, "UNSUPPORTED_UI_TARGET_MODE", fmt.Sprintf("%s %s cannot use UI mode %s.", title(scope), name, intent.Mode), fmt.Sprintf("Use a UI mode that applies to %s.", scope))
 		}
 	}
 }

@@ -381,6 +381,78 @@ entity Product {
 	}
 }
 
+func TestParseInlineUIIntent(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required label "Product Name" ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create, edit
+  action create ui button primary white 6 md solid
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	fieldUI := program.Entities[0].Fields[0].UI
+	if len(fieldUI) != 1 || fieldUI[0].Mode != "text" || fieldUI[0].Values[0] != "#172026" {
+		t.Fatalf("expected field text ui, got %#v", fieldUI)
+	}
+	tableUI := program.Pages[0].Table.UI
+	if len(tableUI) != 1 || tableUI[0].Mode != "table" || tableUI[0].Values[3] != "compact" {
+		t.Fatalf("expected table ui intent, got %#v", tableUI)
+	}
+	formUI := program.Pages[0].Form.UI
+	if len(formUI) != 2 || formUI[0].Mode != "box" || formUI[1].Mode != "text" {
+		t.Fatalf("expected two form ui modes, got %#v", formUI)
+	}
+	actionUI := program.Pages[0].ActionUI
+	if len(actionUI) != 1 || actionUI[0].Action != "create" || actionUI[0].UI[0].Mode != "button" {
+		t.Fatalf("expected create button ui, got %#v", actionUI)
+	}
+}
+
+func TestParseInvalidInlineUIIntent(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text ui text
+}
+
+page Products {
+  source Product
+  action create button primary
+}
+`
+
+	_, diagnostics := Parse("test.black", source)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI"} {
+		if !codes[code] {
+			t.Fatalf("expected parse code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestParseExplicitAPIDeclaration(t *testing.T) {
 	source := `app Warehouse
 

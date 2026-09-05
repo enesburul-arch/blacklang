@@ -23,7 +23,7 @@ database {
 
 entity Product {
   sku text required unique
-  stock number default 0
+  stock number default 0 ui text "#172026" 14 semibold left
   status text default draft
 }
 
@@ -71,11 +71,14 @@ page Products {
     filter stock
     sort stock desc
     paginate 25
+    ui table border 1 solid compact true
   }
   form {
     fields sku, stock
+    ui box black 1 solid 8 8 5 5 6 center
   }
   actions create, edit, delete
+  action create ui button primary white 6 md solid
 }
 `
 
@@ -95,7 +98,7 @@ page Products {
 		"url env DATABASE_URL",
 		"entity Product",
 		"sku text required unique",
-		"stock number default 0",
+		"stock number default 0 ui text #172026 14 semibold left",
 		"status text default draft",
 		"role Admin",
 		"allow all",
@@ -117,7 +120,10 @@ page Products {
 		"filter stock",
 		"sort stock desc",
 		"paginate 25",
+		"table-ui table border 1 solid compact true",
+		"form-ui box black 1 solid 8 8 5 5 6 center",
 		"actions create edit delete",
+		"action-ui create button primary white 6 md solid",
 		"access Admin",
 	}
 	for _, value := range expected {

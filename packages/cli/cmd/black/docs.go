@@ -161,6 +161,41 @@ form {
 		},
 		Errors: []string{"MISSING_STANDARD_UI_MODE"},
 	},
+	"ui": {
+		Keyword: "ui",
+		Purpose: "Declares compact inline UI intent near fields, forms, tables, and action buttons.",
+		Syntax:  "ui <mode> <values...> [| <mode> <values...>...]",
+		Example: `entity Product {
+  name text required ui text "#172026" 14 semibold left
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields name
+    ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+  }
+
+  actions create
+  action create ui button primary white 6 md solid
+}`,
+		AgentNotes: []string{
+			"Field-level ui is trailing metadata; keep normal field modifiers before ui.",
+			"Field UI currently accepts box and text modes.",
+			"Form UI currently accepts box, text, and button modes.",
+			"Table UI currently accepts box, text, and table modes.",
+			"Action button UI currently accepts button mode with `action <name> ui button ...`.",
+			"Values are compact positional data; read .blackthm profile.modes[].slots before generating them.",
+			"CSS generation from inline UI intent is planned for a later Phase 20 step.",
+		},
+		Errors: []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT", "UNKNOWN_ACTION_UI"},
+	},
 	"docs": {
 		Keyword: "docs",
 		Purpose: "Prints compact BlackLang reference entries for one keyword or every known keyword.",
@@ -383,13 +418,14 @@ role Worker {
 	"table": {
 		Keyword: "table",
 		Purpose: "Defines list columns, searchable fields, field filters, default sort order, and pagination for a page.",
-		Syntax:  "table { columns <field...>; search <field...>; filter <field...>; sort <field> <asc|desc>; paginate <number> }",
+		Syntax:  "table { columns <field...>; search <field...>; filter <field...>; sort <field> <asc|desc>; paginate <number>; ui <mode> <values...> }",
 		Example: `table {
   columns sku, name, stock
   search sku, name
   filter stock
   sort stock desc
   paginate 25
+  ui table border 1 solid compact true
 }`,
 		AgentNotes: []string{
 			"Columns must exist on the page source entity.",
@@ -398,8 +434,9 @@ role Worker {
 			"Sort field must exist on the page source entity.",
 			"Sort direction must be asc or desc.",
 			"Paginate size must be a positive whole number.",
+			"Inline UI intent can be declared with table, box, or text modes.",
 		},
-		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE"},
+		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"filter": {
 		Keyword: "filter",
@@ -428,9 +465,10 @@ role Worker {
 	"form": {
 		Keyword: "form",
 		Purpose: "Defines generated input fields for create and edit UI.",
-		Syntax:  "form { fields <field...> }",
+		Syntax:  "form { fields <field...>; ui <mode> <values...> }",
 		Example: `form {
   fields sku, name, stock
+  ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
 }`,
 		AgentNotes: []string{
 			"Form fields must exist on the page source entity.",
@@ -443,19 +481,22 @@ role Worker {
 			"Field regex \"pattern\" modifiers generate text/email pattern validation.",
 			"Field url modifiers generate URL validation for text fields.",
 			"Field message \"Text\" modifiers override generated validation text for that field.",
+			"Inline UI intent can be declared with box, text, or button modes.",
 		},
-		Errors: []string{"UNKNOWN_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE"},
+		Errors: []string{"UNKNOWN_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"actions": {
 		Keyword: "actions",
 		Purpose: "Declares page behaviors that the generator should create.",
-		Syntax:  "actions create, edit, delete, archive, restore",
-		Example: "actions create, edit, delete, archive, restore",
+		Syntax:  "actions create, edit, delete, archive, restore; action <name> ui button <values...>",
+		Example: `actions create, edit, delete, archive, restore
+action create ui button primary white 6 md solid`,
 		AgentNotes: []string{
 			"v0.1 supports create, edit, delete, archive, and restore.",
 			"Do not invent action names without adding validator and generator support.",
+			"Use `action <name> ui button ...` to attach inline UI intent to one generated action button.",
 		},
-		Errors: []string{"UNSUPPORTED_ACTION"},
+		Errors: []string{"UNSUPPORTED_ACTION", "INVALID_ACTION_UI", "UNKNOWN_ACTION_UI", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"search": {
 		Keyword: "search",

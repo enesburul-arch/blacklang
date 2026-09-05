@@ -188,10 +188,12 @@ func (p *parser) parseAuthUser(start int, parts []string) (UserDecl, int) {
 			p.addError(currentLine, 1, "INVALID_AUTH_USER_FIELD", "Auth user field must include a name and type.", "Example: `email email unique`.")
 			continue
 		}
+		fieldMetadata := p.parseModifiersAndUI(fieldParts[2:], currentLine)
 		user.Fields = append(user.Fields, FieldDecl{
 			Name:      fieldParts[0],
 			Type:      fieldParts[1],
-			Modifiers: parseModifiers(fieldParts[2:]),
+			Modifiers: fieldMetadata.modifiers,
+			UI:        fieldMetadata.ui,
 			Position:  p.position(currentLine, 1),
 		})
 	}
@@ -234,10 +236,12 @@ func (p *parser) parseEntity(start int, parts []string) int {
 			continue
 		}
 
+		fieldMetadata := p.parseModifiersAndUI(fieldParts[2:], currentLine)
 		field := FieldDecl{
 			Name:      fieldParts[0],
 			Type:      fieldParts[1],
-			Modifiers: parseModifiers(fieldParts[2:]),
+			Modifiers: fieldMetadata.modifiers,
+			UI:        fieldMetadata.ui,
 			Position:  p.position(currentLine, 1),
 		}
 		entity.Fields = append(entity.Fields, field)
@@ -509,10 +513,23 @@ func (p *parser) parsePage(start int, parts []string) int {
 			page.Form = form
 		case "actions":
 			page.Actions = parseList(sectionParts[1:])
+		case "action":
+			if len(sectionParts) < 5 || sectionParts[2] != "ui" {
+				p.addError(currentLine, 1, "INVALID_ACTION_UI", "Action UI intent must be `action name ui button values...`.", "Example: `action create ui button primary white 6 md solid`.")
+				continue
+			}
+			ui, ok := p.parseUIIntents(sectionParts[2:], currentLine)
+			if ok {
+				page.ActionUI = append(page.ActionUI, ActionUIIntent{
+					Action:   sectionParts[1],
+					UI:       ui,
+					Position: p.position(currentLine, 1),
+				})
+			}
 		case "access":
 			page.Access = parseList(sectionParts[1:])
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, table, form, actions, or access inside a page.")
+			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, table, form, actions, action, or access inside a page.")
 		}
 	}
 
@@ -542,6 +559,11 @@ func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {
 			table.Search = parseList(rowParts[1:])
 		case "filter":
 			table.Filters = parseList(rowParts[1:])
+		case "ui":
+			ui, ok := p.parseUIIntents(rowParts, currentLine)
+			if ok {
+				table.UI = append(table.UI, ui...)
+			}
 		case "sort":
 			if len(rowParts) != 3 {
 				p.addError(currentLine, 1, "INVALID_TABLE_SORT", "Table sort must be `sort field asc` or `sort field desc`.", "Example: `sort name asc`.")
@@ -564,7 +586,7 @@ func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {
 			}
 			table.Paginate = size
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_TABLE_TOKEN", fmt.Sprintf("Unexpected table token %q.", rowParts[0]), "Use columns, search, filter, sort, or paginate inside a table.")
+			p.addError(currentLine, 1, "UNEXPECTED_TABLE_TOKEN", fmt.Sprintf("Unexpected table token %q.", rowParts[0]), "Use columns, search, filter, sort, paginate, or ui inside a table.")
 		}
 	}
 
@@ -590,8 +612,13 @@ func (p *parser) parseForm(start int, parts []string) (FormDecl, int) {
 		switch rowParts[0] {
 		case "fields":
 			form.Fields = parseList(rowParts[1:])
+		case "ui":
+			ui, ok := p.parseUIIntents(rowParts, currentLine)
+			if ok {
+				form.UI = append(form.UI, ui...)
+			}
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_FORM_TOKEN", fmt.Sprintf("Unexpected form token %q.", rowParts[0]), "Use fields inside a form.")
+			p.addError(currentLine, 1, "UNEXPECTED_FORM_TOKEN", fmt.Sprintf("Unexpected form token %q.", rowParts[0]), "Use fields or ui inside a form.")
 		}
 	}
 
@@ -809,6 +836,74 @@ func parseModifiers(parts []string) []Modifier {
 		modifiers = append(modifiers, modifier)
 	}
 	return modifiers
+}
+
+type fieldMetadata struct {
+	modifiers []Modifier
+	ui        []UIIntent
+}
+
+func (p *parser) parseModifiersAndUI(parts []string, lineNumber int) fieldMetadata {
+	metadata := fieldMetadata{
+		modifiers: []Modifier{},
+		ui:        []UIIntent{},
+	}
+	for index := 0; index < len(parts); index++ {
+		name := parts[index]
+		if name == "ui" {
+			ui, ok := p.parseUIIntents(parts[index:], lineNumber)
+			if ok {
+				metadata.ui = ui
+			}
+			return metadata
+		}
+		modifier := Modifier{Name: name}
+		if modifierTakesValue(name) && index+1 < len(parts) {
+			modifier.Value = parts[index+1]
+			index++
+		}
+		metadata.modifiers = append(metadata.modifiers, modifier)
+	}
+	return metadata
+}
+
+func (p *parser) parseUIIntents(parts []string, lineNumber int) ([]UIIntent, bool) {
+	if len(parts) < 3 || parts[0] != "ui" {
+		p.addError(lineNumber, 1, "INVALID_UI_INTENT", "UI intent must be `ui mode values...`.", "Example: `ui box black 1 solid 8 8 5 5 6 center`.")
+		return nil, false
+	}
+	intents := []UIIntent{}
+	index := 1
+	for index < len(parts) {
+		mode := parts[index]
+		if mode == "|" {
+			p.addError(lineNumber, 1, "INVALID_UI_INTENT", "UI intent mode is missing before `|`.", "Write `ui box values... | text values...`.")
+			return nil, false
+		}
+		index++
+		values := []string{}
+		for index < len(parts) && parts[index] != "|" {
+			values = append(values, parts[index])
+			index++
+		}
+		if len(values) == 0 {
+			p.addError(lineNumber, 1, "INVALID_UI_INTENT", fmt.Sprintf("UI intent mode %s has no values.", mode), fmt.Sprintf("Add compact values after `%s`, or remove the UI intent.", mode))
+			return nil, false
+		}
+		intents = append(intents, UIIntent{
+			Mode:     mode,
+			Values:   values,
+			Position: p.position(lineNumber, 1),
+		})
+		if index < len(parts) && parts[index] == "|" {
+			index++
+			if index >= len(parts) {
+				p.addError(lineNumber, 1, "INVALID_UI_INTENT", "UI intent cannot end with `|`.", "Add another `mode values...` segment after `|`, or remove the trailing separator.")
+				return nil, false
+			}
+		}
+	}
+	return intents, true
 }
 
 func modifierTakesValue(name string) bool {

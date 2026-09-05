@@ -116,6 +116,7 @@ black build --ir
 black inspect --ir
 black inspect --affected Product.stock --json
 black agent startup --json
+black theme inspect --json
 black docs entity --ir
 black docs diagnostics --json
 black docs --all --json
@@ -134,6 +135,7 @@ Implemented so far:
 - `inspect` command
 - `inspect --affected <symbol> --json` command for AI-readable impact analysis
 - `agent startup --json` command for deterministic AI project entry checklists
+- `theme inspect --json` command for `.blackthm` UI theme/profile files
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`
@@ -220,6 +222,7 @@ Implemented so far:
 - [Language Spec](SPEC.md)
 - [Agent Guide](AGENTS.md)
 - [Diagnostic Codes](docs/diagnostics.md)
+- [Theme Profile](docs/theme-profile.md)
 - [Warehouse Benchmark v0.1](benchmarks/warehouse-v0.1.md)
 - [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)
 - [InventoryControl Benchmark v0.2](benchmarks/inventory-v0.2.md)

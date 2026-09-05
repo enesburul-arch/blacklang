@@ -12,6 +12,7 @@ func TestLoadConfig(t *testing.T) {
 target = "web"
 source = "src/app.black"
 out = "generated"
+theme = "theme.blackthm"
 `
 	if err := os.WriteFile(filepath.Join(root, "blacklang.toml"), []byte(content), 0644); err != nil {
 		t.Fatal(err)
@@ -29,5 +30,8 @@ out = "generated"
 	}
 	if config.Out != "generated" {
 		t.Fatalf("expected out generated, got %q", config.Out)
+	}
+	if config.Theme != "theme.blackthm" {
+		t.Fatalf("expected theme theme.blackthm, got %q", config.Theme)
 	}
 }

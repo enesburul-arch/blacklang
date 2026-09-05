@@ -402,6 +402,9 @@ func FormatAgentStartupIR(result AgentStartupResult) string {
 	}
 	builder.WriteString(fmt.Sprintf("source %s\n", result.Config.Source))
 	builder.WriteString(fmt.Sprintf("out %s\n", result.Config.Out))
+	if result.Config.Theme != "" {
+		builder.WriteString(fmt.Sprintf("theme %s\n", result.Config.Theme))
+	}
 	if result.Summary.App != "" {
 		builder.WriteString(fmt.Sprintf("app %s\n", result.Summary.App))
 	}
@@ -425,6 +428,28 @@ func FormatAgentStartupIR(result AgentStartupResult) string {
 		builder.WriteString("commands\n")
 		for _, command := range result.Commands {
 			builder.WriteString(fmt.Sprintf("  %s %q\n", command.Name, command.Command))
+		}
+	}
+	return builder.String()
+}
+
+func FormatThemeIR(result ThemeInspectResult) string {
+	theme := result.Theme
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("theme inspect ok\n")
+	builder.WriteString(fmt.Sprintf("file %s\n", result.File))
+	builder.WriteString(fmt.Sprintf("theme %s version %d target %s locked %t\n", theme.Name, theme.Version, theme.Target, theme.Locked))
+	if len(theme.Tokens) > 0 {
+		builder.WriteString("tokens\n")
+		for _, token := range theme.Tokens {
+			builder.WriteString(fmt.Sprintf("  %s %s %q\n", token.Kind, token.Name, token.Value))
+		}
+	}
+	if theme.Profile.Name != "" {
+		builder.WriteString(fmt.Sprintf("profile %s version %d\n", theme.Profile.Name, theme.Profile.Version))
+		for _, mode := range theme.Profile.Modes {
+			builder.WriteString(fmt.Sprintf("  mode %s slots %s\n", mode.Name, strings.Join(mode.Slots, " ")))
 		}
 	}
 	return builder.String()

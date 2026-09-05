@@ -1,0 +1,22 @@
+blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  token color primary "#2563eb"
+  token color surface "#ffffff"
+  token color text "#172026"
+  token color border "#d8dee8"
+  token space sm 8
+  token space md 12
+  token radius sm 4
+  token radius md 6
+
+  profile UICompact {
+    version 1
+    mode box color width style pt pr pb pl radius place
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
+  }
+}

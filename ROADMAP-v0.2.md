@@ -43,7 +43,7 @@ This phase helps humans and AI agents edit `.black` files with less guesswork.
 
 This phase starts the BlackLang-native UI layer instead of forcing users or AI agents to write raw CSS.
 
-- [ ] Define `blackthm` or theme profile file format
+- [x] Define `blackthm` or theme profile file format
 - [ ] Define compact UI slot profile rules
 - [ ] Make UI slots append-only after profile lock
 - [ ] Add mode groups such as `box`, `text`, `table`, and `button`

@@ -94,6 +94,22 @@ black agent startup --ir`,
 		},
 		Errors: []string{"UNKNOWN_AGENT_COMMAND", "FILE_READ_ERROR", "FORMAT_REQUIRED", "HARDCODED_TOKEN"},
 	},
+	"theme": {
+		Keyword: "theme",
+		Purpose: "Inspects .blackthm UI theme/profile files before CSS generation exists.",
+		Syntax:  "black theme inspect [file] [--json|--ir]",
+		Example: `black theme inspect --json
+black theme inspect examples/warehouse/theme.blackthm --json
+black theme inspect examples/warehouse/theme.blackthm --ir`,
+		AgentNotes: []string{
+			"Use .blackthm for deterministic UI tokens and mode slot profile metadata.",
+			"Set theme = \"path/to/theme.blackthm\" in blacklang.toml so agents can discover it.",
+			"Hex colors should be quoted because # starts a comment outside strings.",
+			"CSS generation from theme intent is planned for later Phase 20 steps.",
+			"Treat .blackthm files as source assets, not generated output.",
+		},
+		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE"},
+	},
 	"docs": {
 		Keyword: "docs",
 		Purpose: "Prints compact BlackLang reference entries for one keyword or every known keyword.",

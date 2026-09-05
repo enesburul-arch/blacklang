@@ -48,6 +48,12 @@ BlackLang source files use this extension:
 .black
 ```
 
+BlackLang UI theme/profile files use this extension:
+
+```text
+.blackthm
+```
+
 Example source files live under:
 
 ```text
@@ -122,6 +128,7 @@ black validate --json
 black inspect --json
 black inspect --affected Product.stock --json
 black agent startup --json
+black theme inspect --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -185,6 +192,40 @@ black agent startup app.black --json
 The output tells an agent which local files to read first, which `.black` source file is the source of truth, which generated directory should be treated as rebuildable output, and which commands to run before and after edits.
 
 Agents should run this when entering an unfamiliar BlackLang project instead of guessing the project workflow from memory.
+
+## Current Theme Profile Format
+
+Draft v0.2 supports a separate `.blackthm` source file for UI theme/profile metadata:
+
+```blackthm
+blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  token color primary "#2563eb"
+
+  profile UICompact {
+    version 1
+    mode box color width style pt pr pb pl radius place
+    mode text color size weight align
+  }
+}
+```
+
+Projects can point to this file from `blacklang.toml`:
+
+```toml
+theme = "examples/warehouse/theme.blackthm"
+```
+
+AI agents can inspect it with:
+
+```bash
+black theme inspect --json
+```
+
+This phase validates and exposes theme/profile metadata. CSS generation from theme intent comes later in Phase 20.
 
 ## Current Diagnostic Documentation
 

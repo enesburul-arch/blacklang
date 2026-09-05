@@ -5,6 +5,7 @@ BlackLang is an AI-native deterministic intent language for describing applicati
 Current version: 0.1.0-dev
 Primary target: web applications
 Source extension: `.black`
+Theme extension: `.blackthm`
 
 Read first:
 
@@ -17,11 +18,13 @@ Read first:
 - `#form` for data input.
 - `#auth` for email/password cookie sessions.
 - `#roles` for role and access rules.
+- `#theme` for `.blackthm` UI theme/profile files.
 - `#security` for source security rules.
 - `#cli` for machine-readable commands.
 - `#ai-agents` for `black agent startup --json` project entry output.
 - `#errors` for diagnostic JSON shape and code families.
 - `/diagnostics.md` for the stable diagnostic code reference.
+- `/theme-profile.md` for the stable `.blackthm` format reference.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
@@ -34,8 +37,9 @@ Agent rule:
 
 1. Run `black agent startup --json` when available.
 2. Read the returned `readFirst` files that exist.
-3. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-4. Modify `.black` source files, not generated output.
-5. Run `black format --check --json`, `black lint --json`, and `black build`.
-6. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-7. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+3. Run `black theme inspect --json` before writing future inline UI intent when a theme file exists.
+4. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+5. Modify `.black` and `.blackthm` source files, not generated output.
+6. Run `black format --check --json`, `black lint --json`, and `black build`.
+7. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+8. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

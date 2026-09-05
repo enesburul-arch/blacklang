@@ -12,6 +12,8 @@ BlackLang is designed for AI coding agents. Its source files should be easy to r
 
 BlackLang source files use the `.black` extension.
 
+BlackLang UI theme/profile files use the `.blackthm` extension.
+
 BlackLang's compact intermediate representation uses the `.blackir` extension when saved to disk.
 
 ## Design Rules
@@ -145,7 +147,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 33,
+  "count": 34,
   "docs": [
     {
       "keyword": "entity",
@@ -185,7 +187,8 @@ JSON shape:
     "languageVersion": "0.1",
     "target": "web",
     "source": "examples/warehouse/app.black",
-    "out": "generated"
+    "out": "generated",
+    "theme": "examples/warehouse/theme.blackthm"
   },
   "summary": {
     "app": "Warehouse",
@@ -200,6 +203,7 @@ JSON shape:
     }
   ],
   "sourceFiles": ["examples/warehouse/app.black"],
+  "themeFiles": ["examples/warehouse/theme.blackthm"],
   "generatedDirs": ["generated"],
   "checklist": [],
   "commands": [],
@@ -211,6 +215,75 @@ JSON shape:
 If the project currently has parse, validation, or file-read diagnostics, the command still returns the startup checklist but sets `success` to `false` and fills `errors`.
 
 AI agents should run this before editing an unfamiliar project so they can learn local files, generated output boundaries, validation commands, and source-security rules from one stable compiler output.
+
+## Current Theme Profile Format
+
+Draft v0.2 supports separate `.blackthm` files for UI theme and compact UI profile metadata.
+
+Theme files are source assets. They are not generated CSS. They exist so the compiler and AI agents can inspect UI token names and positional mode slots before inline UI intent and CSS generation are implemented.
+
+Projects can point to a theme file from `blacklang.toml`:
+
+```toml
+theme = "examples/warehouse/theme.blackthm"
+```
+
+Current syntax:
+
+```blackthm
+blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  token color primary "#2563eb"
+  token color surface "#ffffff"
+  token space sm 8
+  token radius md 6
+
+  profile UICompact {
+    version 1
+    mode box color width style pt pr pb pl radius place
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
+  }
+}
+```
+
+CLI:
+
+```bash
+black theme inspect --json
+black theme inspect examples/warehouse/theme.blackthm --json
+black theme inspect examples/warehouse/theme.blackthm --ir
+```
+
+JSON shape:
+
+```json
+{
+  "success": true,
+  "command": "theme inspect",
+  "version": "0.1.0-dev",
+  "file": "examples/warehouse/theme.blackthm",
+  "theme": {
+    "name": "WarehouseTheme",
+    "version": 1,
+    "target": "web",
+    "locked": false,
+    "tokens": [],
+    "profile": {
+      "name": "UICompact",
+      "version": 1,
+      "modes": []
+    }
+  },
+  "errors": []
+}
+```
+
+Hex colors should be quoted because `#` starts a comment outside quoted strings. Existing profile locking and append-only migration enforcement are planned for later Phase 20 steps.
 
 ## Current Diagnostic Documentation
 
@@ -694,6 +767,7 @@ version = "0.1"
 target = "web"
 source = "src/app.black"
 out = "generated"
+theme = "src/theme.blackthm"
 ```
 
 AI agents should use the version before applying syntax rules:
@@ -715,6 +789,7 @@ black docs page --json
 black explain table --json
 black explain entity --json
 black agent startup --json
+black theme inspect --json
 black inspect app.black --affected Product.stock --json
 ```
 
@@ -744,9 +819,10 @@ JSON remains supported for external tools, editor plugins, APIs, and integration
 Format roles:
 
 ```text
-.black    source language written by humans and AI agents
-.blackir  compact BlackLang intermediate representation
-.json     standard integration format for external tools
+.black     source language written by humans and AI agents
+.blackthm  UI theme/profile source language
+.blackir   compact BlackLang intermediate representation
+.json      standard integration format for external tools
 ```
 
 CLI commands may support:
@@ -1080,6 +1156,7 @@ black validate --ir
 black build --ir
 black inspect --ir
 black agent startup --json
+black theme inspect --json
 black docs entity --ir
 black docs --all --json
 black explain entity --json

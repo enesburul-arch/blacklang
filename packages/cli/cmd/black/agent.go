@@ -10,6 +10,7 @@ func AgentStartupChecklist(args []string) AgentStartupResult {
 	project := LoadProject(args)
 	source := project.SourcePath
 	out := project.OutDir
+	theme := project.Config.Theme
 
 	return AgentStartupResult{
 		Success:       len(project.Diagnostics) == 0,
@@ -17,13 +18,15 @@ func AgentStartupChecklist(args []string) AgentStartupResult {
 		Version:       version,
 		Config:        project.ConfigInfo(),
 		Summary:       project.Summary(),
-		ReadFirst:     agentReadFirst(source),
+		ReadFirst:     agentReadFirst(source, theme),
 		SourceFiles:   []string{source},
+		ThemeFiles:    agentThemeFiles(theme),
 		GeneratedDirs: []string{out},
 		Checklist:     agentChecklist(source, out),
-		Commands:      agentCommands(source, out),
+		Commands:      agentCommands(source, out, theme),
 		Policies: []string{
 			"Edit .black source files first; treat generated output as rebuildable compiler output.",
+			"Treat .blackthm files as source assets for deterministic UI profile metadata.",
 			"Read blacklang.toml before assuming source, target, or output paths.",
 			"Use diagnostic code values instead of message text when repairing failures.",
 			"Run inspect --affected before changing high-impact entities, fields, pages, roles, workflows, states, components, or APIs.",
@@ -34,7 +37,7 @@ func AgentStartupChecklist(args []string) AgentStartupResult {
 	}
 }
 
-func agentReadFirst(source string) []AgentReadFile {
+func agentReadFirst(source string, theme string) []AgentReadFile {
 	files := []AgentReadFile{
 		{Path: "AGENTS.md", Purpose: "Local rules for AI agents working in this project."},
 		{Path: "blacklang.toml", Purpose: "Project language version, target, source path, and output path."},
@@ -42,6 +45,9 @@ func agentReadFirst(source string) []AgentReadFile {
 		{Path: "SPEC.md", Purpose: "Precise language and CLI behavior for the current draft."},
 		{Path: "docs/diagnostics.md", Purpose: "Stable diagnostic code reference and repair order."},
 		{Path: source, Purpose: "Primary .black source of truth for the generated application."},
+	}
+	if theme != "" {
+		files = append(files, AgentReadFile{Path: theme, Purpose: "BlackLang-native UI theme/profile source."})
 	}
 	for index := range files {
 		files[index].Exists = fileExists(files[index].Path)
@@ -63,8 +69,8 @@ func agentChecklist(source string, out string) []AgentChecklistItem {
 	}
 }
 
-func agentCommands(source string, out string) []AgentCommand {
-	return []AgentCommand{
+func agentCommands(source string, out string, theme string) []AgentCommand {
+	commands := []AgentCommand{
 		{Name: "version", Command: "black version --json", Purpose: "Check installed CLI version."},
 		{Name: "docs", Command: "black docs --all --json", Purpose: "Read compact language reference."},
 		{Name: "diagnostics", Command: "black docs diagnostics --json", Purpose: "Read stable diagnostic repair guidance."},
@@ -74,6 +80,17 @@ func agentCommands(source string, out string) []AgentCommand {
 		{Name: "build", Command: fmt.Sprintf("black build %s --out %s --json", quoteCLIArg(source), quoteCLIArg(out)), Purpose: "Generate target application code."},
 		{Name: "security", Command: fmt.Sprintf("black security scan %s --json", quoteCLIArg(source)), Purpose: "Scan .black source for likely hardcoded secrets."},
 	}
+	if theme != "" {
+		commands = append(commands, AgentCommand{Name: "theme", Command: fmt.Sprintf("black theme inspect %s --json", quoteCLIArg(theme)), Purpose: "Inspect BlackLang-native UI theme/profile metadata."})
+	}
+	return commands
+}
+
+func agentThemeFiles(theme string) []string {
+	if strings.TrimSpace(theme) == "" {
+		return nil
+	}
+	return []string{theme}
 }
 
 func fileExists(path string) bool {

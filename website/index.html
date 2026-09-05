@@ -33,7 +33,7 @@
 
       <label class="nav-search">
         <span>Menüde ara</span>
-        <input type="search" id="navSearch" placeholder="entity, form, security..." />
+        <input type="search" id="navSearch" placeholder="entity, theme, security..." />
       </label>
 
       <nav aria-label="BlackLang dokümantasyon menüsü">
@@ -55,6 +55,7 @@
         <a href="#workflow">workflow</a>
         <a href="#state">state</a>
         <a href="#component">component</a>
+        <a href="#theme">theme</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cli">CLI</a>
@@ -84,6 +85,7 @@
           <span>Current version: <strong>0.1.0-dev</strong></span>
           <span>Target: <strong>Web applications</strong></span>
           <span>Source: <strong>.black</strong></span>
+          <span>Theme: <strong>.blackthm</strong></span>
         </div>
         <div class="code-panel">
           <div class="code-title">Minimal fikir</div>
@@ -516,6 +518,47 @@ page Products {
         </p>
       </section>
 
+      <section id="theme">
+        <h2>theme</h2>
+        <p>
+          `.blackthm`, BlackLang'in UI tema ve profil bilgisini raw CSS yerine
+          deterministik kaynak olarak saklaması için eklenen ilk dosya formatıdır.
+          Bu aşamada CSS üretmez; compiler ve AI ajanlar için token, mode ve slot sırasını
+          okunabilir hale getirir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Warehouse theme profile</div>
+          <pre><code class="language-blackthm">blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  token color primary "#2563eb"
+  token color surface "#ffffff"
+  token space sm 8
+  token radius md 6
+
+  profile UICompact {
+    version 1
+    mode box color width style pt pr pb pl radius place
+    mode text color size weight align
+    mode table color width style density zebra
+    mode button bg color radius size variant
+  }
+}</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Inspect command</div>
+          <pre><code class="language-bash">black theme inspect --json
+black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
+        </div>
+        <p>
+          Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
+          `profile.modes[].slots` alanı ileride inline `ui` satırlarının soldan sağa nasıl
+          okunacağını belirleyen kaynak gerçek olacaktır.
+        </p>
+      </section>
+
       <section id="api">
         <h2>api</h2>
         <p>
@@ -588,6 +631,7 @@ black validate examples/warehouse/app.black --json
 black build examples/warehouse/app.black --json
 black inspect --ir
 black inspect examples/project-management/app.black --affected ProjectTask.status --json
+black theme inspect --json
 black docs --all --json
 black explain entity --json
 black security scan --json</code></pre>

@@ -17,6 +17,7 @@ It should explain:
 - How each keyword behaves
 - How CLI commands behave
 - How JSON diagnostics work
+- How `.blackthm` theme profile files work
 - How AI agents should use the language
 
 ## Planned Structure
@@ -54,12 +55,14 @@ docs/
 - CLI: validate
 - CLI: docs all JSON export
 - CLI: explain keyword JSON
+- CLI: theme inspect JSON
 - CLI: install paths
 - CLI: GitHub publish policy
 - CLI: release artifact layout
 - CLI: npm wrapper plan
 - AI Agents: Codex guide
 - Errors: Error code reference
+- Reference: Theme profile
 
 ## Documentation Rule
 

@@ -46,6 +46,8 @@ func main() {
 		runExplain(args[1:])
 	case "agent":
 		runAgent(args[1:])
+	case "theme":
+		runTheme(args[1:])
 	case "security":
 		runSecurity(args[1:])
 	case "package":
@@ -185,6 +187,7 @@ Commands:
   docs        Print compact language docs for one keyword or all keywords
   explain     Print action-oriented docs for one keyword
   agent       Print AI agent startup checklist output
+  theme       Inspect .blackthm UI theme profiles
   security    Scan BlackLang source for source-security risks
   package     Create deployable artifacts without protected source files
   version     Print CLI version
@@ -832,6 +835,64 @@ func runAgent(args []string) {
 	}
 }
 
+func runTheme(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printThemeHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	inspectArgs := args
+	if len(args) > 0 && args[0] == "inspect" {
+		inspectArgs = args[1:]
+	} else if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_THEME_COMMAND",
+			Message:    fmt.Sprintf("No theme command exists for %q.", args[0]),
+			Suggestion: "Use `black theme inspect --json`.",
+		}
+		printCommandError("theme", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+
+	result := InspectTheme(inspectArgs)
+	if irOutput {
+		if result.Success {
+			fmt.Print(FormatThemeIR(result))
+		} else {
+			printDiagnosticsIR("theme inspect", result.Errors)
+		}
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	printThemeInspectResult(result)
+	if !result.Success {
+		os.Exit(1)
+	}
+}
+
+func printThemeHelp() {
+	fmt.Println(`BlackLang theme
+
+Usage:
+  black theme inspect [file] [options]
+  black theme [options]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
+}
+
 func printAgentHelp() {
 	fmt.Println(`BlackLang agent
 
@@ -1086,6 +1147,9 @@ func printAgentStartupResult(result AgentStartupResult) {
 	}
 	fmt.Printf("source: %s\n", result.Config.Source)
 	fmt.Printf("out: %s\n", result.Config.Out)
+	if result.Config.Theme != "" {
+		fmt.Printf("theme: %s\n", result.Config.Theme)
+	}
 	fmt.Printf("app: %s\n", result.Summary.App)
 	fmt.Println("read first:")
 	for _, file := range result.ReadFirst {
@@ -1098,6 +1162,28 @@ func printAgentStartupResult(result AgentStartupResult) {
 	fmt.Println("checklist:")
 	for _, item := range result.Checklist {
 		fmt.Printf("%d. %s\n", item.Step, item.Action)
+	}
+}
+
+func printThemeInspectResult(result ThemeInspectResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+	fmt.Printf("theme ok %s\n", result.File)
+	fmt.Printf("name: %s\n", result.Theme.Name)
+	fmt.Printf("version: %d\n", result.Theme.Version)
+	fmt.Printf("target: %s\n", result.Theme.Target)
+	fmt.Printf("locked: %t\n", result.Theme.Locked)
+	fmt.Printf("tokens: %d\n", len(result.Theme.Tokens))
+	fmt.Printf("profile: %s v%d\n", result.Theme.Profile.Name, result.Theme.Profile.Version)
+	for _, mode := range result.Theme.Profile.Modes {
+		fmt.Printf("- mode %s: %s\n", mode.Name, strings.Join(mode.Slots, ", "))
 	}
 }
 

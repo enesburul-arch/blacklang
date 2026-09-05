@@ -11,6 +11,7 @@ type Config struct {
 	Target  string
 	Source  string
 	Out     string
+	Theme   string
 }
 
 type LoadedProject struct {
@@ -50,6 +51,8 @@ func LoadConfig(root string) Config {
 			config.Source = value
 		case "out":
 			config.Out = value
+		case "theme":
+			config.Theme = value
 		}
 	}
 
@@ -142,5 +145,6 @@ func (p LoadedProject) ConfigInfo() ConfigInfo {
 		Target:          p.Config.Target,
 		Source:          p.SourcePath,
 		Out:             p.OutDir,
+		Theme:           p.Config.Theme,
 	}
 }

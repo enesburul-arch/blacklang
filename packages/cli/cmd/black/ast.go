@@ -204,6 +204,7 @@ type AgentStartupResult struct {
 	Summary       Summary              `json:"summary"`
 	ReadFirst     []AgentReadFile      `json:"readFirst"`
 	SourceFiles   []string             `json:"sourceFiles"`
+	ThemeFiles    []string             `json:"themeFiles,omitempty"`
 	GeneratedDirs []string             `json:"generatedDirs"`
 	Checklist     []AgentChecklistItem `json:"checklist"`
 	Commands      []AgentCommand       `json:"commands"`
@@ -238,11 +239,51 @@ type DocEntry struct {
 	Errors     []string `json:"errors"`
 }
 
+type ThemeInspectResult struct {
+	Success bool         `json:"success"`
+	Command string       `json:"command"`
+	Version string       `json:"version"`
+	File    string       `json:"file,omitempty"`
+	Theme   ThemeDecl    `json:"theme,omitempty"`
+	Errors  []Diagnostic `json:"errors"`
+}
+
+type ThemeDecl struct {
+	Name     string        `json:"name"`
+	Version  int           `json:"version"`
+	Target   string        `json:"target,omitempty"`
+	Locked   bool          `json:"locked"`
+	Tokens   []ThemeToken  `json:"tokens"`
+	Profile  UIProfileDecl `json:"profile"`
+	Position Position      `json:"position"`
+}
+
+type ThemeToken struct {
+	Kind     string   `json:"kind"`
+	Name     string   `json:"name"`
+	Value    string   `json:"value"`
+	Position Position `json:"position"`
+}
+
+type UIProfileDecl struct {
+	Name     string       `json:"name"`
+	Version  int          `json:"version"`
+	Modes    []UIModeDecl `json:"modes"`
+	Position Position     `json:"position"`
+}
+
+type UIModeDecl struct {
+	Name     string   `json:"name"`
+	Slots    []string `json:"slots"`
+	Position Position `json:"position"`
+}
+
 type ConfigInfo struct {
 	LanguageVersion string `json:"languageVersion,omitempty"`
 	Target          string `json:"target,omitempty"`
 	Source          string `json:"source"`
 	Out             string `json:"out"`
+	Theme           string `json:"theme,omitempty"`
 }
 
 type GeneratedFile struct {

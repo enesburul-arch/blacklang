@@ -117,6 +117,19 @@ func TestFindAgentDoc(t *testing.T) {
 	}
 }
 
+func TestFindThemeDoc(t *testing.T) {
+	doc, ok := FindDoc("theme")
+	if !ok {
+		t.Fatalf("expected theme docs")
+	}
+	if !strings.Contains(doc.Syntax, "theme inspect") {
+		t.Fatalf("expected theme docs to mention inspect, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "INVALID_UI_MODE") {
+		t.Fatalf("expected theme docs to mention UI diagnostics, got %#v", doc)
+	}
+}
+
 func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
 	if err != nil {

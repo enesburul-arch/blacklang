@@ -17,6 +17,18 @@ func TestAgentStartupChecklistUsesProjectConfig(t *testing.T) {
 target = "web"
 source = "src/app.black"
 out = "generated"
+theme = "theme.blackthm"
+`)
+	writeTestFile(t, filepath.Join(root, "theme.blackthm"), `blackthm AppTheme {
+  version 1
+  target web
+  locked false
+
+  profile UICompact {
+    version 1
+    mode box color width
+  }
+}
 `)
 	writeTestFile(t, filepath.Join(root, "src", "app.black"), `app Warehouse
 
@@ -53,14 +65,19 @@ page Products {
 	if result.Config.Out != "generated" {
 		t.Fatalf("expected config out, got %#v", result.Config)
 	}
+	if result.Config.Theme != "theme.blackthm" {
+		t.Fatalf("expected config theme, got %#v", result.Config)
+	}
 	if result.Summary.App != "Warehouse" || result.Summary.Entities != 1 || result.Summary.Pages != 1 {
 		t.Fatalf("expected project summary, got %#v", result.Summary)
 	}
 	assertStartupReadFile(t, result.ReadFirst, "AGENTS.md", true)
 	assertStartupReadFile(t, result.ReadFirst, "docs/diagnostics.md", true)
 	assertStartupReadFile(t, result.ReadFirst, "src/app.black", true)
+	assertStartupReadFile(t, result.ReadFirst, "theme.blackthm", true)
 	assertStartupCommand(t, result.Commands, "inspect", "black inspect src/app.black --json")
 	assertStartupCommand(t, result.Commands, "build", "black build src/app.black --out generated --json")
+	assertStartupCommand(t, result.Commands, "theme", "black theme inspect theme.blackthm --json")
 	if len(result.Checklist) < 8 {
 		t.Fatalf("expected detailed checklist, got %#v", result.Checklist)
 	}
@@ -109,6 +126,7 @@ func TestFormatAgentStartupIR(t *testing.T) {
 			Target:          "web",
 			Source:          "src/app.black",
 			Out:             "generated",
+			Theme:           "theme.blackthm",
 		},
 		Summary: Summary{App: "Warehouse", Entities: 1, Pages: 1},
 		ReadFirst: []AgentReadFile{

@@ -145,7 +145,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 30,
+  "count": 31,
   "docs": [
     {
       "keyword": "entity",
@@ -161,6 +161,49 @@ JSON shape:
 ```
 
 The `docs` array is sorted by keyword for deterministic AI context. Agents should use `black docs --all --json` when entering an unfamiliar BlackLang project, and `black docs <keyword> --json` for focused edits.
+
+## Current Inspect Affected Command
+
+Draft v0.2 supports focused affected graph output:
+
+```bash
+black inspect app.black --affected Product.stock --json
+black inspect app.black --affected Products --json
+black inspect app.black --affected OrderLifecycle --json
+```
+
+JSON shape:
+
+```json
+{
+  "success": true,
+  "command": "inspect",
+  "version": "0.1.0-dev",
+  "affected": {
+    "symbol": "Product.stock",
+    "kind": "field",
+    "found": true,
+    "entity": "Product",
+    "field": "stock",
+    "entities": [],
+    "pages": [],
+    "roles": [],
+    "workflows": [],
+    "states": [],
+    "components": [],
+    "apis": [],
+    "generatedFiles": [],
+    "agentNotes": []
+  },
+  "errors": []
+}
+```
+
+Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `auth`, `database`, and `app`.
+
+Unknown symbols return `UNKNOWN_AFFECTED_SYMBOL`. Missing `--affected` values return `MISSING_AFFECTED_SYMBOL`.
+
+AI agents should run this before editing high-impact symbols so they can validate the right generated pages, routes, OpenAPI output, workflows, and role guards after the change.
 
 ## Current Explain Command
 
@@ -609,7 +652,7 @@ black docs entity --json
 black docs page --json
 black explain table --json
 black explain entity --json
-black affected Product.stock --json
+black inspect app.black --affected Product.stock --json
 ```
 
 This allows an AI agent to read only the relevant part of the language instead of a full manual.

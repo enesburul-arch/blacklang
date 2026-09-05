@@ -132,6 +132,38 @@ type InspectResult struct {
 	Errors  []Diagnostic `json:"errors"`
 }
 
+type InspectAffectedResult struct {
+	Success  bool             `json:"success"`
+	Command  string           `json:"command"`
+	Version  string           `json:"version"`
+	Config   ConfigInfo       `json:"config"`
+	Summary  Summary          `json:"summary"`
+	Affected AffectedAnalysis `json:"affected"`
+	Errors   []Diagnostic     `json:"errors"`
+}
+
+type AffectedAnalysis struct {
+	Symbol         string         `json:"symbol"`
+	Kind           string         `json:"kind"`
+	Found          bool           `json:"found"`
+	Entity         string         `json:"entity,omitempty"`
+	Field          string         `json:"field,omitempty"`
+	Entities       []AffectedItem `json:"entities"`
+	Pages          []AffectedItem `json:"pages"`
+	Roles          []AffectedItem `json:"roles"`
+	Workflows      []AffectedItem `json:"workflows"`
+	States         []AffectedItem `json:"states"`
+	Components     []AffectedItem `json:"components"`
+	APIs           []AffectedItem `json:"apis"`
+	GeneratedFiles []AffectedItem `json:"generatedFiles"`
+	AgentNotes     []string       `json:"agentNotes"`
+}
+
+type AffectedItem struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
+}
+
 type DocsResult struct {
 	Success bool         `json:"success"`
 	Command string       `json:"command"`

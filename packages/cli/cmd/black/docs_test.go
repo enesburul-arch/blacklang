@@ -76,6 +76,19 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 	}
 }
 
+func TestFindInspectDoc(t *testing.T) {
+	doc, ok := FindDoc("inspect")
+	if !ok {
+		t.Fatalf("expected inspect docs")
+	}
+	if !strings.Contains(doc.Syntax, "--affected <symbol>") {
+		t.Fatalf("expected inspect docs to mention --affected, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "UNKNOWN_AFFECTED_SYMBOL") {
+		t.Fatalf("expected inspect docs to mention UNKNOWN_AFFECTED_SYMBOL, got %#v", doc)
+	}
+}
+
 func TestFormatDocsIR(t *testing.T) {
 	doc, ok := FindDoc("table")
 	if !ok {

@@ -120,10 +120,10 @@ black format --check --json
 black lint --json
 black validate --json
 black inspect --json
+black inspect --affected Product.stock --json
 black docs entity --json
 black docs --all --json
 black explain table --json
-black affected Product.stock --json
 ```
 
 ## Current Format Command
@@ -158,6 +158,18 @@ black docs --all --json
 ```
 
 The output contains every known `DocEntry`, sorted by keyword. AI agents should use this when they need the full local BlackLang reference, and use `black docs <keyword> --json` when only one concept is needed.
+
+## Current Inspect Affected Command
+
+Draft v0.2 supports focused impact analysis:
+
+```bash
+black inspect app.black --affected Product.stock --json
+```
+
+The affected output tells AI agents which entities, pages, roles, workflows, states, components, APIs, and generated files may change when a symbol is edited.
+
+Use it before renaming or changing important fields such as `status`, relation fields, workflow source entities, or role-scoped fields.
 
 ## Current Explain Command
 

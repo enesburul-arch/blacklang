@@ -30,6 +30,7 @@ Read first:
 Agent rule:
 
 1. Read local `AGENTS.md`, `BLACKLANG.md`, `SPEC.md`, and `blacklang.toml` when available.
-2. Modify `.black` source files, not generated output.
-3. Run `black format --check --json`, `black lint --json`, and `black build`.
-4. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+2. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+3. Modify `.black` source files, not generated output.
+4. Run `black format --check --json`, `black lint --json`, and `black build`.
+5. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

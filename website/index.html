@@ -586,13 +586,17 @@ black parse examples/warehouse/app.black --json
 black validate examples/warehouse/app.black --json
 black build examples/warehouse/app.black --json
 black inspect --ir
+black inspect examples/project-management/app.black --affected ProjectTask.status --json
 black docs --all --json
 black explain entity --json
 black security scan --json</code></pre>
         </div>
         <p>
           `lint` format, parse, validate ve source-security bulgularını tek raporda toplar.
-          `explain`, tek keyword için amaç, syntax, örnek, agent notu ve hata kodlarını döner.
+          `inspect --affected`, bir entity, field, page, role, workflow, state, component
+          veya api değiştiğinde hangi kaynak parçalarının ve generated dosyaların etkileneceğini
+          JSON olarak döner. `explain`, tek keyword için amaç, syntax, örnek, agent notu ve
+          hata kodlarını döner.
         </p>
       </section>
 
@@ -636,11 +640,12 @@ black security scan --json</code></pre>
 2. Read BLACKLANG.md
 3. Check blacklang.toml
 4. Run black inspect --json or --ir
-5. Edit only .black source files
-6. Run black format --check --json
-7. Run black lint --json
-8. Run black build
-9. Do not manually edit generated files</code></pre>
+5. Run black inspect --affected Product.stock --json before high-impact edits
+6. Edit only .black source files
+7. Run black format --check --json
+8. Run black lint --json
+9. Run black build
+10. Do not manually edit generated files</code></pre>
         </div>
         <p>
           Hedef sıfır öğrenme maliyeti değildir. Hedef, ilk öğrenmeden sonra tekrar eden
@@ -1138,7 +1143,7 @@ Build time                      TBD         TBD</code></pre>
         <div class="code-panel">
           <div class="code-title">v0.2 odakları</div>
           <pre><code>Phase 18: Release and install path
-Phase 19: Developer and AI ergonomics
+Phase 19: Developer and AI ergonomics, including inspect --affected
 Phase 20: UI and theme language
 Phase 21: Query, actions, and data logic
 Phase 22: Tests, benchmarks, and evals

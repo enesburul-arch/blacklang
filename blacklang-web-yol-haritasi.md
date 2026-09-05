@@ -2276,7 +2276,7 @@ black validate --json
 black diff --json
 black plan --json
 black explain Product --json
-black affected Product.stock --json
+black inspect app.black --affected Product.stock --json
 ```
 
 ### Amaç

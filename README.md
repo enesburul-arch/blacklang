@@ -114,6 +114,7 @@ black parse examples/warehouse/app.black --ir
 black validate --ir
 black build --ir
 black inspect --ir
+black inspect --affected Product.stock --json
 black docs entity --ir
 black docs --all --json
 black explain entity --json
@@ -129,6 +130,7 @@ Implemented so far:
 - `validate <file>` command
 - `build <file>` command
 - `inspect` command
+- `inspect --affected <symbol> --json` command for AI-readable impact analysis
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - `explain <keyword> --json` command for focused agent guidance

@@ -35,7 +35,7 @@ This phase helps humans and AI agents edit `.black` files with less guesswork.
 - [x] Add `black lint --json`
 - [x] Add `black docs --all --json`
 - [x] Add `black explain <keyword> --json`
-- [ ] Add `black inspect --affected <symbol> --json`
+- [x] Add `black inspect --affected <symbol> --json`
 - [ ] Add stable diagnostic documentation
 - [ ] Add agent startup checklist output
 

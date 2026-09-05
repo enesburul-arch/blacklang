@@ -179,7 +179,7 @@ Commands:
   lint        Check source formatting, syntax, semantics, and source security
   validate    Validate .black project semantics
   build       Generate target application code
-  inspect     Print project summary for humans or AI agents
+  inspect     Print project summary or affected graph for humans or AI agents
   docs        Print compact language docs for one keyword or all keywords
   explain     Print action-oriented docs for one keyword
   security    Scan BlackLang source for source-security risks
@@ -563,9 +563,59 @@ func runBuild(args []string) {
 }
 
 func runInspect(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printInspectHelp()
+		return
+	}
+
 	jsonOutput := hasJSONFlag(args)
 	irOutput := hasIRFlag(args)
+	affectedRequested := hasFlag(args, "--affected")
 	project := LoadProject(args)
+
+	if affectedRequested {
+		symbol := optionValue(args, "--affected")
+		affected := newAffectedAnalysis(symbol)
+		diagnostics := append([]Diagnostic{}, project.Diagnostics...)
+		if len(diagnostics) == 0 {
+			var affectedDiagnostics []Diagnostic
+			affected, affectedDiagnostics = AnalyzeAffected(project.Program, symbol)
+			diagnostics = append(diagnostics, affectedDiagnostics...)
+		}
+		result := InspectAffectedResult{
+			Success:  len(diagnostics) == 0,
+			Command:  "inspect",
+			Version:  version,
+			Config:   project.ConfigInfo(),
+			Summary:  project.Summary(),
+			Affected: affected,
+			Errors:   diagnostics,
+		}
+		if irOutput {
+			if result.Success {
+				fmt.Print(FormatAffectedIR(result))
+			} else {
+				printDiagnosticsIR("inspect", result.Errors)
+			}
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printAffectedResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+
 	result := InspectResult{
 		Success: len(project.Diagnostics) == 0,
 		Command: "inspect",
@@ -606,6 +656,18 @@ func runInspect(args []string) {
 	fmt.Printf("out: %s\n", result.Config.Out)
 	fmt.Printf("entities: %d\n", result.Summary.Entities)
 	fmt.Printf("pages: %d\n", result.Summary.Pages)
+}
+
+func printInspectHelp() {
+	fmt.Println(`BlackLang inspect
+
+Usage:
+  black inspect [file] [options]
+
+Options:
+  --affected <symbol>  Print affected graph for an entity, field, page, role, workflow, state, component, or api
+  --json               Print machine-readable JSON
+  --ir                 Print compact BlackIR`)
 }
 
 func runDocs(args []string) {
@@ -734,7 +796,7 @@ Options:
 func firstNonOptionArg(args []string) string {
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
-		if arg == "--out" {
+		if arg == "--out" || arg == "--affected" {
 			index++
 			continue
 		}
@@ -902,6 +964,43 @@ func printBuildResult(jsonOutput bool, result BuildResult) {
 	fmt.Printf("built %s\n", result.OutDir)
 	for _, file := range result.Files {
 		fmt.Printf("created %s\n", file.Path)
+	}
+}
+
+func printAffectedResult(result InspectAffectedResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+
+	affected := result.Affected
+	fmt.Printf("affected %s (%s)\n", affected.Symbol, affected.Kind)
+	printAffectedItems("entities", affected.Entities)
+	printAffectedItems("pages", affected.Pages)
+	printAffectedItems("roles", affected.Roles)
+	printAffectedItems("workflows", affected.Workflows)
+	printAffectedItems("states", affected.States)
+	printAffectedItems("components", affected.Components)
+	printAffectedItems("apis", affected.APIs)
+	printAffectedItems("generated files", affected.GeneratedFiles)
+}
+
+func printAffectedItems(label string, items []AffectedItem) {
+	if len(items) == 0 {
+		return
+	}
+	fmt.Printf("%s:\n", label)
+	for _, item := range items {
+		if item.Reason == "" {
+			fmt.Printf("- %s\n", item.Name)
+			continue
+		}
+		fmt.Printf("- %s: %s\n", item.Name, item.Reason)
 	}
 }
 

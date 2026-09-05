@@ -48,6 +48,21 @@ black lint examples/warehouse/app.black --json`,
 		},
 		Errors: []string{"FILE_READ_ERROR", "FORMAT_REQUIRED", "UNCLOSED_STRING", "UNEXPECTED_CHARACTER", "MISSING_APP", "UNKNOWN_TABLE_COLUMN", "HARDCODED_DATABASE_URL", "HARDCODED_TOKEN", "HARDCODED_PRIVATE_KEY"},
 	},
+	"inspect": {
+		Keyword: "inspect",
+		Purpose: "Prints project structure or a focused affected graph for AI agents before editing.",
+		Syntax:  "black inspect [file] [--json|--ir] | black inspect [file] --affected <symbol> --json",
+		Example: `black inspect examples/warehouse/app.black --json
+black inspect examples/warehouse/app.black --ir
+black inspect examples/warehouse/app.black --affected Product.stock --json`,
+		AgentNotes: []string{
+			"Use black inspect --json or --ir at project start to learn the current app structure.",
+			"Use --affected before changing an entity, field, page, role, workflow, state, component, or api symbol.",
+			"The affected JSON lists source symbols and generated files that should be validated after the edit.",
+			"Unknown symbols return UNKNOWN_AFFECTED_SYMBOL instead of asking the model to guess.",
+		},
+		Errors: []string{"FILE_READ_ERROR", "MISSING_AFFECTED_SYMBOL", "UNKNOWN_AFFECTED_SYMBOL"},
+	},
 	"docs": {
 		Keyword: "docs",
 		Purpose: "Prints compact BlackLang reference entries for one keyword or every known keyword.",

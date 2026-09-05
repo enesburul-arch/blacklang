@@ -284,6 +284,39 @@ func FormatInspectIR(result InspectResult) string {
 	return builder.String()
 }
 
+func FormatAffectedIR(result InspectAffectedResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("inspect affected ok\n")
+	builder.WriteString(fmt.Sprintf("symbol %s\n", result.Affected.Symbol))
+	builder.WriteString(fmt.Sprintf("kind %s\n", result.Affected.Kind))
+	if result.Affected.Entity != "" {
+		builder.WriteString(fmt.Sprintf("entity %s\n", result.Affected.Entity))
+	}
+	if result.Affected.Field != "" {
+		builder.WriteString(fmt.Sprintf("field %s\n", result.Affected.Field))
+	}
+	writeAffectedIRItems(&builder, "entities", result.Affected.Entities)
+	writeAffectedIRItems(&builder, "pages", result.Affected.Pages)
+	writeAffectedIRItems(&builder, "roles", result.Affected.Roles)
+	writeAffectedIRItems(&builder, "workflows", result.Affected.Workflows)
+	writeAffectedIRItems(&builder, "states", result.Affected.States)
+	writeAffectedIRItems(&builder, "components", result.Affected.Components)
+	writeAffectedIRItems(&builder, "apis", result.Affected.APIs)
+	writeAffectedIRItems(&builder, "generated-files", result.Affected.GeneratedFiles)
+	return builder.String()
+}
+
+func writeAffectedIRItems(builder *strings.Builder, label string, items []AffectedItem) {
+	if len(items) == 0 {
+		return
+	}
+	builder.WriteString(fmt.Sprintf("%s %d\n", label, len(items)))
+	for _, item := range items {
+		builder.WriteString(fmt.Sprintf("  %s reason %q\n", item.Name, item.Reason))
+	}
+}
+
 func FormatDocsIR(result DocsResult) string {
 	doc := result.Doc
 	var builder strings.Builder

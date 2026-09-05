@@ -104,7 +104,7 @@ This phase creates the Python/W3Schools-style learning surface discussed for Bla
 This phase grows the examples from Warehouse into reusable app patterns.
 
 - [x] Add CRM example
-- [ ] Add inventory example
+- [x] Add inventory example
 - [ ] Add helpdesk example
 - [ ] Add invoice example
 - [ ] Add appointment example

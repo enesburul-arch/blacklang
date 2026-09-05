@@ -21,6 +21,7 @@ Read first:
 - `#cli` for machine-readable commands.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
+- `#inventory-template` for the InventoryControl template benchmark.
 
 Agent rule:
 

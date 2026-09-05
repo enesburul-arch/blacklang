@@ -1,0 +1,340 @@
+app InventoryControl
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Warehouse {
+  name text required unique label "Warehouse Name" placeholder "Enter warehouse name" help "Physical or virtual stock location"
+  code text required unique length 2..20 label "Warehouse Code" placeholder "MAIN" help "Short stock location code"
+  city text optional label "City" placeholder "Enter city" help "Warehouse city for routing"
+  status text default active label "Warehouse Status" placeholder "active" help "Location state such as active or closed"
+}
+
+entity Supplier {
+  name text required unique label "Supplier Name" placeholder "Enter supplier name" help "Company that provides stock"
+  email email optional unique label "Supplier Email" placeholder "supplier@example.com" help "Primary supplier contact email"
+  phone text optional label "Supplier Phone" placeholder "Enter phone number" help "Supplier contact number"
+  website text optional url label "Website" placeholder "https://supplier.example" help "Supplier website"
+  status text default active label "Supplier Status" placeholder "active" help "Supplier state"
+}
+
+entity Category {
+  name text required unique label "Category Name" placeholder "Enter category name" help "Product grouping"
+  code text required unique length 2..20 label "Category Code" placeholder "ELEC" help "Short category code"
+  status text default active label "Category Status" placeholder "active" help "Category state"
+}
+
+entity Item {
+  warehouse Warehouse required label "Warehouse" placeholder "Select a warehouse" help "Primary stock location"
+  supplier Supplier required label "Supplier" placeholder "Select a supplier" help "Default supplier for this item"
+  category Category required label "Category" placeholder "Select a category" help "Inventory category"
+  sku text required unique length 3..40 regex "^[A-Z0-9-]+$" message "Use uppercase letters, numbers, and dashes"
+  name text required label "Item Name" placeholder "Enter item name" help "Readable inventory item name"
+  onHand number default 0 min 0 label "On Hand" placeholder "Enter available quantity" help "Current physical stock"
+  reserved number default 0 min 0 label "Reserved" placeholder "Enter reserved quantity" help "Quantity allocated but not shipped"
+  reorderPoint number default 5 min 0 label "Reorder Point" placeholder "Enter reorder point" help "Low stock threshold"
+  unitCost money default 0 min 0 label "Unit Cost" placeholder "Enter unit cost" help "Current average cost"
+  status text default active label "Item Status" placeholder "active" help "Item lifecycle status"
+  validate reserved <= onHand message "Reserved stock cannot exceed on-hand stock"
+}
+
+entity PurchaseOrder {
+  supplier Supplier required label "Supplier" placeholder "Select a supplier" help "Supplier receiving the order"
+  warehouse Warehouse required label "Warehouse" placeholder "Select a warehouse" help "Destination warehouse"
+  orderNumber text required unique length 3..40 label "Order Number" placeholder "PO-1001" help "External or internal purchase order number"
+  total money default 0 min 0 label "Order Total" placeholder "Enter order total" help "Total expected cost"
+  expectedDate date optional label "Expected Date" placeholder "Select expected date" help "Expected arrival date"
+  status text default draft label "Order Status" placeholder "draft" help "Purchase workflow status"
+}
+
+entity StockMovement {
+  item Item required label "Item" placeholder "Select an item" help "Inventory item being moved"
+  warehouse Warehouse required label "Warehouse" placeholder "Select a warehouse" help "Warehouse where movement occurs"
+  type text default receipt label "Movement Type" placeholder "receipt" help "Receipt, adjustment, transfer, or shipment"
+  quantity number default 1 min 1 label "Quantity" placeholder "Enter quantity" help "Moved quantity"
+  reason text optional length 3..120 label "Reason" placeholder "Enter reason" help "Short reason for the stock movement"
+  status text default pending label "Movement Status" placeholder "pending" help "Movement approval state"
+  completed boolean default false label "Completed" help "Marks whether the movement has been applied"
+}
+
+role Admin {
+  allow all
+}
+
+role InventoryManager {
+  allow read Warehouse
+  allow create Warehouse
+  allow update Warehouse
+  allow read Supplier
+  allow create Supplier
+  allow update Supplier
+  allow read Category
+  allow create Category
+  allow update Category
+  allow read Item
+  allow create Item
+  allow update Item
+  allow read PurchaseOrder
+  allow create PurchaseOrder
+  allow update PurchaseOrder
+  allow read StockMovement
+  allow create StockMovement
+  allow update StockMovement
+}
+
+role StockClerk {
+  allow read Warehouse
+  allow read Supplier
+  allow read Category
+  allow read Item
+  allow update Item onHand reserved status
+  deny read Item unitCost
+  allow read PurchaseOrder
+  allow update PurchaseOrder status expectedDate
+  allow read StockMovement
+  allow create StockMovement
+  allow update StockMovement status completed
+}
+
+role Viewer {
+  allow read Warehouse
+  allow read Supplier
+  allow read Category
+  allow read Item
+  deny read Item unitCost
+  allow read PurchaseOrder
+  allow read StockMovement
+}
+
+api LowStockReport {
+  method GET
+  path "/api/reports/low-stock/{warehouseCode}"
+  param warehouseCode text
+  query limit integer
+  private
+}
+
+api StockAdjustmentWebhook {
+  method POST
+  path "/api/webhooks/stock-adjustments"
+  webhook
+  public
+}
+
+workflow PurchaseOrderFlow {
+  source PurchaseOrder
+  states draft, submitted, approved, received, closed, cancelled
+
+  transition submit {
+    from draft
+    to submitted
+    allow Admin, InventoryManager
+  }
+
+  transition approve {
+    from submitted
+    to approved
+    allow Admin, InventoryManager
+  }
+
+  transition receive {
+    from approved
+    to received
+    allow Admin, InventoryManager, StockClerk
+  }
+
+  transition close {
+    from received
+    to closed
+    allow Admin, InventoryManager
+  }
+
+  transition cancel {
+    from submitted
+    to cancelled
+    allow Admin, InventoryManager
+  }
+}
+
+workflow StockMovementFlow {
+  source StockMovement
+  states pending, approved, applied, void
+
+  transition approve {
+    from pending
+    to approved
+    allow Admin, InventoryManager
+  }
+
+  transition apply {
+    from approved
+    to applied
+    allow Admin, InventoryManager, StockClerk
+  }
+
+  transition void {
+    from pending
+    to void
+    allow Admin, InventoryManager
+  }
+}
+
+state ItemsPageState {
+  selectedItems Item[]
+  activeFilter text
+  modal createItem closed
+}
+
+state StockMovementsPageState {
+  selectedMovements StockMovement[]
+  activeFilter text
+  modal createStockMovement closed
+}
+
+component StockLevelBadge {
+  input onHand number
+  variant low when onHand < 5
+  variant healthy when onHand >= 5
+}
+
+component MovementCompletedBadge {
+  input completed boolean
+  variant done when completed == true
+  variant pending when completed == false
+}
+
+layout InventoryLayout {
+  sidebar {
+    item Warehouses
+    item Suppliers
+    item Categories
+    item Items
+    item PurchaseOrders
+    item StockMovements
+  }
+}
+
+page Warehouses {
+  layout InventoryLayout
+  source Warehouse
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns name, code, city, status
+    search name, code, city, status
+    filter status, city
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, city, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Suppliers {
+  layout InventoryLayout
+  source Supplier
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns name, email, phone, website, status
+    search name, email, phone, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, email, phone, website, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Categories {
+  layout InventoryLayout
+  source Category
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns name, code, status
+    search name, code, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Items {
+  layout InventoryLayout
+  source Item
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns warehouse, supplier, category, sku, name, onHand, reserved, reorderPoint, unitCost, status
+    search warehouse, supplier, category, sku, name, status
+    filter warehouse, supplier, category, status
+    sort sku asc
+    paginate 10
+  }
+
+  form {
+    fields warehouse, supplier, category, sku, name, onHand, reserved, reorderPoint, unitCost, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page PurchaseOrders {
+  layout InventoryLayout
+  source PurchaseOrder
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns supplier, warehouse, orderNumber, total, expectedDate, status
+    search supplier, warehouse, orderNumber, status
+    filter supplier, warehouse, status
+    sort orderNumber asc
+    paginate 10
+  }
+
+  form {
+    fields supplier, warehouse, orderNumber, total, expectedDate, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page StockMovements {
+  layout InventoryLayout
+  source StockMovement
+  access Admin, InventoryManager, StockClerk, Viewer
+
+  table {
+    columns item, warehouse, type, quantity, reason, status, completed
+    search item, warehouse, type, reason, status
+    filter warehouse, type, status, completed
+    sort type asc
+    paginate 10
+  }
+
+  form {
+    fields item, warehouse, type, quantity, reason, status, completed
+  }
+  actions create, edit, delete, archive, restore
+}

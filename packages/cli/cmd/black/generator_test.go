@@ -729,3 +729,105 @@ page Orders {
 		}
 	}
 }
+
+func TestBuildWebUsesLowerCamelIdentifiersForCompoundEntityNames(t *testing.T) {
+	source := `app InventoryControl
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+entity PurchaseOrder {
+  orderNumber text required
+  status text default draft
+}
+
+role Admin {
+  allow all
+}
+
+workflow PurchaseOrderFlow {
+  source PurchaseOrder
+  states draft, submitted
+
+  transition submit {
+    from draft
+    to submitted
+    allow Admin
+  }
+}
+
+page PurchaseOrders {
+  source PurchaseOrder
+
+  table {
+    columns orderNumber, status
+  }
+
+  form {
+    fields orderNumber, status
+  }
+
+  actions create, edit, delete
+}
+`
+
+	program, parseDiagnostics := Parse("compound.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	validateDiagnostics := Validate(program)
+	if len(validateDiagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", validateDiagnostics)
+	}
+
+	outDir := t.TempDir()
+	if _, diagnostics := BuildWeb(program, outDir); len(diagnostics) != 0 {
+		t.Fatalf("expected no build diagnostics, got %#v", diagnostics)
+	}
+
+	server, err := os.ReadFile(filepath.Join(outDir, "src", "server.ts"))
+	if err != nil {
+		t.Fatalf("expected generated server: %v", err)
+	}
+	route, err := os.ReadFile(filepath.Join(outDir, "src", "routes", "purchaseorder.ts"))
+	if err != nil {
+		t.Fatalf("expected generated purchase order route: %v", err)
+	}
+	page, err := os.ReadFile(filepath.Join(outDir, "src", "pages", "PurchaseOrdersPage.tsx"))
+	if err != nil {
+		t.Fatalf("expected generated purchase orders page: %v", err)
+	}
+
+	serverText := string(server)
+	if !strings.Contains(serverText, `import { purchaseOrderRouter } from "./routes/purchaseorder";`) {
+		t.Fatalf("expected server to import lower-camel router, got:\n%s", serverText)
+	}
+	if !strings.Contains(serverText, `app.use("/api", purchaseOrderRouter);`) {
+		t.Fatalf("expected server to register lower-camel router, got:\n%s", serverText)
+	}
+	routeText := string(route)
+	for _, value := range []string{
+		"const purchaseOrderModel = prisma.purchaseOrder;",
+		"purchaseOrderRouter.post",
+		"purchaseOrderModel.findUnique",
+		"purchaseOrderModel.update",
+	} {
+		if !strings.Contains(routeText, value) {
+			t.Fatalf("expected purchase order route to contain %q, got:\n%s", value, routeText)
+		}
+	}
+	pageText := string(page)
+	if !strings.Contains(pageText, `import { purchaseOrderApi } from "../api/purchaseorder";`) {
+		t.Fatalf("expected page to import lower-camel API client, got:\n%s", pageText)
+	}
+	if !strings.Contains(pageText, "purchaseOrderApi.list(showArchived)") {
+		t.Fatalf("expected page to call lower-camel API client, got:\n%s", pageText)
+	}
+}

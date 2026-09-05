@@ -62,6 +62,7 @@
         <a href="#ai-agents">AI Agents</a>
         <a href="#examples">Örnekler</a>
         <a href="#crm-template">CRM Template</a>
+        <a href="#inventory-template">Inventory Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -724,6 +725,75 @@ workflow DealPipeline {
         <p>
           Bu şablon yeni syntax eklemeden bugünkü compiler kapasitesini kullanır. Template
           benchmark raporu `benchmarks/crm-v0.2.md` altında tutulur.
+        </p>
+      </section>
+
+      <section id="inventory-template">
+        <h2>Inventory Template</h2>
+        <p>
+          InventoryControl, ikinci gerçek uygulama şablonudur. Warehouse, Supplier,
+          Category, Item, PurchaseOrder ve StockMovement kayıtlarını tek `.black`
+          kaynakta tanımlar; stok yönetimi, satın alma akışı, stok hareketi akışı,
+          field-level access, validation ve API contract davranışlarını birlikte ölçer.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/inventory/app.black</div>
+          <pre><code class="language-black">app InventoryControl
+
+entity Item {
+  warehouse Warehouse required
+  supplier Supplier required
+  category Category required
+  sku text required unique length 3..40 regex "^[A-Z0-9-]+$"
+  onHand number default 0 min 0
+  reserved number default 0 min 0
+  reorderPoint number default 5 min 0
+  unitCost money default 0 min 0
+  status text default active
+  validate reserved &lt;= onHand message "Reserved stock cannot exceed on-hand stock"
+}
+
+workflow PurchaseOrderFlow {
+  source PurchaseOrder
+  states draft, submitted, approved, received, closed, cancelled
+}
+
+page StockMovements {
+  source StockMovement
+
+  table {
+    columns item, warehouse, type, quantity, reason, status, completed
+  }
+
+  form {
+    fields item, warehouse, type, quantity, reason, status, completed
+  }
+  actions create, edit, delete, archive, restore
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>340</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>47</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>9826</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon inventory alanında iki kelimeli entity adlarını da test eder:
+          `PurchaseOrder` ve `StockMovement` generated TypeScript tarafında
+          `purchaseOrder` ve `stockMovement` olarak doğru kullanılır. Benchmark raporu
+          `benchmarks/inventory-v0.2.md` altında tutulur.
         </p>
       </section>
 

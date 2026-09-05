@@ -1,0 +1,41 @@
+# Build and generated outputs
+dist/
+generated/
+artifacts/
+bin/
+node_modules/
+coverage/
+
+# Local databases and runtime state
+*.db
+*.sqlite
+*.sqlite3
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local/private notes
+blacklang-fikir.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.idea/
+.vscode/
+
+# Logs
+.local-logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+init-check-*/

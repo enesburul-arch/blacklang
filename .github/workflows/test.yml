@@ -1,0 +1,35 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Test CLI
+        working-directory: packages/cli
+        run: go test -count=1 ./...
+
+      - name: Build CLI
+        working-directory: packages/cli
+        run: go build -o ../../dist/black ./cmd/black
+
+      - name: Check BlackLang source
+        run: |
+          ./dist/black format --check --json
+          ./dist/black lint --json
+          ./dist/black docs --all --json
+          ./dist/black explain entity --json
+          ./dist/black validate --json
+          ./dist/black build

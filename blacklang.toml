@@ -1,0 +1,4 @@
+version = "0.1"
+target = "web"
+source = "examples/warehouse/app.black"
+out = "generated"

@@ -1,0 +1,160 @@
+app Warehouse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Product {
+  sku text required unique length 3..40
+  name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders"
+  stock number default 0 min 0 label "Stock Count" placeholder "Enter stock count" help "Current available quantity"
+  price money min 0 label "Unit Price" placeholder "Enter unit price" help "Selling price for one unit"
+}
+
+entity Customer {
+  name text required label "Customer Name" placeholder "Enter customer name" help "Main display name for the customer"
+  email email unique label "Email Address" placeholder "name@example.com" help "Used as the unique customer contact"
+  phone text optional label "Phone Number" placeholder "Enter phone number" help "Optional direct contact number"
+}
+
+entity Order {
+  customer Customer required label "Customer" placeholder "Select a customer" help "Customer connected to this order"
+  total money default 0 min 0 label "Order Total" placeholder "Enter order total" help "Total amount for this order"
+  discount money default 0 min 0 label "Discount" placeholder "Enter discount" help "Discount cannot exceed the order total"
+  status text default draft label "Order Status" placeholder "Enter order status" help "Workflow status such as draft or shipped"
+  trackingNumber text optional label "Tracking Number" placeholder "Enter tracking number" help "Required after shipping"
+  validate discount <= total message "Discount cannot exceed total"
+  validate trackingNumber required when status == shipped message "Tracking number is required when shipped"
+}
+
+role Admin {
+  allow all
+}
+
+role Worker {
+  allow read Product
+  deny read Product price
+  allow update Product stock
+  allow read Customer
+  allow read Order
+  allow update Order status
+}
+
+api LowStockReport {
+  method GET
+  path "/api/reports/low-stock/{warehouseId}"
+  param warehouseId text
+  query limit integer
+  private
+}
+
+api StockWebhook {
+  method POST
+  path "/api/webhooks/stock"
+  webhook
+  public
+}
+
+workflow OrderPreparation {
+  source Order
+  states draft, picking, verified, packaged, shipped
+
+  transition startPicking {
+    from draft
+    to picking
+    allow Admin, Worker
+  }
+
+  transition ship {
+    from packaged
+    to shipped
+    allow Admin
+  }
+}
+
+state OrdersPageState {
+  selectedOrders Order[]
+  activeFilter text
+  modal createOrder closed
+}
+
+component StockBadge {
+  input stock number
+  variant low when stock < 10
+  variant normal when stock >= 10
+}
+
+layout AdminLayout {
+  sidebar {
+    item Products
+    item Customers
+    item Orders
+  }
+}
+
+page Products {
+  layout AdminLayout
+  source Product
+  access Admin, Worker
+
+  table {
+    columns sku, name, stock, price
+    search sku, name
+    filter stock
+    sort stock desc
+    paginate 10
+  }
+
+  form {
+    fields sku, name, stock, price
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Customers {
+  layout AdminLayout
+  source Customer
+  access Admin, Worker
+
+  table {
+    columns name, email, phone
+    search name, email
+    filter email
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, email, phone
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Orders {
+  layout AdminLayout
+  source Order
+  access Admin, Worker
+
+  table {
+    columns customer, total, discount, status, trackingNumber
+    search customer, status, trackingNumber
+    filter customer, status
+    sort customer asc
+    paginate 10
+  }
+
+  form {
+    fields customer, total, discount, status, trackingNumber
+  }
+  actions create, edit, delete, archive, restore
+}

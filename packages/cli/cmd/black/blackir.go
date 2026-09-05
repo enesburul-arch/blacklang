@@ -1,0 +1,372 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func FormatBlackIR(program Program) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n\n")
+	if program.App.Name != "" {
+		builder.WriteString(fmt.Sprintf("app %s\n", program.App.Name))
+	}
+
+	if program.Auth != nil {
+		builder.WriteString(fmt.Sprintf("\nauth strategy %s session %s\n", program.Auth.Strategy, program.Auth.Session))
+		if len(program.Auth.User.Fields) > 0 {
+			builder.WriteString("  user\n")
+			for _, field := range program.Auth.User.Fields {
+				builder.WriteString(fmt.Sprintf("    %s %s", field.Name, field.Type))
+				for _, modifier := range field.Modifiers {
+					builder.WriteString(" ")
+					builder.WriteString(modifier.Name)
+					if modifier.Value != "" {
+						builder.WriteString(" ")
+						builder.WriteString(modifier.Value)
+					}
+				}
+				builder.WriteString("\n")
+			}
+		}
+	}
+
+	if program.Database != nil {
+		builder.WriteString("\ndatabase\n")
+		if program.Database.URL.Name != "" {
+			builder.WriteString(fmt.Sprintf("  url env %s\n", program.Database.URL.Name))
+		}
+	}
+
+	for _, entity := range program.Entities {
+		builder.WriteString(fmt.Sprintf("\nentity %s\n", entity.Name))
+		for _, field := range entity.Fields {
+			builder.WriteString(fmt.Sprintf("  %s %s", field.Name, field.Type))
+			for _, modifier := range field.Modifiers {
+				builder.WriteString(" ")
+				builder.WriteString(modifier.Name)
+				if modifier.Value != "" {
+					builder.WriteString(" ")
+					builder.WriteString(modifier.Value)
+				}
+			}
+			builder.WriteString("\n")
+		}
+		for _, validation := range entity.Validations {
+			if validation.Required && validation.When != nil {
+				builder.WriteString(fmt.Sprintf("  validate %s required when %s %s %s", validation.Left, validation.When.Left, validation.When.Operator, validation.When.Right))
+			} else {
+				builder.WriteString(fmt.Sprintf("  validate %s %s %s", validation.Left, validation.Operator, validation.Right))
+			}
+			if validation.Message != "" {
+				builder.WriteString(" message ")
+				builder.WriteString(validation.Message)
+			}
+			builder.WriteString("\n")
+		}
+	}
+
+	for _, role := range program.Roles {
+		builder.WriteString(fmt.Sprintf("\nrole %s\n", role.Name))
+		for _, permission := range role.Permissions {
+			builder.WriteString(fmt.Sprintf("  %s %s", permission.Effect, permission.Action))
+			if permission.Resource != "" {
+				builder.WriteString(" ")
+				builder.WriteString(permission.Resource)
+			}
+			if len(permission.Fields) > 0 {
+				builder.WriteString(" ")
+				builder.WriteString(strings.Join(permission.Fields, " "))
+			}
+			builder.WriteString("\n")
+		}
+	}
+
+	for _, api := range program.APIs {
+		builder.WriteString(fmt.Sprintf("\napi %s method %s path %s", api.Name, strings.ToUpper(api.Method), api.Path))
+		if api.Access != "" {
+			builder.WriteString(" ")
+			builder.WriteString(api.Access)
+		}
+		if api.Webhook {
+			builder.WriteString(" webhook")
+		}
+		builder.WriteString("\n")
+		for _, param := range api.Params {
+			builder.WriteString(fmt.Sprintf("  param %s %s\n", param.Name, param.Type))
+		}
+		for _, query := range api.Queries {
+			builder.WriteString(fmt.Sprintf("  query %s %s\n", query.Name, query.Type))
+		}
+	}
+
+	for _, layout := range program.Layouts {
+		builder.WriteString(fmt.Sprintf("\nlayout %s\n", layout.Name))
+		if len(layout.Sidebar.Items) > 0 {
+			builder.WriteString("  sidebar ")
+			builder.WriteString(strings.Join(layout.Sidebar.Items, " "))
+			builder.WriteString("\n")
+		}
+	}
+
+	for _, page := range program.Pages {
+		builder.WriteString(fmt.Sprintf("\npage %s", page.Name))
+		if page.Layout != "" {
+			builder.WriteString(fmt.Sprintf(" layout %s", page.Layout))
+		}
+		builder.WriteString(fmt.Sprintf(" source %s\n", page.Source))
+		if len(page.Table.Columns) > 0 {
+			builder.WriteString("  table ")
+			builder.WriteString(strings.Join(page.Table.Columns, " "))
+			builder.WriteString("\n")
+		}
+		if len(page.Table.Search) > 0 {
+			builder.WriteString("  search ")
+			builder.WriteString(strings.Join(page.Table.Search, " "))
+			builder.WriteString("\n")
+		}
+		if len(page.Table.Filters) > 0 {
+			builder.WriteString("  filter ")
+			builder.WriteString(strings.Join(page.Table.Filters, " "))
+			builder.WriteString("\n")
+		}
+		if page.Table.Sort.Field != "" {
+			builder.WriteString(fmt.Sprintf("  sort %s %s\n", page.Table.Sort.Field, page.Table.Sort.Direction))
+		}
+		if page.Table.Paginate > 0 {
+			builder.WriteString(fmt.Sprintf("  paginate %d\n", page.Table.Paginate))
+		}
+		if len(page.Form.Fields) > 0 {
+			builder.WriteString("  form ")
+			builder.WriteString(strings.Join(page.Form.Fields, " "))
+			builder.WriteString("\n")
+		}
+		if len(page.Actions) > 0 {
+			builder.WriteString("  actions ")
+			builder.WriteString(strings.Join(page.Actions, " "))
+			builder.WriteString("\n")
+		}
+		if len(page.Access) > 0 {
+			builder.WriteString("  access ")
+			builder.WriteString(strings.Join(page.Access, " "))
+			builder.WriteString("\n")
+		}
+	}
+
+	for _, workflow := range program.Workflows {
+		builder.WriteString(fmt.Sprintf("\nworkflow %s source %s\n", workflow.Name, workflow.Source))
+		if len(workflow.States) > 0 {
+			builder.WriteString("  states ")
+			builder.WriteString(strings.Join(workflow.States, " "))
+			builder.WriteString("\n")
+		}
+		for _, transition := range workflow.Transitions {
+			builder.WriteString(fmt.Sprintf("  transition %s from %s to %s", transition.Name, transition.From, transition.To))
+			if len(transition.Allow) > 0 {
+				builder.WriteString(" allow ")
+				builder.WriteString(strings.Join(transition.Allow, " "))
+			}
+			builder.WriteString("\n")
+		}
+	}
+
+	for _, state := range program.States {
+		builder.WriteString(fmt.Sprintf("\nstate %s\n", state.Name))
+		for _, field := range state.Fields {
+			fieldType := field.Type
+			if field.List {
+				fieldType += "[]"
+			}
+			builder.WriteString(fmt.Sprintf("  %s %s\n", field.Name, fieldType))
+		}
+		for _, modal := range state.Modals {
+			builder.WriteString(fmt.Sprintf("  modal %s %s\n", modal.Name, modal.Default))
+		}
+	}
+
+	for _, component := range program.Components {
+		builder.WriteString(fmt.Sprintf("\ncomponent %s\n", component.Name))
+		for _, input := range component.Inputs {
+			inputType := input.Type
+			if input.List {
+				inputType += "[]"
+			}
+			builder.WriteString(fmt.Sprintf("  input %s %s\n", input.Name, inputType))
+		}
+		for _, variant := range component.Variants {
+			builder.WriteString(fmt.Sprintf("  variant %s when %s\n", variant.Name, variant.Condition))
+		}
+	}
+
+	return builder.String()
+}
+
+func FormatValidationIR(result ValidateResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("validate ok\n")
+	builder.WriteString(fmt.Sprintf("app %s\n", result.Summary.App))
+	builder.WriteString(fmt.Sprintf("entities %d\n", result.Summary.Entities))
+	builder.WriteString(fmt.Sprintf("pages %d\n", result.Summary.Pages))
+	return builder.String()
+}
+
+func FormatBuildIR(result BuildResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("build ok\n")
+	builder.WriteString(fmt.Sprintf("out %s\n", result.OutDir))
+	for _, file := range result.Files {
+		builder.WriteString(fmt.Sprintf("file %s %s\n", file.Kind, file.Path))
+	}
+	return builder.String()
+}
+
+func FormatInitIR(result InitResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("init ok\n")
+	builder.WriteString(fmt.Sprintf("root %s\n", result.Root))
+	for _, file := range result.Files {
+		builder.WriteString(fmt.Sprintf("file %s %s\n", file.Kind, file.Path))
+	}
+	return builder.String()
+}
+
+func FormatInspectIR(result InspectResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("inspect ok\n")
+	if result.Config.LanguageVersion != "" {
+		builder.WriteString(fmt.Sprintf("language %s\n", result.Config.LanguageVersion))
+	}
+	if result.Config.Target != "" {
+		builder.WriteString(fmt.Sprintf("target %s\n", result.Config.Target))
+	}
+	builder.WriteString(fmt.Sprintf("source %s\n", result.Config.Source))
+	builder.WriteString(fmt.Sprintf("out %s\n", result.Config.Out))
+	builder.WriteString(fmt.Sprintf("app %s\n", result.Summary.App))
+	if result.Program.Database != nil && result.Program.Database.URL.Name != "" {
+		builder.WriteString(fmt.Sprintf("database url env %s\n", result.Program.Database.URL.Name))
+	}
+	builder.WriteString(fmt.Sprintf("entities %d\n", result.Summary.Entities))
+	for _, entity := range result.Program.Entities {
+		builder.WriteString(fmt.Sprintf("  entity %s fields %d\n", entity.Name, len(entity.Fields)))
+	}
+	builder.WriteString(fmt.Sprintf("pages %d\n", result.Summary.Pages))
+	for _, page := range result.Program.Pages {
+		builder.WriteString(fmt.Sprintf("  page %s source %s actions %s\n", page.Name, page.Source, strings.Join(page.Actions, " ")))
+	}
+	if len(result.Program.APIs) > 0 {
+		builder.WriteString(fmt.Sprintf("apis %d\n", len(result.Program.APIs)))
+		for _, api := range result.Program.APIs {
+			builder.WriteString(fmt.Sprintf("  api %s method %s path %s\n", api.Name, strings.ToUpper(api.Method), api.Path))
+		}
+	}
+	if len(result.Program.Workflows) > 0 {
+		builder.WriteString(fmt.Sprintf("workflows %d\n", len(result.Program.Workflows)))
+		for _, workflow := range result.Program.Workflows {
+			builder.WriteString(fmt.Sprintf("  workflow %s source %s states %s\n", workflow.Name, workflow.Source, strings.Join(workflow.States, " ")))
+		}
+	}
+	if len(result.Program.States) > 0 {
+		builder.WriteString(fmt.Sprintf("states %d\n", len(result.Program.States)))
+		for _, state := range result.Program.States {
+			builder.WriteString(fmt.Sprintf("  state %s fields %d modals %d\n", state.Name, len(state.Fields), len(state.Modals)))
+		}
+	}
+	if len(result.Program.Components) > 0 {
+		builder.WriteString(fmt.Sprintf("components %d\n", len(result.Program.Components)))
+		for _, component := range result.Program.Components {
+			builder.WriteString(fmt.Sprintf("  component %s inputs %d variants %d\n", component.Name, len(component.Inputs), len(component.Variants)))
+		}
+	}
+	return builder.String()
+}
+
+func FormatDocsIR(result DocsResult) string {
+	doc := result.Doc
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("docs ok\n")
+	builder.WriteString(fmt.Sprintf("keyword %s\n", doc.Keyword))
+	builder.WriteString(fmt.Sprintf("purpose %q\n", doc.Purpose))
+	builder.WriteString(fmt.Sprintf("syntax %q\n", doc.Syntax))
+	builder.WriteString("example\n")
+	for _, line := range strings.Split(doc.Example, "\n") {
+		if line == "" {
+			continue
+		}
+		builder.WriteString(fmt.Sprintf("  %s\n", line))
+	}
+	if len(doc.AgentNotes) > 0 {
+		builder.WriteString("agentNotes\n")
+		for _, note := range doc.AgentNotes {
+			builder.WriteString(fmt.Sprintf("  - %s\n", note))
+		}
+	}
+	if len(doc.Errors) > 0 {
+		builder.WriteString("errors ")
+		builder.WriteString(strings.Join(doc.Errors, " "))
+		builder.WriteString("\n")
+	}
+	return builder.String()
+}
+
+func FormatDocsAllIR(result DocsAllResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("docs all ok\n")
+	builder.WriteString(fmt.Sprintf("count %d\n", result.Count))
+	for _, doc := range result.Docs {
+		builder.WriteString(fmt.Sprintf("keyword %s\n", doc.Keyword))
+		builder.WriteString(fmt.Sprintf("  purpose %q\n", doc.Purpose))
+		builder.WriteString(fmt.Sprintf("  syntax %q\n", doc.Syntax))
+		if len(doc.Errors) > 0 {
+			builder.WriteString("  errors ")
+			builder.WriteString(strings.Join(doc.Errors, " "))
+			builder.WriteString("\n")
+		}
+	}
+	return builder.String()
+}
+
+func FormatExplainIR(result ExplainResult) string {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString("explain ok\n")
+	builder.WriteString(fmt.Sprintf("keyword %s\n", result.Keyword))
+	builder.WriteString(fmt.Sprintf("purpose %q\n", result.Purpose))
+	builder.WriteString(fmt.Sprintf("syntax %q\n", result.Syntax))
+	if len(result.AgentSteps) > 0 {
+		builder.WriteString("agentSteps\n")
+		for _, step := range result.AgentSteps {
+			builder.WriteString(fmt.Sprintf("  - %s\n", step))
+		}
+	}
+	if len(result.Related) > 0 {
+		builder.WriteString("related ")
+		builder.WriteString(strings.Join(result.Related, " "))
+		builder.WriteString("\n")
+	}
+	if len(result.ErrorCodes) > 0 {
+		builder.WriteString("errors ")
+		builder.WriteString(strings.Join(result.ErrorCodes, " "))
+		builder.WriteString("\n")
+	}
+	return builder.String()
+}
+
+func printDiagnosticsIR(command string, diagnostics []Diagnostic) {
+	var builder strings.Builder
+	builder.WriteString("blackir 0.1\n")
+	builder.WriteString(fmt.Sprintf("%s failed\n", command))
+	for _, diagnostic := range diagnostics {
+		builder.WriteString(fmt.Sprintf("error %s %s:%d:%d\n", diagnostic.Code, diagnostic.File, diagnostic.Line, diagnostic.Column))
+		builder.WriteString(fmt.Sprintf("  message %q\n", diagnostic.Message))
+		if diagnostic.Suggestion != "" {
+			builder.WriteString(fmt.Sprintf("  suggestion %q\n", diagnostic.Suggestion))
+		}
+	}
+	fmt.Print(builder.String())
+}

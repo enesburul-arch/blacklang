@@ -571,6 +571,30 @@ security {
 
 Generated Express servers read `CORS_ORIGINS` as a comma-separated list, reject unlisted browser origins, answer `OPTIONS` preflight requests, and add credential headers when `credentials true` is declared.
 
+## Current Target Declaration
+
+Draft v0.1 supports an explicit top-level target declaration:
+
+```black
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+```
+
+This block declares the intended generated application stack for the current `.black` source. In v0.1, the only supported stack is web output with React frontend, Node backend, and SQLite database runtime.
+
+If the block is omitted, the generator keeps the legacy default: `web`, `react`, `node`, `sqlite`.
+
+Rules:
+
+- Use one `target` block per project.
+- Existing v0.1 generator output supports only `target web`.
+- `frontend react`, `backend node`, and `database sqlite` are required when the block exists.
+- PostgreSQL, mobile, desktop, API-only, and alternate backend targets must wait until matching generator support exists.
+- AI agents should use `black docs target --json` and `black inspect --affected target --json` before changing target metadata.
+
 ## Current Deployment Declaration
 
 Draft v0.1 supports Docker deployment intent:

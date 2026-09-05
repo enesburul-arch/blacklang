@@ -5,6 +5,12 @@ import "testing"
 func TestParseWarehouseExample(t *testing.T) {
 	source := `app Warehouse
 
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
 auth {
   strategy emailPassword
   session cookie
@@ -87,6 +93,9 @@ page Products {
 	}
 	if program.App.Name != "Warehouse" {
 		t.Fatalf("expected app Warehouse, got %q", program.App.Name)
+	}
+	if program.Target == nil || program.Target.Name != "web" || program.Target.Frontend != "react" || program.Target.Backend != "node" || program.Target.Database != "sqlite" {
+		t.Fatalf("expected web react node sqlite target, got %#v", program.Target)
 	}
 	if program.Auth == nil {
 		t.Fatalf("expected auth declaration")
@@ -243,6 +252,32 @@ entity Product {
 	}
 	if program.Security.CORS.Credentials != "true" {
 		t.Fatalf("expected credentials true, got %#v", program.Security.CORS)
+	}
+}
+
+func TestParseTargetWeb(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.Target == nil {
+		t.Fatalf("expected target declaration")
+	}
+	if program.Target.Name != "web" || program.Target.Frontend != "react" || program.Target.Backend != "node" || program.Target.Database != "sqlite" {
+		t.Fatalf("expected web react node sqlite target, got %#v", program.Target)
 	}
 }
 

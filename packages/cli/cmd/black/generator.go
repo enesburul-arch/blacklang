@@ -224,9 +224,13 @@ npm run api:dev
 ## Generated Summary
 
 - App: %s
+- Target: %s
+- Frontend: %s
+- Backend: %s
+- Database: %s
 - Entities: %d
 - Pages: %d
-`, g.program.App.Name, g.program.App.Name, len(g.program.Entities), len(g.program.Pages))
+`, g.program.App.Name, g.program.App.Name, g.targetName(), g.targetFrontend(), g.targetBackend(), g.targetDatabase(), len(g.program.Entities), len(g.program.Pages))
 }
 
 func (g *webGenerator) envExample() string {
@@ -275,6 +279,34 @@ func (g *webGenerator) corsConfig() *CORSDecl {
 		return nil
 	}
 	return g.program.Security.CORS
+}
+
+func (g *webGenerator) targetName() string {
+	if g.program.Target != nil && g.program.Target.Name != "" {
+		return g.program.Target.Name
+	}
+	return "web"
+}
+
+func (g *webGenerator) targetFrontend() string {
+	if g.program.Target != nil && g.program.Target.Frontend != "" {
+		return g.program.Target.Frontend
+	}
+	return "react"
+}
+
+func (g *webGenerator) targetBackend() string {
+	if g.program.Target != nil && g.program.Target.Backend != "" {
+		return g.program.Target.Backend
+	}
+	return "node"
+}
+
+func (g *webGenerator) targetDatabase() string {
+	if g.program.Target != nil && g.program.Target.Database != "" {
+		return g.program.Target.Database
+	}
+	return "sqlite"
 }
 
 func (g *webGenerator) deployTarget() string {

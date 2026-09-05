@@ -510,7 +510,7 @@ JSON shape:
 }
 ```
 
-Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `auth`, `database`, `security`, `deploy`, and `app`.
+Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `target`, `auth`, `database`, `security`, `deploy`, and `app`.
 
 Unknown symbols return `UNKNOWN_AFFECTED_SYMBOL`. Missing `--affected` values return `MISSING_AFFECTED_SYMBOL`.
 
@@ -640,6 +640,30 @@ black package --production
 The production package copies generated output while excluding `.black` source files, `.env`, local database files, `node_modules`, and generated Prisma client output.
 
 Generated package scripts keep `db:push` mapped to BlackLang's deterministic SQLite setup for MVP safety. `db:push:native` is emitted as an explicit opt-in Prisma `db push` command for local schema-engine checks.
+
+## Current Target Declaration
+
+Draft v0.1 supports a top-level `target` declaration:
+
+```black
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+```
+
+The parser, validator, JSON output, BlackIR output, affected graph, generated README summary, and documentation commands understand this declaration.
+
+Rules:
+
+- Use one `target` block per project.
+- `target web` is the only supported application target in v0.1.
+- `frontend react` is the only supported frontend in v0.1.
+- `backend node` is the only supported backend in v0.1.
+- `database sqlite` is the only supported generated runtime database in v0.1.
+- If `target` is omitted, the generator keeps the legacy default stack: web, React, Node, SQLite.
+- Unsupported future stacks must stay invalid until the corresponding generator adapter exists.
 
 ## Current Deployment Declaration
 

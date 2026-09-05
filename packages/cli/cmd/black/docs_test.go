@@ -71,7 +71,7 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 			t.Fatalf("expected doc %q to include purpose and syntax, got %#v", doc.Keyword, doc)
 		}
 	}
-	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui", "deploy"} {
+	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui", "target", "deploy"} {
 		if !found[keyword] {
 			t.Fatalf("expected docs to include %q", keyword)
 		}
@@ -175,6 +175,19 @@ func TestFindUIDoc(t *testing.T) {
 	}
 }
 
+func TestFindTargetDoc(t *testing.T) {
+	doc, ok := FindDoc("target")
+	if !ok {
+		t.Fatalf("expected target docs")
+	}
+	if !strings.Contains(doc.Syntax, "target web") {
+		t.Fatalf("expected target docs to mention target web, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "UNSUPPORTED_TARGET_DATABASE") {
+		t.Fatalf("expected target docs to mention target diagnostics, got %#v", doc)
+	}
+}
+
 func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
 	if err != nil {
@@ -187,6 +200,7 @@ func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 		"HARDCODED_TOKEN",
 		"MISSING_AFFECTED_SYMBOL",
 		"UNSUPPORTED_FIELD_TYPE",
+		"UNSUPPORTED_TARGET",
 	} {
 		if !strings.Contains(text, code) {
 			t.Fatalf("expected diagnostics reference to mention %s", code)

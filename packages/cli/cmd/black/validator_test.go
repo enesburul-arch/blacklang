@@ -628,6 +628,55 @@ security {
 	}
 }
 
+func TestValidateTargetErrors(t *testing.T) {
+	source := `app Warehouse
+
+target mobile {
+  frontend vue
+  backend go
+  database postgres
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_TARGET", "UNSUPPORTED_TARGET_FRONTEND", "UNSUPPORTED_TARGET_BACKEND", "UNSUPPORTED_TARGET_DATABASE"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateTargetRequiresStack(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"MISSING_TARGET_FRONTEND", "MISSING_TARGET_BACKEND", "MISSING_TARGET_DATABASE"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateDeployErrors(t *testing.T) {
 	source := `app Warehouse
 

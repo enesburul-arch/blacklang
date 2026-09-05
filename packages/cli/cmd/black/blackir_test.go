@@ -8,6 +8,12 @@ import (
 func TestFormatBlackIR(t *testing.T) {
 	source := `app Warehouse
 
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
 auth {
   strategy emailPassword
   session cookie
@@ -97,6 +103,7 @@ page Products {
 	expected := []string{
 		"blackir 0.1",
 		"app Warehouse",
+		"target web frontend react backend node database sqlite",
 		"auth strategy emailPassword session cookie",
 		"user",
 		"email email required unique",

@@ -236,3 +236,16 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Serve built Vite frontend from the generated Express server
 - [ ] Add PostgreSQL runtime support before enabling postgres deploy target
 - [ ] Add preview deployment target
+
+## Phase 19: Target and Plugin Foundation
+
+- [x] Parse `target web { frontend react backend node database sqlite }`
+- [x] Validate target platform and generated stack declarations
+- [x] Include target intent in JSON and BlackIR outputs
+- [x] Add target docs and agent-facing explain support
+- [x] Include target changes in affected graph analysis
+- [x] Record generated target stack in generated README output
+- [ ] Add generator adapter/plugin discovery
+- [ ] Add API-only target support
+- [ ] Add mobile and desktop target planning after web stabilizes
+- [ ] Add PostgreSQL target only after generated runtime support exists

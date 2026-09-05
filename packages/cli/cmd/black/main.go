@@ -693,7 +693,7 @@ Usage:
   black inspect [file] [options]
 
 Options:
-  --affected <symbol>  Print affected graph for an entity, field, page, role, workflow, state, component, or api
+  --affected <symbol>  Print affected graph for an entity, field, page, role, workflow, state, component, api, target, or deploy
   --json               Print machine-readable JSON
   --ir                 Print compact BlackIR`)
 }
@@ -743,7 +743,7 @@ func runDocs(args []string) {
 		result.Errors = []Diagnostic{{
 			Code:       "UNKNOWN_DOC_KEYWORD",
 			Message:    fmt.Sprintf("No docs entry exists for %q.", keyword),
-			Suggestion: "Use syntax, version, docs, explain, agent, diagnostics, format, lint, app, auth, role, access, entity, layout, page, table, form, actions, ui, ui-profile, ui-modes, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, cors, deploy, audit, or csrf.",
+			Suggestion: "Use syntax, version, docs, explain, agent, diagnostics, format, lint, app, target, auth, role, access, entity, layout, page, table, form, actions, ui, ui-profile, ui-modes, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, cors, deploy, audit, or csrf.",
 		}}
 	}
 

@@ -12,7 +12,7 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 		return analysis, []Diagnostic{{
 			Code:       "MISSING_AFFECTED_SYMBOL",
 			Message:    "`--affected` requires a symbol.",
-			Suggestion: "Use an entity, field, page, role, workflow, state, component, or api symbol such as `Product`, `Product.stock`, or `Products`.",
+			Suggestion: "Use an entity, field, page, role, workflow, state, component, api, target, deploy, or app symbol such as `Product`, `Product.stock`, `Products`, or `target`.",
 		}}
 	}
 
@@ -103,6 +103,12 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 		populateDeployAffected(&analysis)
 		return analysis, missingTopLevelDiagnostic(analysis, "deploy")
 	}
+	if symbol == "target" {
+		analysis.Kind = "target"
+		analysis.Found = program.Target != nil
+		populateTargetAffected(&analysis, program)
+		return analysis, missingTopLevelDiagnostic(analysis, "target")
+	}
 	if symbol == "app" || symbol == program.App.Name {
 		analysis.Kind = "app"
 		analysis.Found = program.App.Name != ""
@@ -113,7 +119,7 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 	return analysis, []Diagnostic{{
 		Code:       "UNKNOWN_AFFECTED_SYMBOL",
 		Message:    fmt.Sprintf("Affected symbol %q was not found.", symbol),
-		Suggestion: "Use an existing entity, field, page, role, workflow, state, component, api, auth, database, security, deploy, or app symbol.",
+		Suggestion: "Use an existing entity, field, page, role, workflow, state, component, api, auth, database, security, deploy, target, or app symbol.",
 	}}
 }
 
@@ -381,6 +387,19 @@ func populateDeployAffected(analysis *AffectedAnalysis) {
 	analysis.addGeneratedFile("docker-compose.yml", "Docker Compose service wiring is generated from deploy intent.")
 	analysis.addGeneratedFile("package.json", "Generated package scripts include the production start command.")
 	analysis.addGeneratedFile("src/server.ts", "Generated server reads the configured deploy port environment variable.")
+}
+
+func populateTargetAffected(analysis *AffectedAnalysis, program Program) {
+	analysis.addGeneratedFile("README.md", "Generated summary documents the selected target stack.")
+	analysis.addGeneratedFile("package.json", "Generated package dependencies and scripts depend on the target stack.")
+	analysis.addGeneratedFile("vite.config.ts", "Frontend target selection affects Vite configuration.")
+	analysis.addGeneratedFile("prisma.config.ts", "Database target selection affects Prisma configuration.")
+	analysis.addGeneratedFile("prisma/schema.prisma", "Database target selection affects generated schema provider.")
+	analysis.addGeneratedFile("src/server.ts", "Backend target selection affects generated server runtime.")
+	if program.Deploy != nil && program.Deploy.Target == "docker" {
+		analysis.addGeneratedFile("Dockerfile", "Docker build instructions depend on the selected target stack.")
+		analysis.addGeneratedFile("docker-compose.yml", "Docker Compose service wiring depends on target stack runtime.")
+	}
 }
 
 func populateAppAffected(analysis *AffectedAnalysis, program Program) {

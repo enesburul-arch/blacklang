@@ -91,6 +91,43 @@ deploy {
 	}
 }
 
+func TestAnalyzeAffectedTarget(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
+deploy {
+  target docker
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	diagnostics = Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+
+	analysis, diagnostics := AnalyzeAffected(program, "target")
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if !analysis.Found || analysis.Kind != "target" {
+		t.Fatalf("expected target affected analysis, got %#v", analysis)
+	}
+	for _, file := range []string{"README.md", "package.json", "vite.config.ts", "prisma.config.ts", "prisma/schema.prisma", "src/server.ts", "Dockerfile", "docker-compose.yml"} {
+		if !affectedItemsContain(analysis.GeneratedFiles, file) {
+			t.Fatalf("expected affected generated file %s, got %#v", file, analysis.GeneratedFiles)
+		}
+	}
+}
+
 func TestFirstNonOptionArgSkipsAffectedValue(t *testing.T) {
 	file := firstNonOptionArg([]string{"--affected", "Product.stock", "--json"})
 	if file != "" {

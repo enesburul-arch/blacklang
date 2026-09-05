@@ -12,6 +12,20 @@ func FormatBlackIR(program Program) string {
 		builder.WriteString(fmt.Sprintf("app %s\n", program.App.Name))
 	}
 
+	if program.Target != nil {
+		builder.WriteString(fmt.Sprintf("\ntarget %s", program.Target.Name))
+		if program.Target.Frontend != "" {
+			builder.WriteString(fmt.Sprintf(" frontend %s", program.Target.Frontend))
+		}
+		if program.Target.Backend != "" {
+			builder.WriteString(fmt.Sprintf(" backend %s", program.Target.Backend))
+		}
+		if program.Target.Database != "" {
+			builder.WriteString(fmt.Sprintf(" database %s", program.Target.Database))
+		}
+		builder.WriteString("\n")
+	}
+
 	if program.Auth != nil {
 		builder.WriteString(fmt.Sprintf("\nauth strategy %s session %s\n", program.Auth.Strategy, program.Auth.Session))
 		if len(program.Auth.User.Fields) > 0 {

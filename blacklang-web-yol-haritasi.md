@@ -2454,9 +2454,32 @@ BlackLang büyüdükçe farklı frontend/backend hedefleri gerekebilir.
 target web {
   frontend react
   backend node
-  database postgres
+  database sqlite
 }
 ```
+
+### Mevcut Durum
+
+Bu aşamanın ilk çalışan parçası eklendi. BlackLang artık top-level `target` bloğunu okuyabilir:
+
+```black
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+```
+
+Şimdilik bilinçli olarak yalnızca `web + react + node + sqlite` desteklenir. Bunun sebebi generator'ın şu an gerçekten üretebildiği çalışan web stack'inin bu olmasıdır. PostgreSQL, mobile, desktop, API-only veya farklı backend targetları syntax olarak açılmadan önce generator adapter desteği eklenmelidir.
+
+Bu aşama sayesinde:
+
+- `.black` kaynağı hangi stack için yazıldığını açıkça söyler.
+- JSON ve BlackIR çıktıları target bilgisini taşır.
+- Validator desteklenmeyen targetları erken yakalar.
+- Generated README üretilen stack'i raporlar.
+- `black inspect --affected target --json` target değişirse kontrol edilecek dosyaları gösterir.
+- `black docs target --json` ve `black explain target --json` AI ajanına kısa öğrenme paketi verir.
 
 ## Aşama 31: AI Agent Tooling
 

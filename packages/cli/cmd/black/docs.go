@@ -57,7 +57,7 @@ black inspect examples/warehouse/app.black --ir
 black inspect examples/warehouse/app.black --affected Product.stock --json`,
 		AgentNotes: []string{
 			"Use black inspect --json or --ir at project start to learn the current app structure.",
-			"Use --affected before changing an entity, field, page, role, workflow, state, component, or api symbol.",
+			"Use --affected before changing an entity, field, page, role, workflow, state, component, api, target, deploy, security, database, auth, or app symbol.",
 			"The affected JSON lists source symbols and generated files that should be validated after the edit.",
 			"Unknown symbols return UNKNOWN_AFFECTED_SYMBOL instead of asking the model to guess.",
 		},
@@ -241,10 +241,12 @@ black explain syntax --json`,
 	"syntax": {
 		Keyword: "syntax",
 		Purpose: "Explains the minimal BlackLang v0.1 source structure.",
-		Syntax:  "app Name; database { url env ENV_NAME }; entity Name { field type modifiers... }; page Name { source Entity ... }",
+		Syntax:  "app Name; target web { frontend react; backend node; database sqlite }; entity Name { field type modifiers... }; page Name { source Entity ... }",
 		Example: `app Warehouse
-database {
-  url env DATABASE_URL
+target web {
+  frontend react
+  backend node
+  database sqlite
 }
 entity Product {
   sku text required unique
@@ -254,10 +256,11 @@ page Products {
 }`,
 		AgentNotes: []string{
 			"Read blacklang.toml first to find source and output paths.",
+			"Use target web with frontend react, backend node, and database sqlite for the current generator.",
 			"Prefer changing .black source files instead of generated files.",
 			"Run black validate --ir after edits.",
 		},
-		Errors: []string{"UNEXPECTED_TOP_LEVEL", "INVALID_ENTITY_DECLARATION", "INVALID_PAGE_DECLARATION"},
+		Errors: []string{"UNEXPECTED_TOP_LEVEL", "INVALID_TARGET_DECLARATION", "INVALID_ENTITY_DECLARATION", "INVALID_PAGE_DECLARATION"},
 	},
 	"app": {
 		Keyword: "app",
@@ -285,6 +288,25 @@ page Products {
 			"Generated production deployments should avoid shipping protected .black source files.",
 		},
 		Errors: []string{"INVALID_DATABASE_DECLARATION", "DUPLICATE_DATABASE", "INVALID_DATABASE_URL", "MISSING_DATABASE_URL", "INVALID_ENV_NAME"},
+	},
+	"target": {
+		Keyword: "target",
+		Purpose: "Declares which application platform and generated stack the current .black source targets.",
+		Syntax:  "target web { frontend react; backend node; database sqlite }",
+		Example: `target web {
+  frontend react
+  backend node
+  database sqlite
+}`,
+		AgentNotes: []string{
+			"Use one target block per project in v0.1.",
+			"Draft v0.1 supports only target web with frontend react, backend node, and database sqlite.",
+			"When omitted, the current generator keeps the legacy default web/react/node/sqlite stack.",
+			"Do not write postgres, mobile, desktop, or alternate backend targets until the generator supports them.",
+			"The target block is the future handoff point for generator plugins and adapters.",
+			"Use black inspect --affected target --json before changing target metadata in an existing project.",
+		},
+		Errors: []string{"INVALID_TARGET_DECLARATION", "DUPLICATE_TARGET", "UNCLOSED_TARGET", "UNEXPECTED_TARGET_TOKEN", "INVALID_TARGET_FRONTEND", "DUPLICATE_TARGET_FRONTEND", "MISSING_TARGET_FRONTEND", "UNSUPPORTED_TARGET_FRONTEND", "INVALID_TARGET_BACKEND", "DUPLICATE_TARGET_BACKEND", "MISSING_TARGET_BACKEND", "UNSUPPORTED_TARGET_BACKEND", "INVALID_TARGET_DATABASE", "DUPLICATE_TARGET_DATABASE", "MISSING_TARGET_DATABASE", "UNSUPPORTED_TARGET_DATABASE", "MISSING_TARGET_NAME", "UNSUPPORTED_TARGET"},
 	},
 	"cors": {
 		Keyword: "cors",

@@ -1,5 +1,11 @@
 app Warehouse
 
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
 auth {
   strategy emailPassword
   session cookie

@@ -34,6 +34,8 @@ func (p *parser) parse() {
 		switch parts[0] {
 		case "app":
 			p.parseApp(parts, lineNumber)
+		case "target":
+			index = p.parseTarget(index, parts)
 		case "auth":
 			index = p.parseAuth(index, parts)
 		case "database":
@@ -63,7 +65,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, security, deploy, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, target, auth, database, security, deploy, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -81,6 +83,70 @@ func (p *parser) parseApp(parts []string, lineNumber int) {
 		Name:     parts[1],
 		Position: p.position(lineNumber, 1),
 	}
+}
+
+func (p *parser) parseTarget(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 3 || parts[2] != "{" {
+		p.addError(lineNumber, 1, "INVALID_TARGET_DECLARATION", "Target declaration must be `target name {`.", "Example: `target web { frontend react }`.")
+		return start
+	}
+	if p.program.Target != nil {
+		p.addError(lineNumber, 1, "DUPLICATE_TARGET", "Only one target declaration is allowed.", "Keep a single `target` block per project in v0.1.")
+		return start
+	}
+
+	target := TargetDecl{
+		Name:     parts[1],
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Target = &target
+			return index
+		}
+
+		switch rowParts[0] {
+		case "frontend":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_TARGET_FRONTEND", "Target frontend must be `frontend name`.", "Example: `frontend react`.")
+				continue
+			}
+			if target.Frontend != "" {
+				p.addError(currentLine, 1, "DUPLICATE_TARGET_FRONTEND", "Target frontend is already declared.", "Keep one frontend line inside target.")
+				continue
+			}
+			target.Frontend = rowParts[1]
+		case "backend":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_TARGET_BACKEND", "Target backend must be `backend name`.", "Example: `backend node`.")
+				continue
+			}
+			if target.Backend != "" {
+				p.addError(currentLine, 1, "DUPLICATE_TARGET_BACKEND", "Target backend is already declared.", "Keep one backend line inside target.")
+				continue
+			}
+			target.Backend = rowParts[1]
+		case "database":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_TARGET_DATABASE", "Target database must be `database name`.", "Example: `database sqlite`.")
+				continue
+			}
+			if target.Database != "" {
+				p.addError(currentLine, 1, "DUPLICATE_TARGET_DATABASE", "Target database is already declared.", "Keep one database line inside target.")
+				continue
+			}
+			target.Database = rowParts[1]
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_TARGET_TOKEN", fmt.Sprintf("Unexpected target token %q.", rowParts[0]), "Use frontend, backend, or database inside target.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_TARGET", fmt.Sprintf("Target %s is missing a closing brace.", target.Name), "Add `}` after the target body.")
+	return len(p.lines) - 1
 }
 
 func (p *parser) parseAuth(start int, parts []string) int {

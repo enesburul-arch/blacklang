@@ -9,6 +9,7 @@ Read these pages first:
 - /reference/syntax
 - /reference/entity
 - /reference/page
+- /reference/target
 - /cli/parse
 - /cli/validate
 - /cli/inspect
@@ -32,6 +33,7 @@ Core local files in this repository:
 - AGENTS.md
 - ROADMAP.md
 - docs/diagnostics.md
+- docs/target.md
 - docs/theme-profile.md
 - docs/ui-profile.md
 - docs/ui-modes.md
@@ -57,6 +59,8 @@ Use BlackIR when a compact AI-readable project summary is better than verbose JS
 
 Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
 
+Use `target web { frontend react backend node database sqlite }` for the current generated web stack.
+
 Use `black theme inspect --json` to inspect `.blackthm` UI token and profile metadata.
 
 Use returned `profile.rules` and `profile.modes[].slots` before writing compact inline UI intent.
@@ -79,6 +83,6 @@ Use `security { cors { origins env CORS_ORIGINS } }` for browser API origin poli
 
 Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
 
-Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, APIs, security, deploy, auth, database, or app metadata.
+Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, APIs, target, security, deploy, auth, database, or app metadata.
 
 Use `docs/diagnostics.md` and `black docs diagnostics --json` when interpreting diagnostic codes.

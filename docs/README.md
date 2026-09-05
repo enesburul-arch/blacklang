@@ -14,6 +14,7 @@ It should explain:
 
 - How to install BlackLang
 - How `.black` files work
+- How target platform and generated stack intent is declared
 - How each keyword behaves
 - How CLI commands behave
 - How JSON diagnostics work
@@ -37,6 +38,7 @@ docs/
 ├── errors/
 ├── install.md
 ├── github-publish.md
+├── target.md
 ├── i18n.md
 ├── inline-ui.md
 ├── deployment.md
@@ -56,6 +58,7 @@ docs/
 - Learn: Quick start
 - Reference: Syntax
 - Reference: app
+- Reference: target
 - Reference: entity
 - Reference: page
 - Reference: table

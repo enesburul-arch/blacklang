@@ -43,6 +43,7 @@
         <a href="#project-structure">Proje Yapısı</a>
         <a href="#syntax">Syntax Temeli</a>
         <a href="#app">app</a>
+        <a href="#target">target</a>
         <a href="#entity">entity</a>
         <a href="#fields">Field Tipleri</a>
         <a href="#page">page</a>
@@ -197,16 +198,18 @@ black build</code></pre>
       <section id="syntax">
         <h2>Syntax Temeli</h2>
         <p>
-          Dil kısa olmalı ama şifreli olmamalıdır. `app`, `entity`, `page`, `table`,
-          `form`, `actions`, `when` gibi tanıdık kelimeler AI'nin ilk okuma maliyetini
-          düşürür.
+          Dil kısa olmalı ama şifreli olmamalıdır. `app`, `target`, `entity`, `page`,
+          `table`, `form`, `actions`, `when` gibi tanıdık kelimeler AI'nin ilk okuma
+          maliyetini düşürür.
         </p>
         <div class="code-panel">
           <div class="code-title">Top-level bloklar</div>
           <pre><code class="language-black">app Warehouse
 
-database {
-  url env DATABASE_URL
+target web {
+  frontend react
+  backend node
+  database sqlite
 }
 
 entity Product {
@@ -237,6 +240,29 @@ page Products {
           Generator bu adı package metadata, arayüz başlığı ve çıktı dokümantasyonu gibi
           yerlerde kullanabilir. İsim PascalCase yazıldığında hem insan hem AI için daha
           okunaklı kalır.
+        </p>
+      </section>
+
+      <section id="target">
+        <h2>target</h2>
+        <p>
+          `target`, `.black` kaynağının hangi platform ve generated stack için yazıldığını
+          açıkça belirtir. v0.1'de bilinçli olarak tek çalışan hedef desteklenir:
+          web, React, Node ve SQLite.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Web target</div>
+          <pre><code class="language-black">target web {
+  frontend react
+  backend node
+  database sqlite
+}</code></pre>
+        </div>
+        <p>
+          Bu blok, ileride plugin/adapter sisteminin bağlanacağı yerdir. PostgreSQL,
+          mobile, desktop, API-only veya farklı backend hedefleri generator gerçekten
+          o çıktıları üretebildiğinde açılmalıdır. Blok yoksa mevcut generator eski
+          varsayılan stack'i kullanır: `web`, `react`, `node`, `sqlite`.
         </p>
       </section>
 

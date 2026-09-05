@@ -63,6 +63,22 @@ var supportedAuthSessions = setOf(
 	"cookie",
 )
 
+var supportedTargetNames = setOf(
+	"web",
+)
+
+var supportedTargetFrontends = setOf(
+	"react",
+)
+
+var supportedTargetBackends = setOf(
+	"node",
+)
+
+var supportedTargetDatabases = setOf(
+	"sqlite",
+)
+
 var supportedDeployTargets = setOf(
 	"docker",
 )
@@ -105,6 +121,7 @@ type semanticValidator struct {
 
 func (v *semanticValidator) validate() {
 	v.validateApp()
+	v.validateTarget()
 	v.validateAuth()
 	v.validateDatabase()
 	v.validateSecurity()
@@ -354,6 +371,37 @@ func (v *semanticValidator) validateAuth() {
 			v.validateConstraintModifier("auth user", "", field, modifier)
 		}
 		v.validateInlineUI("auth user field", "user."+field.Name, field.UI, inlineUIModesForTarget("field"))
+	}
+}
+
+func (v *semanticValidator) validateTarget() {
+	if v.program.Target == nil {
+		return
+	}
+
+	target := *v.program.Target
+	if target.Name == "" {
+		v.addDiagnostic(target.Position, "MISSING_TARGET_NAME", "Target block is missing a name.", "Use `target web { ... }`.")
+	} else if !supportedTargetNames[target.Name] {
+		v.addDiagnostic(target.Position, "UNSUPPORTED_TARGET", fmt.Sprintf("Target %q is not supported.", target.Name), "Use web in v0.1.")
+	}
+
+	if target.Frontend == "" {
+		v.addDiagnostic(target.Position, "MISSING_TARGET_FRONTEND", "Target block is missing a frontend.", "Add `frontend react` inside target.")
+	} else if !supportedTargetFrontends[target.Frontend] {
+		v.addDiagnostic(target.Position, "UNSUPPORTED_TARGET_FRONTEND", fmt.Sprintf("Target frontend %q is not supported.", target.Frontend), "Use react in v0.1.")
+	}
+
+	if target.Backend == "" {
+		v.addDiagnostic(target.Position, "MISSING_TARGET_BACKEND", "Target block is missing a backend.", "Add `backend node` inside target.")
+	} else if !supportedTargetBackends[target.Backend] {
+		v.addDiagnostic(target.Position, "UNSUPPORTED_TARGET_BACKEND", fmt.Sprintf("Target backend %q is not supported.", target.Backend), "Use node in v0.1.")
+	}
+
+	if target.Database == "" {
+		v.addDiagnostic(target.Position, "MISSING_TARGET_DATABASE", "Target block is missing a database.", "Add `database sqlite` inside target.")
+	} else if !supportedTargetDatabases[target.Database] {
+		v.addDiagnostic(target.Position, "UNSUPPORTED_TARGET_DATABASE", fmt.Sprintf("Target database %q is not supported.", target.Database), "Use sqlite in v0.1.")
 	}
 }
 

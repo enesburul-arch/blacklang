@@ -325,6 +325,7 @@ type Summary struct {
 
 type Program struct {
 	App        AppDecl                `json:"app"`
+	Target     *TargetDecl            `json:"target,omitempty"`
 	Auth       *AuthDecl              `json:"auth,omitempty"`
 	Database   *DatabaseDecl          `json:"database,omitempty"`
 	Security   *SecurityDecl          `json:"security,omitempty"`
@@ -343,6 +344,14 @@ type Program struct {
 
 type AppDecl struct {
 	Name     string   `json:"name"`
+	Position Position `json:"position"`
+}
+
+type TargetDecl struct {
+	Name     string   `json:"name"`
+	Frontend string   `json:"frontend,omitempty"`
+	Backend  string   `json:"backend,omitempty"`
+	Database string   `json:"database,omitempty"`
 	Position Position `json:"position"`
 }
 

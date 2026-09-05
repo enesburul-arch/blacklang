@@ -10,6 +10,12 @@ import (
 func TestBuildWebWritesExpectedFiles(t *testing.T) {
 	source := `app Warehouse
 
+target web {
+  frontend react
+  backend node
+  database sqlite
+}
+
 auth {
   strategy emailPassword
   session cookie
@@ -244,6 +250,22 @@ page Orders {
 	} {
 		if !strings.Contains(envExampleText, value) {
 			t.Fatalf("expected env example to contain %q, got:\n%s", value, envExampleText)
+		}
+	}
+
+	readme, err := os.ReadFile(filepath.Join(outDir, "README.md"))
+	if err != nil {
+		t.Fatalf("expected generated README: %v", err)
+	}
+	readmeText := string(readme)
+	for _, value := range []string{
+		`- Target: web`,
+		`- Frontend: react`,
+		`- Backend: node`,
+		`- Database: sqlite`,
+	} {
+		if !strings.Contains(readmeText, value) {
+			t.Fatalf("expected README to contain %q, got:\n%s", value, readmeText)
 		}
 	}
 

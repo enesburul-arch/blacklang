@@ -27,6 +27,7 @@ It should explain:
 - How security CORS policy is declared without hardcoding deployment origins
 - How Docker deployment intent generates production runtime files
 - How BlackLang compares with common web languages without overstating current capability
+- How measured scale benchmarks differ from positioning notes
 - How AI agents should use the language
 
 ## Planned Structure
@@ -50,6 +51,7 @@ docs/
 ├── examples/
 ├── benchmarks/
 │   └── language-comparison-v0.2.md
+│   └── scale-5327-loc.md
 ├── llms.txt
 └── llms-full.txt
 ```

@@ -34,6 +34,12 @@ The risky parts are:
 | UI abstraction | Language-level, early | Language-level | Framework required | Framework required | External tools required | External tools required |
 | Permission/workflow | Language-level, basic | Language-level, advanced | Manual/framework | Manual/framework | Manual/framework | Manual/framework |
 | Ecosystem | Very weak | Must grow through plugins | Huge | Huge | Large | Large |
+| Interop / FFI | Early generated JS/TS output | Strong through plugins and generated adapters | Native web ecosystem | Strong via packages | Strong via cgo/HTTP | Strong via FFI/WASM |
+| Package ecosystem | Very weak | Must grow around CLI, plugins, templates, and adapters | Huge | Huge | Large | Large |
+| Database migrations | Basic deterministic SQLite setup | Production-grade migrations across supported databases | Framework/tool dependent | Framework/tool dependent | Tool dependent | Tool dependent |
+| Debug/source mapping | Early affected graph only | Generated errors map back to `.black` source | Source-native | Source-native | Source-native | Source-native |
+| IDE/LSP tooling | Not yet | Syntax, diagnostics, autocomplete, refactor support | Very strong | Very strong | Strong | Strong |
+| Build determinism | Core goal, early | Core strength | Project/tool dependent | Project/tool dependent | Strong | Strong |
 | Low-level control | Weak by design | Weak/core, possible via extensions | Weak | Weak | Strong | Very strong |
 | General-purpose programming | Not yet | Long-term, after web maturity | Yes | Yes | Yes | Yes |
 | Deterministic AI structure | Core goal | Core goal | Not language-level | Not language-level | Not language-level | Not language-level |
@@ -65,4 +71,3 @@ Unsafe current claim:
 Long-term target claim:
 
 > BlackLang aims to become the AI-native source-of-truth layer for web applications, while generating and integrating with established web runtimes underneath.
-

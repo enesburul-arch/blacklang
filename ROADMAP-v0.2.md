@@ -69,6 +69,7 @@ This phase moves beyond CRUD screens into richer application behavior.
 This phase keeps BlackLang honest by measuring whether it really reduces repeated AI work.
 
 - [x] Add qualitative language positioning comparison
+- [x] Add measured 5327 LOC synthetic scale benchmark
 - [ ] Generate basic frontend tests
 - [ ] Generate basic API route tests
 - [ ] Add compiler golden tests for generated output

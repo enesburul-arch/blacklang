@@ -38,6 +38,9 @@ func TestParseTheme(t *testing.T) {
 	if theme.Profile.Name != "UICompact" || theme.Profile.Version != 1 {
 		t.Fatalf("unexpected profile metadata: %#v", theme.Profile)
 	}
+	if theme.Profile.Rules.SlotOrder != "left-to-right" || theme.Profile.Rules.NewSlotsAfterLock != "append-only" {
+		t.Fatalf("expected compact slot profile rules, got %#v", theme.Profile.Rules)
+	}
 	if len(theme.Profile.Modes) != 2 {
 		t.Fatalf("expected two modes, got %#v", theme.Profile.Modes)
 	}
@@ -105,6 +108,22 @@ func TestParseThemeReportsStableDiagnostics(t *testing.T) {
 	}
 }
 
+func TestParseThemeRejectsDuplicateUISlot(t *testing.T) {
+	_, diagnostics := ParseTheme("theme.blackthm", `blackthm BrokenTheme {
+  version 1
+
+  profile UICompact {
+    version 1
+    mode box color width color
+  }
+}
+`)
+	codes := diagnosticCodes(diagnostics)
+	if !codes["DUPLICATE_UI_SLOT"] {
+		t.Fatalf("expected DUPLICATE_UI_SLOT, got %#v", diagnostics)
+	}
+}
+
 func TestParseThemeRequiresProfile(t *testing.T) {
 	_, diagnostics := ParseTheme("theme.blackthm", `blackthm EmptyTheme {
   version 1
@@ -147,6 +166,7 @@ func TestFormatThemeIR(t *testing.T) {
 		"theme WarehouseTheme version 1 target web locked false",
 		"color primary \"#2563eb\"",
 		"profile UICompact version 1",
+		"rules syntax \"ui <mode> <values...> [| <mode> <values...>...]\" order left-to-right",
 		"mode box slots color width",
 	} {
 		if !strings.Contains(ir, value) {

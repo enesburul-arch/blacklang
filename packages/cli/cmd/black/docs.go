@@ -104,11 +104,36 @@ black theme inspect examples/warehouse/theme.blackthm --ir`,
 		AgentNotes: []string{
 			"Use .blackthm for deterministic UI tokens and mode slot profile metadata.",
 			"Set theme = \"path/to/theme.blackthm\" in blacklang.toml so agents can discover it.",
+			"Theme inspect returns profile.rules so agents know how compact inline UI values will be read.",
 			"Hex colors should be quoted because # starts a comment outside strings.",
 			"CSS generation from theme intent is planned for later Phase 20 steps.",
 			"Treat .blackthm files as source assets, not generated output.",
 		},
-		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE"},
+		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT"},
+	},
+	"ui-profile": {
+		Keyword: "ui-profile",
+		Purpose: "Documents compact positional UI mode slot rules used by .blackthm profiles.",
+		Syntax:  "mode <name> <slot...> -> ui <mode> <values...> [| <mode> <values...>...]",
+		Example: `profile UICompact {
+  version 1
+  mode box color width style pt pr pb pl radius place
+  mode text color size weight align
+}
+
+form {
+  fields email, password
+  ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+}`,
+		AgentNotes: []string{
+			"Read profile.modes[].slots from black theme inspect --json before writing inline UI intent.",
+			"Slots are positional and are read left to right.",
+			"Trailing missing values use defaults in later CSS generation phases.",
+			"Extra values are errors because they cannot map to a known slot.",
+			"Each slot name may appear only once inside a mode.",
+			"After a profile is locked, existing slots are immutable and new slots are append-only.",
+		},
+		Errors: []string{"INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT"},
 	},
 	"docs": {
 		Keyword: "docs",

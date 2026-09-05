@@ -448,6 +448,16 @@ func FormatThemeIR(result ThemeInspectResult) string {
 	}
 	if theme.Profile.Name != "" {
 		builder.WriteString(fmt.Sprintf("profile %s version %d\n", theme.Profile.Name, theme.Profile.Version))
+		builder.WriteString(fmt.Sprintf("  rules syntax %q order %s separator %q missing %s extra %s duplicate %s locked %s new %s\n",
+			theme.Profile.Rules.InlineSyntax,
+			theme.Profile.Rules.SlotOrder,
+			theme.Profile.Rules.ModeSeparator,
+			theme.Profile.Rules.MissingTrailingSlots,
+			theme.Profile.Rules.ExtraValues,
+			theme.Profile.Rules.DuplicateSlots,
+			theme.Profile.Rules.ExistingSlotsAfterLock,
+			theme.Profile.Rules.NewSlotsAfterLock,
+		))
 		for _, mode := range theme.Profile.Modes {
 			builder.WriteString(fmt.Sprintf("  mode %s slots %s\n", mode.Name, strings.Join(mode.Slots, " ")))
 		}

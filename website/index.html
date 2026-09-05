@@ -56,6 +56,7 @@
         <a href="#state">state</a>
         <a href="#component">component</a>
         <a href="#theme">theme</a>
+        <a href="#ui-profile">ui-profile</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cli">CLI</a>
@@ -556,6 +557,32 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
           Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
           `profile.modes[].slots` alanı ileride inline `ui` satırlarının soldan sağa nasıl
           okunacağını belirleyen kaynak gerçek olacaktır.
+        </p>
+      </section>
+
+      <section id="ui-profile">
+        <h2>ui-profile</h2>
+        <p>
+          UI profile, ileride `.black` içinde yazılacak kompakt `ui` satırlarının hangi
+          sırayla okunacağını belirler. Amaç, CSS benzeri uzun anahtarlar yazmadan
+          generator için tek anlamlı bir stil niyeti vermektir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Slot order</div>
+          <pre><code class="language-blackthm">profile UICompact {
+  version 1
+  mode box color width style pt pr pb pl radius place
+  mode text color size weight align
+}</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Planned inline mapping</div>
+          <pre><code class="language-black">ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left</code></pre>
+        </div>
+        <p>
+          Değerler soldan sağa okunur. Eksik sondaki değerler default alır, fazladan
+          değer hata sayılır, aynı mode içinde aynı slot iki kez yazılamaz. Profile
+          kilitlendiğinde mevcut slotlar taşınamaz; yeni slotlar sadece sona eklenir.
         </p>
       </section>
 

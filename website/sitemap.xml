@@ -16,4 +16,8 @@
     <loc>https://black.muenspeak.com/theme-profile.md</loc>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://black.muenspeak.com/ui-profile.md</loc>
+    <priority>0.7</priority>
+  </url>
 </urlset>

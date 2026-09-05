@@ -62,6 +62,50 @@ blackthm WarehouseTheme {
 - A profile must contain `version <number>`.
 - A profile must contain one or more `mode` lines.
 - `mode <name> <slot...>` defines the left-to-right slot order for compact inline UI intent.
+- A slot name may appear only once inside one mode.
+
+## Compact UI Slot Rules
+
+`black theme inspect --json` returns these rules in `profile.rules`:
+
+```json
+{
+  "inlineSyntax": "ui <mode> <values...> [| <mode> <values...>...]",
+  "slotOrder": "left-to-right",
+  "modeSeparator": "|",
+  "missingTrailingSlots": "default",
+  "extraValues": "error",
+  "duplicateSlots": "error",
+  "existingSlotsAfterLock": "immutable",
+  "newSlotsAfterLock": "append-only"
+}
+```
+
+The planned inline UI line:
+
+```black
+ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
+```
+
+is read from left to right with the active profile:
+
+```text
+box.color  = black
+box.width  = 1
+box.style  = solid
+box.pt     = 8
+box.pr     = 8
+box.pb     = 5
+box.pl     = 5
+box.radius = 6
+box.place  = center
+text.color = "#172026"
+text.size  = 14
+text.weight = regular
+text.align = left
+```
+
+This keeps UI intent short without making the generator guess which value belongs to which style property.
 
 ## Current CLI
 

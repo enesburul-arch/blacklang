@@ -136,6 +136,7 @@ Implemented so far:
 - `inspect --affected <symbol> --json` command for AI-readable impact analysis
 - `agent startup --json` command for deterministic AI project entry checklists
 - `theme inspect --json` command for `.blackthm` UI theme/profile files
+- Compact UI slot profile rules in `theme inspect` output
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`

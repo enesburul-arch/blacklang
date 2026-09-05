@@ -130,6 +130,19 @@ func TestFindThemeDoc(t *testing.T) {
 	}
 }
 
+func TestFindUIProfileDoc(t *testing.T) {
+	doc, ok := FindDoc("ui-profile")
+	if !ok {
+		t.Fatalf("expected ui-profile docs")
+	}
+	if !strings.Contains(doc.Syntax, "mode <name> <slot...>") {
+		t.Fatalf("expected ui-profile docs to mention mode slots, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "DUPLICATE_UI_SLOT") {
+		t.Fatalf("expected ui-profile docs to mention duplicate slot diagnostics, got %#v", doc)
+	}
+}
+
 func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "diagnostics.md"))
 	if err != nil {

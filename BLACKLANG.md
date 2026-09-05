@@ -129,6 +129,7 @@ black inspect --json
 black inspect --affected Product.stock --json
 black agent startup --json
 black theme inspect --json
+black docs ui-profile --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -225,7 +226,16 @@ AI agents can inspect it with:
 black theme inspect --json
 ```
 
-This phase validates and exposes theme/profile metadata. CSS generation from theme intent comes later in Phase 20.
+`theme inspect` also exposes compact UI profile rules:
+
+- Slots are read left to right.
+- Future inline UI syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
+- Missing trailing values use defaults.
+- Extra values are errors.
+- Duplicate slots inside one mode are errors.
+- After profile lock, existing slots are immutable and new slots are append-only.
+
+This phase validates and exposes theme/profile metadata plus compact slot profile rules. CSS generation from theme intent comes later in Phase 20.
 
 ## Current Diagnostic Documentation
 

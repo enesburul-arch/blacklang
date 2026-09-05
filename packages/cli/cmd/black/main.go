@@ -1182,6 +1182,7 @@ func printThemeInspectResult(result ThemeInspectResult) {
 	fmt.Printf("locked: %t\n", result.Theme.Locked)
 	fmt.Printf("tokens: %d\n", len(result.Theme.Tokens))
 	fmt.Printf("profile: %s v%d\n", result.Theme.Profile.Name, result.Theme.Profile.Version)
+	fmt.Printf("rules: %s, missing trailing slots: %s, new locked slots: %s\n", result.Theme.Profile.Rules.SlotOrder, result.Theme.Profile.Rules.MissingTrailingSlots, result.Theme.Profile.Rules.NewSlotsAfterLock)
 	for _, mode := range result.Theme.Profile.Modes {
 		fmt.Printf("- mode %s: %s\n", mode.Name, strings.Join(mode.Slots, ", "))
 	}

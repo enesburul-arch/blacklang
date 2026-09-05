@@ -147,7 +147,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 34,
+  "count": 35,
   "docs": [
     {
       "keyword": "entity",
@@ -276,6 +276,16 @@ JSON shape:
     "profile": {
       "name": "UICompact",
       "version": 1,
+      "rules": {
+        "inlineSyntax": "ui <mode> <values...> [| <mode> <values...>...]",
+        "slotOrder": "left-to-right",
+        "modeSeparator": "|",
+        "missingTrailingSlots": "default",
+        "extraValues": "error",
+        "duplicateSlots": "error",
+        "existingSlotsAfterLock": "immutable",
+        "newSlotsAfterLock": "append-only"
+      },
       "modes": []
     }
   },
@@ -283,7 +293,19 @@ JSON shape:
 }
 ```
 
-Hex colors should be quoted because `#` starts a comment outside quoted strings. Existing profile locking and append-only migration enforcement are planned for later Phase 20 steps.
+Hex colors should be quoted because `#` starts a comment outside quoted strings.
+
+Current compact UI profile rules:
+
+- Mode slot order is positional and read left to right.
+- Future inline syntax is `ui <mode> <values...> [| <mode> <values...>...]`.
+- `|` separates multiple UI mode groups on one source line in later inline UI phases.
+- Missing trailing values use defaults in later CSS generation phases.
+- Extra values are errors because they cannot map to known slots.
+- A slot name may appear only once inside the same mode.
+- After a profile is locked, existing slots are immutable and new slots are append-only.
+
+Profile locking and append-only migration enforcement are planned for later Phase 20 steps.
 
 ## Current Diagnostic Documentation
 
@@ -790,6 +812,7 @@ black explain table --json
 black explain entity --json
 black agent startup --json
 black theme inspect --json
+black docs ui-profile --json
 black inspect app.black --affected Product.stock --json
 ```
 

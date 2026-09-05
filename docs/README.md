@@ -18,6 +18,7 @@ It should explain:
 - How CLI commands behave
 - How JSON diagnostics work
 - How `.blackthm` theme profile files work
+- How compact UI profile slots are read
 - How AI agents should use the language
 
 ## Planned Structure
@@ -63,6 +64,7 @@ docs/
 - AI Agents: Codex guide
 - Errors: Error code reference
 - Reference: Theme profile
+- Reference: UI profile rules
 
 ## Documentation Rule
 

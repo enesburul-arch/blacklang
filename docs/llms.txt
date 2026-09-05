@@ -18,6 +18,7 @@ Read these pages first:
 - /ai-agents/learning-cost
 - /reference/blackir
 - /reference/theme-profile
+- /reference/ui-profile
 
 Core local files in this repository:
 
@@ -27,6 +28,7 @@ Core local files in this repository:
 - ROADMAP.md
 - docs/diagnostics.md
 - docs/theme-profile.md
+- docs/ui-profile.md
 - examples/warehouse/app.black
 - examples/warehouse/theme.blackthm
 - examples/crm/app.black
@@ -46,6 +48,8 @@ Use BlackIR when a compact AI-readable project summary is better than verbose JS
 Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
 
 Use `black theme inspect --json` to inspect `.blackthm` UI token and profile metadata.
+
+Use returned `profile.rules` and `profile.modes[].slots` before writing future compact inline UI intent.
 
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 

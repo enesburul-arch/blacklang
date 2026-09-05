@@ -55,6 +55,7 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 		Tokens:  []ThemeToken{},
 		Profile: UIProfileDecl{
 			Version: 0,
+			Rules:   defaultUIProfileRules(),
 			Modes:   []UIModeDecl{},
 		},
 	}
@@ -157,14 +158,24 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 			}
 			slots := parts[2:]
 			validSlots := true
+			duplicateSlot := ""
+			seenSlots := map[string]bool{}
 			for _, slot := range slots {
 				if !isThemeIdentifier(slot) {
 					validSlots = false
 					break
 				}
+				if seenSlots[slot] && duplicateSlot == "" {
+					duplicateSlot = slot
+				}
+				seenSlots[slot] = true
 			}
 			if !validSlots {
 				addDiagnostic(statement.Position, "INVALID_UI_MODE", "UI mode slots must be simple identifiers.", "Use slot names such as color, width, style, pt, pr, pb, pl, radius, or place.")
+				continue
+			}
+			if duplicateSlot != "" {
+				addDiagnostic(statement.Position, "DUPLICATE_UI_SLOT", fmt.Sprintf("UI mode %s repeats slot %s.", parts[1], duplicateSlot), "Keep each slot once per mode so positional values map to one property.")
 				continue
 			}
 			if previous, ok := modeNames[parts[1]]; ok {
@@ -201,6 +212,19 @@ func ParseTheme(file string, source string) (ThemeDecl, []Diagnostic) {
 		theme.Target = "web"
 	}
 	return theme, diagnostics
+}
+
+func defaultUIProfileRules() UIProfileRules {
+	return UIProfileRules{
+		InlineSyntax:           "ui <mode> <values...> [| <mode> <values...>...]",
+		SlotOrder:              "left-to-right",
+		ModeSeparator:          "|",
+		MissingTrailingSlots:   "default",
+		ExtraValues:            "error",
+		DuplicateSlots:         "error",
+		ExistingSlotsAfterLock: "immutable",
+		NewSlotsAfterLock:      "append-only",
+	}
 }
 
 func hasOpeningBrace(parts []string) bool {

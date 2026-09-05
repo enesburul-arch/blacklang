@@ -2290,6 +2290,13 @@ Doğru hedef kullanım:
 database {
   url env DATABASE_URL
 }
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
 ```
 
 Kaçınılması gereken kullanım:
@@ -2303,7 +2310,10 @@ database {
 İleride eklenecek BlackLang'e özgü korumalar:
 
 - `database { url env DATABASE_URL }` parse/validate desteği
+- `security { cors { origins env CORS_ORIGINS } }` parse/validate desteği
 - JSON/BlackIR içinde database env referansının görünmesi
+- JSON/BlackIR içinde security/cors env referansının görünmesi
+- generated Express server içinde CORS middleware üretimi
 - `black security scan --json`
 - hardcoded secret tespiti
 - production package üretirken `.black` kaynaklarını dışarıda bırakma
@@ -2316,15 +2326,24 @@ Bu kararın amacı BlackLang'i korkarak kısıtlamak değil; tam tersine, kaynak
 
 ### Mevcut Durum
 
-Bu aşamanın ilk çalışan parçaları eklendi. BlackLang artık top-level `database` bloğunu okuyabilir:
+Bu aşamanın ilk çalışan parçaları eklendi. BlackLang artık top-level `database` ve `security` bloklarını okuyabilir:
 
 ```black
 database {
   url env DATABASE_URL
 }
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
 ```
 
 Literal database URL yazımı parser tarafından reddedilir. Böylece connection string, password veya token gibi değerlerin `.black` source içine gömülmesi yerine environment üzerinden referans verilmesi temel kural haline gelir.
+
+`security.cors`, tarayıcıdan API'ye hangi origin'lerin erişebileceğini `.black` içinde niyet olarak tanımlar ama gerçek domain listesini environment içinde bırakır. Generated Express server `CORS_ORIGINS` değerini virgülle ayrılmış liste olarak okur, listede olmayan browser origin'lerini reddeder, `OPTIONS` preflight yanıtı üretir ve `credentials true` ile cookie-auth uyumlu header'ları ekler.
 
 CLI tarafında source security için şu komutlar da vardır:
 
@@ -2357,10 +2376,10 @@ black package --production
 
 ```black
 security {
-  csrf true
-  cors sameOrigin
-  rateLimit api 100 per minute
-  secrets env
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
 }
 ```
 

@@ -98,6 +98,7 @@ func (v *semanticValidator) validate() {
 	v.validateApp()
 	v.validateAuth()
 	v.validateDatabase()
+	v.validateSecurity()
 	entityIndex := v.validateEntities()
 	v.validateI18N()
 	v.validateLabelTranslations(entityIndex)
@@ -357,6 +358,26 @@ func (v *semanticValidator) validateDatabase() {
 	}
 	if !validEnvName(database.URL.Name) {
 		v.addDiagnostic(database.URL.Position, "INVALID_ENV_NAME", fmt.Sprintf("Database url references invalid environment variable %q.", database.URL.Name), "Use uppercase letters, numbers, and underscores, such as DATABASE_URL.")
+	}
+}
+
+func (v *semanticValidator) validateSecurity() {
+	if v.program.Security == nil {
+		return
+	}
+	if v.program.Security.CORS == nil {
+		return
+	}
+
+	cors := *v.program.Security.CORS
+	if cors.Origins.Name == "" {
+		v.addDiagnostic(cors.Position, "MISSING_CORS_ORIGINS", "CORS block is missing an origins environment reference.", "Add `origins env CORS_ORIGINS` inside cors.")
+	} else if !validEnvName(cors.Origins.Name) {
+		v.addDiagnostic(cors.Origins.Position, "INVALID_ENV_NAME", fmt.Sprintf("CORS origins reference invalid environment variable %q.", cors.Origins.Name), "Use uppercase letters, numbers, and underscores, such as CORS_ORIGINS.")
+	}
+
+	if cors.Credentials != "" && cors.Credentials != "true" && cors.Credentials != "false" {
+		v.addDiagnostic(cors.Position, "INVALID_CORS_CREDENTIALS", fmt.Sprintf("CORS credentials uses unsupported value %q.", cors.Credentials), "Use `credentials true` or `credentials false`.")
 	}
 }
 

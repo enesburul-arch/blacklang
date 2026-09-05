@@ -23,6 +23,7 @@ It should explain:
 - How inline UI intent is written near fields, forms, tables, and action buttons
 - How locked UI profiles enforce append-only slot changes
 - How i18n locale and field label translations work
+- How security CORS policy is declared without hardcoding deployment origins
 - How AI agents should use the language
 
 ## Planned Structure
@@ -37,6 +38,7 @@ docs/
 ├── github-publish.md
 ├── i18n.md
 ├── inline-ui.md
+├── security-cors.md
 ├── release-artifacts.md
 ├── npm-wrapper.md
 ├── ai-agents/

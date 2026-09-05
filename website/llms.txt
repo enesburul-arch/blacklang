@@ -24,6 +24,7 @@ Read first:
 - `#inline-ui` for compact UI intent inside `.black` source.
 - `#i18n` for locale and label translation rules.
 - `#security` for source security rules.
+- `#cors` for CORS policy syntax and generated server behavior.
 - `#cli` for machine-readable commands.
 - `#ai-agents` for `black agent startup --json` project entry output.
 - `#errors` for diagnostic JSON shape and code families.
@@ -33,6 +34,7 @@ Read first:
 - `/ui-modes.md` for standard UI mode group semantics.
 - `/inline-ui.md` for inline UI intent placement rules.
 - `/i18n.md` for locale and field label translation rules.
+- `/security-cors.md` for CORS policy syntax and generated server behavior.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
@@ -57,4 +59,4 @@ Agent rule:
 12. Modify `.black` and `.blackthm` source files, not generated output.
 13. Run `black format --check --json`, `black lint --json`, and `black build`.
 14. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-15. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+15. Keep secrets out of `.black` files. Use `env DATABASE_URL` and `origins env CORS_ORIGINS` style references.

@@ -286,6 +286,25 @@ page Products {
 		},
 		Errors: []string{"INVALID_DATABASE_DECLARATION", "DUPLICATE_DATABASE", "INVALID_DATABASE_URL", "MISSING_DATABASE_URL", "INVALID_ENV_NAME"},
 	},
+	"cors": {
+		Keyword: "cors",
+		Purpose: "Declares browser cross-origin API access intent from an environment-managed origin list.",
+		Syntax:  "security { cors { origins env <ENV_NAME> credentials true|false } }",
+		Example: `security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}`,
+		AgentNotes: []string{
+			"CORS is declared inside the top-level security block.",
+			"Origins must reference an environment variable; do not hardcode production domains into .black source.",
+			"The generated server reads comma-separated origins from the configured environment variable.",
+			"Use credentials true when cookie auth must work across allowed browser origins.",
+			"Generated CORS middleware rejects browser origins that are not listed in the environment value.",
+		},
+		Errors: []string{"INVALID_SECURITY_DECLARATION", "DUPLICATE_SECURITY", "INVALID_CORS_DECLARATION", "DUPLICATE_CORS", "INVALID_CORS_ORIGINS", "DUPLICATE_CORS_ORIGINS", "MISSING_CORS_ORIGINS", "INVALID_CORS_CREDENTIALS", "DUPLICATE_CORS_CREDENTIALS", "INVALID_ENV_NAME"},
+	},
 	"i18n": {
 		Keyword: "i18n",
 		Purpose: "Declares supported locales and the default locale for generated application text.",
@@ -603,9 +622,16 @@ GET /api/products/{id}`,
 	},
 	"security": {
 		Keyword: "security",
-		Purpose: "Describes generated secure defaults, source-security scanning, and encrypted source planning.",
-		Syntax:  "black security scan --json | black security encrypted-source --json",
-		Example: `black security scan --json
+		Purpose: "Declares web security intent and describes generated secure defaults, source-security scanning, and encrypted source planning.",
+		Syntax:  "security { cors { origins env <ENV_NAME> credentials true|false } } | black security scan --json | black security encrypted-source --json",
+		Example: `security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+
+black security scan --json
 black security encrypted-source --json
 generated/src/server.ts
 app.disable("x-powered-by")
@@ -616,9 +642,10 @@ app.use(express.json({ limit: "100kb" }))`,
 			"Security scan reports likely hardcoded database URLs, private keys, API keys, tokens, secrets, and passwords.",
 			"Generated Express servers add baseline security headers.",
 			"Generated API servers apply a simple IP-based request rate limit.",
+			"Generated CORS middleware is created when `security { cors { ... } }` exists.",
 			"Do not edit generated server security manually; change the generator or future security syntax.",
 		},
-		Errors: []string{"HARDCODED_DATABASE_URL", "HARDCODED_PRIVATE_KEY", "HARDCODED_TOKEN"},
+		Errors: []string{"INVALID_SECURITY_DECLARATION", "DUPLICATE_SECURITY", "UNCLOSED_SECURITY", "UNEXPECTED_SECURITY_TOKEN", "INVALID_CORS_DECLARATION", "DUPLICATE_CORS", "UNCLOSED_CORS", "UNEXPECTED_CORS_TOKEN", "INVALID_CORS_ORIGINS", "DUPLICATE_CORS_ORIGINS", "MISSING_CORS_ORIGINS", "INVALID_CORS_CREDENTIALS", "DUPLICATE_CORS_CREDENTIALS", "INVALID_ENV_NAME", "HARDCODED_DATABASE_URL", "HARDCODED_PRIVATE_KEY", "HARDCODED_TOKEN"},
 	},
 	"package": {
 		Keyword: "package",

@@ -601,6 +601,33 @@ database {
 	}
 }
 
+func TestValidateSecurityCORSErrors(t *testing.T) {
+	source := `app Warehouse
+
+security {
+  cors {
+    origins env cors_origins
+    credentials maybe
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"INVALID_ENV_NAME", "INVALID_CORS_CREDENTIALS"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestParseRejectsLiteralDatabaseURL(t *testing.T) {
 	source := `app Warehouse
 

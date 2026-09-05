@@ -62,6 +62,7 @@
         <a href="#i18n">i18n</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
+        <a href="#cors">cors</a>
         <a href="#cli">CLI</a>
         <a href="#errors">Hata Çıktıları</a>
         <a href="#ai-agents">AI Agents</a>
@@ -798,6 +799,13 @@ api StockWebhook {
           <div class="code-title">Doğru secret yaklaşımı</div>
           <pre><code class="language-black">database {
   url env DATABASE_URL
+}
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
 }</code></pre>
         </div>
         <div class="code-panel warning">
@@ -810,6 +818,28 @@ api StockWebhook {
           Production deployment için hedef, mümkünse `.black` kaynaklarını sunucuya taşımadan
           generated production artifact yayınlamaktır. `black security scan --json` olası
           hardcoded secret izlerini raporlar.
+        </p>
+      </section>
+
+      <section id="cors">
+        <h2>cors</h2>
+        <p>
+          `cors`, tarayıcıdan generated API'ye hangi origin'lerin erişebileceğini tanımlar.
+          Domain listesi `.black` içine gömülmez; deployment ortamında environment olarak verilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">CORS policy</div>
+          <pre><code class="language-black">security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}</code></pre>
+        </div>
+        <p>
+          Generated Express server `CORS_ORIGINS` değerini virgülle ayrılmış liste olarak okur,
+          listede olmayan browser origin'lerini `403` ile reddeder, `OPTIONS` preflight yanıtı
+          üretir ve `credentials true` varsa cookie-auth uyumlu header ekler.
         </p>
       </section>
 

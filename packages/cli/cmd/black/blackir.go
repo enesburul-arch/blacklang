@@ -42,6 +42,20 @@ func FormatBlackIR(program Program) string {
 		}
 	}
 
+	if program.Security != nil {
+		builder.WriteString("\nsecurity\n")
+		if program.Security.CORS != nil {
+			builder.WriteString("  cors")
+			if program.Security.CORS.Origins.Name != "" {
+				builder.WriteString(fmt.Sprintf(" origins env %s", program.Security.CORS.Origins.Name))
+			}
+			if program.Security.CORS.Credentials != "" {
+				builder.WriteString(fmt.Sprintf(" credentials %s", program.Security.CORS.Credentials))
+			}
+			builder.WriteString("\n")
+		}
+	}
+
 	if program.I18N != nil {
 		builder.WriteString("\ni18n")
 		if program.I18N.Default != "" {

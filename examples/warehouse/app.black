@@ -14,6 +14,13 @@ database {
   url env DATABASE_URL
 }
 
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+
 i18n {
   default tr
   locales tr, en

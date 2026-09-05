@@ -20,6 +20,13 @@ auth {
   }
 }
 
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+
 entity Product {
   sku text required unique length 3..40 regex "^[A-Z0-9]+$" message "Use uppercase letters and numbers"
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name"
@@ -215,6 +222,20 @@ page Orders {
 		}
 	}
 
+	envExample, err := os.ReadFile(filepath.Join(outDir, ".env.example"))
+	if err != nil {
+		t.Fatalf("expected generated env example: %v", err)
+	}
+	envExampleText := string(envExample)
+	for _, value := range []string{
+		`DATABASE_URL="file:./dev.db"`,
+		`CORS_ORIGINS="http://localhost:5173"`,
+	} {
+		if !strings.Contains(envExampleText, value) {
+			t.Fatalf("expected env example to contain %q, got:\n%s", value, envExampleText)
+		}
+	}
+
 	authPage, err := os.ReadFile(filepath.Join(outDir, "src", "auth", "AuthPage.tsx"))
 	if err != nil {
 		t.Fatalf("expected generated auth page: %v", err)
@@ -296,6 +317,13 @@ page Orders {
 		`res.setHeader("X-Frame-Options", "DENY");`,
 		`res.setHeader("Referrer-Policy", "no-referrer");`,
 		`res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");`,
+		`const corsOrigins = (process.env.CORS_ORIGINS ?? "").split(",").map((origin) => origin.trim()).filter(Boolean);`,
+		`if (!corsOrigins.includes(origin)) {`,
+		`res.status(403).json({ error: "CORS origin is not allowed" });`,
+		`res.setHeader("Access-Control-Allow-Origin", origin);`,
+		`res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token");`,
+		`res.setHeader("Access-Control-Allow-Credentials", "true");`,
+		`res.status(204).end();`,
 		`res.status(429).json({ error: "Too many requests" });`,
 		`app.use(express.json({ limit: "100kb" }));`,
 		`app.use("/api/auth", authRouter);`,

@@ -327,6 +327,7 @@ type Program struct {
 	App        AppDecl                `json:"app"`
 	Auth       *AuthDecl              `json:"auth,omitempty"`
 	Database   *DatabaseDecl          `json:"database,omitempty"`
+	Security   *SecurityDecl          `json:"security,omitempty"`
 	I18N       *I18NDecl              `json:"i18n,omitempty"`
 	Labels     []LabelTranslationDecl `json:"labels,omitempty"`
 	Entities   []EntityDecl           `json:"entities"`
@@ -371,6 +372,17 @@ type DatabaseDecl struct {
 type EnvRef struct {
 	Name     string   `json:"name,omitempty"`
 	Position Position `json:"position"`
+}
+
+type SecurityDecl struct {
+	CORS     *CORSDecl `json:"cors,omitempty"`
+	Position Position  `json:"position"`
+}
+
+type CORSDecl struct {
+	Origins     EnvRef   `json:"origins,omitempty"`
+	Credentials string   `json:"credentials,omitempty"`
+	Position    Position `json:"position"`
 }
 
 type I18NDecl struct {

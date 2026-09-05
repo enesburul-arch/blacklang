@@ -216,6 +216,36 @@ entity Product {
 	}
 }
 
+func TestParseSecurityCORS(t *testing.T) {
+	source := `app Warehouse
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.Security == nil || program.Security.CORS == nil {
+		t.Fatalf("expected security cors declaration, got %#v", program.Security)
+	}
+	if program.Security.CORS.Origins.Name != "CORS_ORIGINS" {
+		t.Fatalf("expected CORS_ORIGINS, got %#v", program.Security.CORS.Origins)
+	}
+	if program.Security.CORS.Credentials != "true" {
+		t.Fatalf("expected credentials true, got %#v", program.Security.CORS)
+	}
+}
+
 func TestParseReportsInvalidTableSort(t *testing.T) {
 	source := `app Warehouse
 

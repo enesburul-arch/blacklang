@@ -74,9 +74,16 @@ Keep secrets out of `.black` files. Use environment references such as:
 database {
   url env DATABASE_URL
 }
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
 ```
 
-Draft v0.1 parses and validates this `database` declaration and includes it in JSON/BlackIR outputs. Literal database URLs are rejected.
+Draft v0.1 parses and validates these `database` and `security.cors` declarations and includes them in JSON/BlackIR outputs. Literal database URLs are rejected. Generated web servers read comma-separated browser origins from the configured environment variable.
 
 Production servers should receive generated production artifacts when possible, not the protected `.black` source of truth.
 
@@ -550,6 +557,19 @@ Draft v0.1 generated API servers include baseline secure defaults:
 - Simple IP-based rate limit
 
 These are generated automatically. Future versions should add explicit auth, role, permission, and policy syntax.
+
+Draft v0.1 also supports explicit CORS intent:
+
+```black
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+```
+
+Generated Express servers read `CORS_ORIGINS` as a comma-separated list, reject unlisted browser origins, answer `OPTIONS` preflight requests, and add credential headers when `credentials true` is declared.
 
 ## Current Auth Declaration
 

@@ -38,6 +38,8 @@ func (p *parser) parse() {
 			index = p.parseAuth(index, parts)
 		case "database":
 			index = p.parseDatabase(index, parts)
+		case "security":
+			index = p.parseSecurity(index, parts)
 		case "i18n":
 			index = p.parseI18N(index, parts)
 		case "label":
@@ -59,7 +61,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, security, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -168,6 +170,97 @@ func (p *parser) parseDatabase(start int, parts []string) int {
 
 	p.addError(lineNumber, 1, "UNCLOSED_DATABASE", "Database block is missing a closing brace.", "Add `}` after the database block.")
 	return len(p.lines) - 1
+}
+
+func (p *parser) parseSecurity(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_SECURITY_DECLARATION", "Security declaration must be `security {`.", "Start with `security {`, then add a nested `cors {` block.")
+		return start
+	}
+	if p.program.Security != nil {
+		p.addError(lineNumber, 1, "DUPLICATE_SECURITY", "Only one security declaration is allowed.", "Keep a single `security` block per project.")
+		return start
+	}
+
+	security := SecurityDecl{
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Security = &security
+			return index
+		}
+
+		switch rowParts[0] {
+		case "cors":
+			cors, next := p.parseCORS(index, rowParts)
+			index = next
+			if security.CORS != nil {
+				p.addError(currentLine, 1, "DUPLICATE_CORS", "Only one cors block is allowed inside security.", "Keep a single `cors` block per security declaration.")
+				continue
+			}
+			security.CORS = &cors
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_SECURITY_TOKEN", fmt.Sprintf("Unexpected security token %q.", rowParts[0]), "Use cors inside security.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_SECURITY", "Security block is missing a closing brace.", "Add `}` after the security block.")
+	return len(p.lines) - 1
+}
+
+func (p *parser) parseCORS(start int, parts []string) (CORSDecl, int) {
+	lineNumber := p.lineNumber(start)
+	cors := CORSDecl{
+		Position: p.position(lineNumber, 1),
+	}
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_CORS_DECLARATION", "CORS declaration must be `cors {`.", "Start with `cors {`, then add `origins env CORS_ORIGINS` inside it.")
+		return cors, start
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			return cors, index
+		}
+
+		switch rowParts[0] {
+		case "origins":
+			if len(rowParts) != 3 || rowParts[1] != "env" {
+				p.addError(currentLine, 1, "INVALID_CORS_ORIGINS", "CORS origins must reference an environment variable.", "Use `origins env CORS_ORIGINS`.")
+				continue
+			}
+			if cors.Origins.Name != "" {
+				p.addError(currentLine, 1, "DUPLICATE_CORS_ORIGINS", "CORS origins are already declared.", "Keep one origins line inside cors.")
+				continue
+			}
+			cors.Origins = EnvRef{
+				Name:     rowParts[2],
+				Position: p.position(currentLine, 1),
+			}
+		case "credentials":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_CORS_CREDENTIALS", "CORS credentials must be `credentials true|false`.", "Example: `credentials true`.")
+				continue
+			}
+			if cors.Credentials != "" {
+				p.addError(currentLine, 1, "DUPLICATE_CORS_CREDENTIALS", "CORS credentials are already declared.", "Keep one credentials line inside cors.")
+				continue
+			}
+			cors.Credentials = rowParts[1]
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_CORS_TOKEN", fmt.Sprintf("Unexpected cors token %q.", rowParts[0]), "Use origins or credentials inside cors.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_CORS", "CORS block is missing a closing brace.", "Add `}` after the cors block.")
+	return cors, len(p.lines) - 1
 }
 
 func (p *parser) parseI18N(start int, parts []string) int {

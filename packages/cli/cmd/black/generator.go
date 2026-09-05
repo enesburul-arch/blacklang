@@ -225,8 +225,19 @@ npm run api:dev
 }
 
 func (g *webGenerator) envExample() string {
-	return `DATABASE_URL="file:./dev.db"
-`
+	var builder strings.Builder
+	builder.WriteString("DATABASE_URL=\"file:./dev.db\"\n")
+	if cors := g.corsConfig(); cors != nil && cors.Origins.Name != "" {
+		builder.WriteString(fmt.Sprintf("%s=\"http://localhost:5173\"\n", cors.Origins.Name))
+	}
+	return builder.String()
+}
+
+func (g *webGenerator) corsConfig() *CORSDecl {
+	if g.program.Security == nil {
+		return nil
+	}
+	return g.program.Security.CORS
 }
 
 func (g *webGenerator) packageJSON() string {
@@ -904,6 +915,32 @@ func (g *webGenerator) serverTS() string {
 	builder.WriteString("  res.setHeader(\"Permissions-Policy\", \"geolocation=(), microphone=(), camera=()\");\n")
 	builder.WriteString("  next();\n")
 	builder.WriteString("});\n")
+	if cors := g.corsConfig(); cors != nil && cors.Origins.Name != "" {
+		builder.WriteString(fmt.Sprintf("const corsOrigins = (process.env.%s ?? \"\").split(\",\").map((origin) => origin.trim()).filter(Boolean);\n\n", cors.Origins.Name))
+		builder.WriteString("app.use((req, res, next) => {\n")
+		builder.WriteString("  const origin = req.headers.origin;\n")
+		builder.WriteString("  if (!origin) {\n")
+		builder.WriteString("    next();\n")
+		builder.WriteString("    return;\n")
+		builder.WriteString("  }\n")
+		builder.WriteString("  if (!corsOrigins.includes(origin)) {\n")
+		builder.WriteString("    res.status(403).json({ error: \"CORS origin is not allowed\" });\n")
+		builder.WriteString("    return;\n")
+		builder.WriteString("  }\n")
+		builder.WriteString("  res.setHeader(\"Access-Control-Allow-Origin\", origin);\n")
+		builder.WriteString("  res.setHeader(\"Vary\", \"Origin\");\n")
+		builder.WriteString("  res.setHeader(\"Access-Control-Allow-Methods\", \"GET,POST,PUT,PATCH,DELETE,OPTIONS\");\n")
+		builder.WriteString("  res.setHeader(\"Access-Control-Allow-Headers\", \"Content-Type, X-CSRF-Token\");\n")
+		if cors.Credentials == "true" {
+			builder.WriteString("  res.setHeader(\"Access-Control-Allow-Credentials\", \"true\");\n")
+		}
+		builder.WriteString("  if (req.method === \"OPTIONS\") {\n")
+		builder.WriteString("    res.status(204).end();\n")
+		builder.WriteString("    return;\n")
+		builder.WriteString("  }\n")
+		builder.WriteString("  next();\n")
+		builder.WriteString("});\n")
+	}
 	builder.WriteString("app.use((req, res, next) => {\n")
 	builder.WriteString("  const now = Date.now();\n")
 	builder.WriteString("  const key = req.ip ?? \"unknown\";\n")

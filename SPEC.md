@@ -565,6 +565,13 @@ Current source-safe style:
 database {
   url env DATABASE_URL
 }
+
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
 ```
 
 ## Current Database Declaration
@@ -585,6 +592,31 @@ Draft v0.1 validates:
 - `url` must use `env`.
 - Environment variable names must use uppercase letters, numbers, and underscores.
 - Literal database URLs are rejected by the parser.
+
+## Current Security Declaration
+
+Draft v0.1 supports a top-level `security` declaration with explicit CORS intent:
+
+```black
+security {
+  cors {
+    origins env CORS_ORIGINS
+    credentials true
+  }
+}
+```
+
+The parser, validator, JSON output, BlackIR output, generated `.env.example`, and generated Express server understand this declaration.
+
+Rules:
+
+- Use one `security` block per project.
+- Use one `cors` block inside `security`.
+- `origins` must use `env`.
+- Environment variable names must use uppercase letters, numbers, and underscores.
+- The generated server reads comma-separated origins from that environment variable.
+- `credentials` may be `true` or `false`; use `true` for cookie-auth browser clients.
+- Browser requests from origins not listed in the environment value are rejected.
 
 ## Current Source Security Commands
 
@@ -772,8 +804,9 @@ In draft v0.1, generated Express servers:
 - Add basic browser security headers
 - Limit JSON request bodies to `100kb`
 - Apply a simple IP-based request rate limit
+- Apply CORS middleware when `security.cors` is declared
 
-These defaults are generated automatically and do not require source syntax in v0.1.
+Baseline defaults are generated automatically. CORS middleware requires explicit `security.cors` source syntax.
 
 ## Auth Declaration
 

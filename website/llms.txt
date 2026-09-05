@@ -1,0 +1,29 @@
+# BlackLang
+
+BlackLang is an AI-native deterministic intent language for describing application intent in compact `.black` source files.
+
+Current version: 0.1.0-dev
+Primary target: web applications
+Source extension: `.black`
+
+Read first:
+
+- `/` for human-readable documentation.
+- `#quick-start` for the smallest complete example.
+- `#syntax` for top-level syntax.
+- `#entity` for data models.
+- `#page` for generated web screens.
+- `#table` for list rendering.
+- `#form` for data input.
+- `#auth` for email/password cookie sessions.
+- `#roles` for role and access rules.
+- `#security` for source security rules.
+- `#cli` for machine-readable commands.
+- `#ai-agents` for agent workflow.
+
+Agent rule:
+
+1. Read local `AGENTS.md`, `BLACKLANG.md`, `SPEC.md`, and `blacklang.toml` when available.
+2. Modify `.black` source files, not generated output.
+3. Run `black format --check --json`, `black lint --json`, and `black build`.
+4. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

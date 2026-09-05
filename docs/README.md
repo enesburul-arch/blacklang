@@ -4,6 +4,8 @@ This folder will contain the official BlackLang learning and reference site.
 
 The site should work for both humans and AI coding agents.
 
+The first published static site source lives in `../website/`.
+
 ## Purpose
 
 The documentation site is the public memory of the language.

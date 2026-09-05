@@ -17,6 +17,8 @@ docs/
 examples/
 packages/
 scripts/
+website/
+.gitattributes
 .gitignore
 AGENTS.md
 BLACKLANG.md

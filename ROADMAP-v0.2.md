@@ -91,13 +91,13 @@ This phase turns the `.black.enc` policy into real tooling.
 
 This phase creates the Python/W3Schools-style learning surface discussed for BlackLang.
 
-- [ ] Define docs site information architecture
-- [ ] Add quick start pages
-- [ ] Add language reference pages
-- [ ] Add examples gallery
-- [ ] Add generated output comparison pages
-- [ ] Add AI agent guide pages
-- [ ] Add versioned docs strategy for future syntax changes
+- [x] Define docs site information architecture
+- [x] Add quick start pages
+- [x] Add language reference pages
+- [x] Add examples gallery
+- [x] Add generated output comparison pages
+- [x] Add AI agent guide pages
+- [x] Add versioned docs strategy for future syntax changes
 
 ## Phase 25: Real App Templates
 

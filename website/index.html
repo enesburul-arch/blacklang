@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BlackLang Documentation</title>
+    <meta
+      name="description"
+      content="BlackLang v0.1.0-dev icin insan ve AI ajanlarina yonelik dokumantasyon."
+    />
+    <meta name="theme-color" content="#0b0f17" />
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <button class="menu-toggle" type="button" aria-label="Menüyü aç" aria-controls="sidebar">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#blacklang" aria-label="BlackLang ana sayfa">
+        <img src="/assets/blacklang-logo.png" alt="BlackLang logosu" />
+        <span class="brand-text">
+          <strong>BlackLang</strong>
+          <small>v0.1.0-dev</small>
+        </span>
+      </a>
+      <p class="tagline">AI-native deterministic intent language.</p>
+
+      <label class="nav-search">
+        <span>Menüde ara</span>
+        <input type="search" id="navSearch" placeholder="entity, form, security..." />
+      </label>
+
+      <nav aria-label="BlackLang dokümantasyon menüsü">
+        <a href="#blacklang">BlackLang</a>
+        <a href="#quick-start">Quick Start</a>
+        <a href="#installation">Kurulum</a>
+        <a href="#project-structure">Proje Yapısı</a>
+        <a href="#syntax">Syntax Temeli</a>
+        <a href="#app">app</a>
+        <a href="#entity">entity</a>
+        <a href="#fields">Field Tipleri</a>
+        <a href="#page">page</a>
+        <a href="#table">table</a>
+        <a href="#form">form</a>
+        <a href="#actions">actions</a>
+        <a href="#layout">layout</a>
+        <a href="#auth">auth</a>
+        <a href="#roles">role ve access</a>
+        <a href="#workflow">workflow</a>
+        <a href="#state">state</a>
+        <a href="#component">component</a>
+        <a href="#api">api</a>
+        <a href="#security">security</a>
+        <a href="#cli">CLI</a>
+        <a href="#errors">Hata Çıktıları</a>
+        <a href="#ai-agents">AI Agents</a>
+        <a href="#examples">Örnekler</a>
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#roadmap">Roadmap</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section class="intro" id="blacklang">
+        <p class="eyebrow">BlackLang Documentation</p>
+        <h1>BlackLang</h1>
+        <p class="lead">
+          BlackLang, AI ajanlarının uygulama niyetini kısa, net ve doğrulanabilir bir
+          kaynak dille yazması için tasarlanan deterministik bir dildir.
+        </p>
+        <div class="meta-row">
+          <span>Current version: <strong>0.1.0-dev</strong></span>
+          <span>Target: <strong>Web applications</strong></span>
+          <span>Source: <strong>.black</strong></span>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Minimal fikir</div>
+          <pre><code>Human request
+  to AI coding agent
+  to .black source
+  to black compiler
+  to generated web application</code></pre>
+        </div>
+        <p>
+          İlk hedef Python veya JavaScript'i tamamen değiştirmek değildir. İlk hedef,
+          web uygulamalarında tekrar eden model, form, tablo, validation, API ve güvenlik
+          niyetlerini daha küçük bir kaynak temsille anlatmaktır.
+        </p>
+      </section>
+
+      <section id="quick-start">
+        <h2>Quick Start</h2>
+        <p>
+          En küçük çalışan akış bir `.black` dosyası yazmak, validate etmek ve web çıktısı
+          üretmektir. AI ajanı da insan geliştirici de aynı dosyayı okuyup aynı sonucu alır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/warehouse/app.black</div>
+          <pre><code class="language-black">app Warehouse
+
+entity Product {
+  sku text required unique
+  name text required
+  stock number default 0
+  price money
+}
+
+page Products {
+  source Product
+
+  table {
+    columns sku, name, stock, price
+    search sku, name
+  }
+
+  form {
+    fields sku, name, stock, price
+  }
+
+  actions create, edit, delete
+}</code></pre>
+        </div>
+        <p>
+          Bu blok Product verisini, Products ekranını, tablo kolonlarını, form alanlarını
+          ve CRUD davranışlarını tek kaynakta toplar. Generator bu niyetten TypeScript,
+          React, API, validation ve database tarafını üretir.
+        </p>
+      </section>
+
+      <section id="installation">
+        <h2>Kurulum</h2>
+        <p>
+          BlackLang'in hedef dağıtımı tek binary modelidir. Olgun sürümde kullanıcı sadece
+          `black` komutunu indirip çalıştırabilmelidir; compiler için ayrıca Python veya
+          Node.js zorunlu olmamalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Planlanan kullanım</div>
+          <pre><code class="language-bash">black init
+black format --check --json
+black lint --json
+black validate --json
+black build</code></pre>
+        </div>
+        <p>
+          npm yolu da yaygınlaşma için planlanır. npm paketi platforma uygun binary'yi
+          çağırır; BlackLang'in compiler mantığı yine tek binary içinde kalır.
+        </p>
+      </section>
+
+      <section id="project-structure">
+        <h2>Proje Yapısı</h2>
+        <p>
+          BlackLang projelerinde kaynak gerçekliği `.black` dosyalarıdır. Generated dosyalar
+          compiler çıktısıdır ve normalde elle düzenlenmez.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Temel klasör mantığı</div>
+          <pre><code>blacklang/
+  BLACKLANG.md
+  SPEC.md
+  AGENTS.md
+  blacklang.toml
+  examples/
+    warehouse/
+      app.black
+  generated/
+  packages/
+    cli/</code></pre>
+        </div>
+        <p>
+          AI ajanı projeye girdiğinde önce yerel öğrenme dosyalarını ve `blacklang.toml`
+          sürüm bilgisini okur. Sonra sadece gereken `.black` kaynaklarını değiştirir.
+        </p>
+      </section>
+
+      <section id="syntax">
+        <h2>Syntax Temeli</h2>
+        <p>
+          Dil kısa olmalı ama şifreli olmamalıdır. `app`, `entity`, `page`, `table`,
+          `form`, `actions`, `when` gibi tanıdık kelimeler AI'nin ilk okuma maliyetini
+          düşürür.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Top-level bloklar</div>
+          <pre><code class="language-black">app Warehouse
+
+database {
+  url env DATABASE_URL
+}
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+}</code></pre>
+        </div>
+        <p>
+          Her davranış için tek syntax hedeflenir. Bu, hem compiler hatalarını daha stabil
+          yapar hem de AI ajanının "hangi kullanım doğru" diye tahmin yürütmesini azaltır.
+        </p>
+      </section>
+
+      <section id="app">
+        <h2>app</h2>
+        <p>
+          `app`, uygulamanın adını belirler. Bir BlackLang projesinde tam olarak bir ana
+          uygulama adı olmalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Syntax</div>
+          <pre><code class="language-black">app Warehouse</code></pre>
+        </div>
+        <p>
+          Generator bu adı package metadata, arayüz başlığı ve çıktı dokümantasyonu gibi
+          yerlerde kullanabilir. İsim PascalCase yazıldığında hem insan hem AI için daha
+          okunaklı kalır.
+        </p>
+      </section>
+
+      <section id="entity">
+        <h2>entity</h2>
+        <p>
+          `entity`, saklanacak uygulama verisini anlatır. Normal web stack'te model,
+          validation, database schema ve API type parçalarına bölünen niyet burada tek
+          blokta ifade edilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Ürün modeli</div>
+          <pre><code class="language-black">entity Product {
+  sku text required unique length 3..40
+  name text required label "Product Name"
+  stock number default 0 min 0
+  price money min 0
+}</code></pre>
+        </div>
+        <p>
+          Field adı solda, tipi yanında, kuralları ise aynı satırda yer alır. Bu sıra,
+          AI'nin satırı tek seferde okuyup veri niyetini anlamasını kolaylaştırır.
+        </p>
+      </section>
+
+      <section id="fields">
+        <h2>Field Tipleri</h2>
+        <p>
+          Field tipi verinin nasıl saklanacağını ve hangi validation davranışlarının
+          üretileceğini belirler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Desteklenen temel tipler</div>
+          <pre><code class="language-black">name text required
+stock number default 0
+quantity integer min 1
+price money min 0
+email email unique
+active boolean default true
+createdAt datetime</code></pre>
+        </div>
+        <p>
+          v0.1 alan tipleri: `text`, `number`, `integer`, `decimal`, `money`, `email`,
+          `boolean`, `date`, `datetime`. Entity adı da relation tipi olarak kullanılabilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Modifier örnekleri</div>
+          <pre><code class="language-black">sku text required unique length 3..40 regex "^[A-Z0-9]+$"
+website text optional url
+discount money min 0
+name text required placeholder "Enter product name" help "Visible in lists"</code></pre>
+        </div>
+      </section>
+
+      <section id="page">
+        <h2>page</h2>
+        <p>
+          `page`, generated web uygulamasındaki ekran niyetini anlatır. Sayfa hangi
+          entity'den beslenecek, hangi tablo ve form alanlarını gösterecek, hangi aksiyonları
+          açacak burada belirlenir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Sayfa tanımı</div>
+          <pre><code class="language-black">page Products {
+  source Product
+
+  table {
+    columns sku, name, stock, price
+    search sku, name
+  }
+
+  form {
+    fields sku, name, stock, price
+  }
+
+  actions create, edit, delete
+}</code></pre>
+        </div>
+        <p>
+          `source`, var olan bir entity'yi göstermelidir. Table ve form alanları source
+          entity içinde yoksa validator stabil hata kodu üretir.
+        </p>
+      </section>
+
+      <section id="table">
+        <h2>table</h2>
+        <p>
+          `table`, listeleme yüzeyini tarif eder. Kolonlar, arama alanları, filtreler,
+          sıralama ve pagination aynı blokta tutulur.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Tablo davranışı</div>
+          <pre><code class="language-black">table {
+  columns sku, name, stock, price
+  search sku, name
+  filter stock
+  sort stock desc
+  paginate 10
+}</code></pre>
+        </div>
+        <p>
+          Generator table tanımından React liste görünümü, search state, filtre kontrolleri,
+          pagination ve field bazlı görünürlük kontrollerini üretebilir.
+        </p>
+      </section>
+
+      <section id="form">
+        <h2>form</h2>
+        <p>
+          `form`, create ve edit işlemlerinde kullanılacak alanları belirler. Field metadata
+          varsa label, placeholder, help ve inline validation mesajları buradan üretilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Form alanları</div>
+          <pre><code class="language-black">form {
+  fields sku, name, stock, price
+}</code></pre>
+        </div>
+        <p>
+          Relation field kullanıldığında generator select input üretir. Zorunlu relation
+          için ilişkili kayıt yoksa submit kapatılıp kullanıcıya önce hangi kaydı oluşturması
+          gerektiği gösterilir.
+        </p>
+      </section>
+
+      <section id="actions">
+        <h2>actions</h2>
+        <p>
+          `actions`, sayfada hangi veri işlemlerinin aktif olacağını söyler. Aynı liste,
+          API route üretimini ve arayüz kontrol görünürlüğünü etkiler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Desteklenen action değerleri</div>
+          <pre><code class="language-black">actions create, edit, delete, archive, restore</code></pre>
+        </div>
+        <p>
+          `archive`, soft delete mantığıyla `archivedAt` set eder. `restore`, kaydı tekrar
+          görünür yapar. Role sistemi varsa action butonları izinlere göre gizlenir.
+        </p>
+      </section>
+
+      <section id="layout">
+        <h2>layout</h2>
+        <p>
+          `layout`, sayfaların generated uygulama kabuğunda hangi sırayla görüneceğini
+          kontrol eder. Şimdilik sidebar odaklıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Sidebar düzeni</div>
+          <pre><code class="language-black">layout AdminLayout {
+  sidebar {
+    item Products
+    item Customers
+    item Orders
+  }
+}
+
+page Products {
+  layout AdminLayout
+  source Product
+}</code></pre>
+        </div>
+        <p>
+          Explicit layout yoksa navigation sayfa tanım sırasından türetilebilir. Küçük
+          ekranlarda generated app drawer menüye geçer.
+        </p>
+      </section>
+
+      <section id="auth">
+        <h2>auth</h2>
+        <p>
+          `auth`, giriş ve oturum niyetini kaynak dil seviyesinde tanımlar. v0.1 email ve
+          password stratejisiyle cookie session üretimini destekler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Cookie session auth</div>
+          <pre><code class="language-black">auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}</code></pre>
+        </div>
+        <p>
+          Bu blok register, login, logout, `/api/auth/me`, password hashing ve cookie
+          session davranışlarının üretilmesine temel olur.
+        </p>
+      </section>
+
+      <section id="roles">
+        <h2>role ve access</h2>
+        <p>
+          `role`, kullanıcı izinlerini tanımlar. `access`, sayfanın hangi role veya auth
+          kapsamına açık olduğunu söyler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Rol ve sayfa erişimi</div>
+          <pre><code class="language-black">role Admin {
+  allow all
+}
+
+role Worker {
+  allow read Product
+  deny read Product price
+  allow update Product stock
+}
+
+page Products {
+  source Product
+  access Admin, Worker
+}</code></pre>
+        </div>
+        <p>
+          Generated API, sayfa ve action seviyesinde izinleri uygular. Field-level `deny`
+          ile hassas alanlar API response ve React görünümünden gizlenebilir.
+        </p>
+      </section>
+
+      <section id="workflow">
+        <h2>workflow</h2>
+        <p>
+          `workflow`, bir entity'nin iş süreci durumlarını ve geçişlerini tanımlar. Özellikle
+          sipariş, destek talebi, onay akışı gibi sistemlerde kullanılır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Durum geçişleri</div>
+          <pre><code class="language-black">workflow OrderPreparation {
+  source Order
+  states draft, picking, verified, packaged, shipped
+
+  transition ship {
+    from packaged
+    to shipped
+    allow Admin
+  }
+}</code></pre>
+        </div>
+        <p>
+          Workflow source entity içinde `status text` olmalıdır. Generator transition route,
+          permission check, status update, UI button ve audit log kaydı üretebilir.
+        </p>
+      </section>
+
+      <section id="state">
+        <h2>state</h2>
+        <p>
+          `state`, generated React ekranında kullanılacak client-side UI durumunu ifade eder.
+          Modal, seçili kayıtlar ve aktif filtre gibi davranışlar burada tanımlanabilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Sayfa state'i</div>
+          <pre><code class="language-black">state OrdersPageState {
+  selectedOrders Order[]
+  activeFilter text
+  modal createOrder closed
+}</code></pre>
+        </div>
+        <p>
+          `OrdersPageState` veya `OrdersState`, `page Orders` ile eşleşebilir. Modal tanımı
+          open/close helper üretimine temel olur.
+        </p>
+      </section>
+
+      <section id="component">
+        <h2>component</h2>
+        <p>
+          `component`, tekrarlı UI niyetlerini kaynak seviyesinde tanımlar. İlk kullanımda
+          field değerine göre variant seçimi desteklenir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">StockBadge</div>
+          <pre><code class="language-black">component StockBadge {
+  input stock number
+
+  variant low when stock &lt; 10
+  variant normal when stock &gt;= 10
+}</code></pre>
+        </div>
+        <p>
+          Tek input, entity field adı ve tipiyle eşleşirse generated table, detail ve form
+          preview alanlarında otomatik kullanılabilir.
+        </p>
+      </section>
+
+      <section id="api">
+        <h2>api</h2>
+        <p>
+          `api`, generated CRUD dışındaki contract-first endpoint niyetlerini anlatır.
+          Runtime implementation daha sonra gelişebilir; v0.1 bu bilgiyi OpenAPI çıktısına
+          taşır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Explicit API contract</div>
+          <pre><code class="language-black">api LowStockReport {
+  method GET
+  path "/api/reports/low-stock/{warehouseId}"
+  param warehouseId text
+  query limit integer
+  private
+}
+
+api StockWebhook {
+  method POST
+  path "/api/webhooks/stock"
+  webhook
+  public
+}</code></pre>
+        </div>
+        <p>
+          `black build` generated OpenAPI contract oluşturur. Generated Express server bu
+          contract'ı `/openapi.json` üzerinden servis edebilir.
+        </p>
+      </section>
+
+      <section id="security">
+        <h2>security</h2>
+        <p>
+          BlackLang kaynak dosyaları yüksek değerli source asset olarak görülür. Secret,
+          password, API key, token ve private key değerleri `.black` dosyasına yazılmamalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Doğru secret yaklaşımı</div>
+          <pre><code class="language-black">database {
+  url env DATABASE_URL
+}</code></pre>
+        </div>
+        <div class="code-panel warning">
+          <div class="code-title">Kaçınılacak kullanım</div>
+          <pre><code class="language-black">database {
+  url "postgres://user:password@example.com/app"
+}</code></pre>
+        </div>
+        <p>
+          Production deployment için hedef, mümkünse `.black` kaynaklarını sunucuya taşımadan
+          generated production artifact yayınlamaktır. `black security scan --json` olası
+          hardcoded secret izlerini raporlar.
+        </p>
+      </section>
+
+      <section id="cli">
+        <h2>CLI</h2>
+        <p>
+          CLI, AI ajanlarının BlackLang projesini tahmin ederek değil compiler'dan öğrenerek
+          değiştirmesini sağlar. Önemli komutlar JSON çıktı verebilmelidir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI dostu komutlar</div>
+          <pre><code class="language-bash">black version --json
+black format --check --json
+black lint --json
+black parse examples/warehouse/app.black --json
+black validate examples/warehouse/app.black --json
+black build examples/warehouse/app.black --json
+black inspect --ir
+black docs --all --json
+black explain entity --json
+black security scan --json</code></pre>
+        </div>
+        <p>
+          `lint` format, parse, validate ve source-security bulgularını tek raporda toplar.
+          `explain`, tek keyword için amaç, syntax, örnek, agent notu ve hata kodlarını döner.
+        </p>
+      </section>
+
+      <section id="errors">
+        <h2>Hata Çıktıları</h2>
+        <p>
+          Hatalar stabil code, dosya, satır, kolon ve öneri alanlarıyla dönmelidir. Böylece
+          AI ajanı hata metnini yorumlamak yerine error code üzerinden doğru referansa gider.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">JSON error shape</div>
+          <pre><code class="language-json">{
+  "success": false,
+  "errors": [
+    {
+      "file": "examples/warehouse/app.black",
+      "line": 17,
+      "column": 13,
+      "code": "UNKNOWN_FIELD",
+      "message": "Page Products uses unknown field barcode.",
+      "suggestion": "Add barcode to Product or remove it from columns."
+    }
+  ]
+}</code></pre>
+        </div>
+        <p>
+          Bu model, insan için okunabilir; AI için de deterministik onarım akışı sağlar.
+        </p>
+      </section>
+
+      <section id="ai-agents">
+        <h2>AI Agents</h2>
+        <p>
+          BlackLang yeni olduğu için modellerin eğitim verisinde bulunmayabilir. Bu normaldir.
+          Dil, yerel öğrenme paketi ve küçük CLI açıklamalarıyla hızlı öğrenilecek şekilde
+          tasarlanır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Agent başlangıç akışı</div>
+          <pre><code>1. Read AGENTS.md
+2. Read BLACKLANG.md
+3. Check blacklang.toml
+4. Run black inspect --json or --ir
+5. Edit only .black source files
+6. Run black format --check --json
+7. Run black lint --json
+8. Run black build
+9. Do not manually edit generated files</code></pre>
+        </div>
+        <p>
+          Hedef sıfır öğrenme maliyeti değildir. Hedef, ilk öğrenmeden sonra tekrar eden
+          web geliştirme görevlerinin normal stack'e göre daha ucuz ve daha az hatalı hale
+          gelmesidir.
+        </p>
+      </section>
+
+      <section id="examples">
+        <h2>Örnekler</h2>
+        <p>
+          İlk örnek Warehouse uygulamasıdır. Bu örnek auth, role, relation, workflow, state,
+          component, table, form, validation ve API contract özelliklerini aynı kaynakta
+          gösterir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Relation ve validation örneği</div>
+          <pre><code class="language-black">entity Order {
+  customer Customer required label "Customer"
+  total money default 0 min 0
+  discount money default 0 min 0
+  status text default draft
+  trackingNumber text optional
+  validate discount &lt;= total message "Discount cannot exceed total"
+  validate trackingNumber required when status == shipped message "Tracking number is required when shipped"
+}</code></pre>
+        </div>
+        <p>
+          Uzun vadede CRM, inventory, helpdesk, invoice, appointment ve project management
+          şablonları eklenerek gerçek uygulama desenleri ölçülebilir hale getirilir.
+        </p>
+      </section>
+
+      <section id="benchmarks">
+        <h2>Benchmarks</h2>
+        <p>
+          BlackLang'in iddiası ölçülmelidir: kaç satır `.black` yazıldı, kaç satır generated
+          kod üretildi, normal web stack karşılığı ne olurdu ve AI kaç dosyaya dokundu?
+        </p>
+        <div class="metric-grid">
+          <div>
+            <strong>Source lines</strong>
+            <span>.black kaynak satırı</span>
+          </div>
+          <div>
+            <strong>Generated lines</strong>
+            <span>Üretilen web kodu</span>
+          </div>
+          <div>
+            <strong>Files edited</strong>
+            <span>AI'nin dokunduğu dosya</span>
+          </div>
+          <div>
+            <strong>Errors</strong>
+            <span>Validate/build hata sayısı</span>
+          </div>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Rapor şablonu</div>
+          <pre><code>Metric                 Normal Stack   BlackLang
+Source lines                    TBD         TBD
+Generated lines                 TBD         TBD
+Files edited                    TBD         TBD
+Input tokens                    TBD         TBD
+Output tokens                   TBD         TBD
+Build time                      TBD         TBD</code></pre>
+        </div>
+      </section>
+
+      <section id="roadmap">
+        <h2>Roadmap</h2>
+        <p>
+          v0.1 web MVP tamamlandı: parser, validator, generator, CRUD, relation, auth,
+          role/access, workflow, state, component, validation, OpenAPI ve source security
+          temelleri var.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">v0.2 odakları</div>
+          <pre><code>Phase 18: Release and install path
+Phase 19: Developer and AI ergonomics
+Phase 20: UI and theme language
+Phase 21: Query, actions, and data logic
+Phase 22: Tests, benchmarks, and evals
+Phase 23: Protected source mode
+Phase 24: Documentation site
+Phase 25: Real app templates</code></pre>
+        </div>
+        <p>
+          Bu site Phase 24'ün ilk yayınlanabilir sürümüdür. Dil büyüdükçe her yeni syntax,
+          CLI davranışı ve migration notu burada güncellenecektir.
+        </p>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

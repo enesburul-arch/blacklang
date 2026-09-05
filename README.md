@@ -14,6 +14,8 @@ Install paths for local development, GitHub Releases, and npm are documented in 
 
 GitHub publish rules are documented in `docs/github-publish.md`.
 
+The first static documentation site source is under `website/`.
+
 The goal is not to replace Python or JavaScript as a general-purpose language. The goal is to give AI coding agents a smaller, clearer, safer representation of application intent.
 
 BlackLang source files are high-value source assets. Secrets should stay outside `.black` files, and production deployments should prefer generated artifacts instead of shipping the source of truth.

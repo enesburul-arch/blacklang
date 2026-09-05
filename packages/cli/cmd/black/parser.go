@@ -514,17 +514,39 @@ func (p *parser) parsePage(start int, parts []string) int {
 		case "actions":
 			page.Actions = parseList(sectionParts[1:])
 		case "action":
-			if len(sectionParts) < 5 || sectionParts[2] != "ui" {
-				p.addError(currentLine, 1, "INVALID_ACTION_UI", "Action UI intent must be `action name ui button values...`.", "Example: `action create ui button primary white 6 md solid`.")
+			if len(sectionParts) < 4 {
+				p.addError(currentLine, 1, "INVALID_ACTION_INTENT", "Action intent must be `action name ui button values...`, `action name id Value`, or `action name class Value`.", "Example: `action create ui button primary white 6 md solid`.")
 				continue
 			}
-			ui, ok := p.parseUIIntents(sectionParts[2:], currentLine)
-			if ok {
-				page.ActionUI = append(page.ActionUI, ActionUIIntent{
-					Action:   sectionParts[1],
-					UI:       ui,
-					Position: p.position(currentLine, 1),
-				})
+			position := p.position(currentLine, 1)
+			actionName := sectionParts[1]
+			switch sectionParts[2] {
+			case "ui":
+				if len(sectionParts) < 5 {
+					p.addError(currentLine, 1, "INVALID_ACTION_UI", "Action UI intent must be `action name ui button values...`.", "Example: `action create ui button primary white 6 md solid`.")
+					continue
+				}
+				ui, ok := p.parseUIIntents(sectionParts[2:], currentLine)
+				if ok {
+					p.mergeActionIntent(&page, actionName, ui, nil, position, currentLine)
+				}
+			case "id":
+				if len(sectionParts) != 4 {
+					p.addError(currentLine, 1, "INVALID_UI_ID", "Action id must be `action name id Identifier`.", "Example: `action create id CreateProductButton`.")
+					continue
+				}
+				identity := &UIIdentity{ID: sectionParts[3], Position: position}
+				p.mergeActionIntent(&page, actionName, nil, identity, position, currentLine)
+			case "class":
+				classes := parseList(sectionParts[3:])
+				if len(classes) == 0 {
+					p.addError(currentLine, 1, "INVALID_UI_CLASS", "Action class must be `action name class ClassName`.", "Example: `action create class primaryAction`.")
+					continue
+				}
+				identity := &UIIdentity{Classes: classes, Position: position}
+				p.mergeActionIntent(&page, actionName, nil, identity, position, currentLine)
+			default:
+				p.addError(currentLine, 1, "INVALID_ACTION_INTENT", "Action intent must be `action name ui button values...`, `action name id Value`, or `action name class Value`.", "Example: `action create class primaryAction`.")
 			}
 		case "access":
 			page.Access = parseList(sectionParts[1:])
@@ -559,6 +581,19 @@ func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {
 			table.Search = parseList(rowParts[1:])
 		case "filter":
 			table.Filters = parseList(rowParts[1:])
+		case "id":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_UI_ID", "Table id must be `id Identifier`.", "Example: `id ProductsTable`.")
+				continue
+			}
+			table.Identity = p.setUIIdentityID(table.Identity, rowParts[1], p.position(currentLine, 1), currentLine)
+		case "class":
+			classes := parseList(rowParts[1:])
+			if len(classes) == 0 {
+				p.addError(currentLine, 1, "INVALID_UI_CLASS", "Table class must include at least one class name.", "Example: `class importantTable compactPanel`.")
+				continue
+			}
+			table.Identity = addUIIdentityClasses(table.Identity, classes, p.position(currentLine, 1))
 		case "ui":
 			ui, ok := p.parseUIIntents(rowParts, currentLine)
 			if ok {
@@ -586,7 +621,7 @@ func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {
 			}
 			table.Paginate = size
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_TABLE_TOKEN", fmt.Sprintf("Unexpected table token %q.", rowParts[0]), "Use columns, search, filter, sort, paginate, or ui inside a table.")
+			p.addError(currentLine, 1, "UNEXPECTED_TABLE_TOKEN", fmt.Sprintf("Unexpected table token %q.", rowParts[0]), "Use columns, search, filter, sort, paginate, id, class, or ui inside a table.")
 		}
 	}
 
@@ -612,18 +647,99 @@ func (p *parser) parseForm(start int, parts []string) (FormDecl, int) {
 		switch rowParts[0] {
 		case "fields":
 			form.Fields = parseList(rowParts[1:])
+		case "id":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_UI_ID", "Form id must be `id Identifier`.", "Example: `id ProductForm`.")
+				continue
+			}
+			form.Identity = p.setUIIdentityID(form.Identity, rowParts[1], p.position(currentLine, 1), currentLine)
+		case "class":
+			classes := parseList(rowParts[1:])
+			if len(classes) == 0 {
+				p.addError(currentLine, 1, "INVALID_UI_CLASS", "Form class must include at least one class name.", "Example: `class productForm elevatedPanel`.")
+				continue
+			}
+			form.Identity = addUIIdentityClasses(form.Identity, classes, p.position(currentLine, 1))
 		case "ui":
 			ui, ok := p.parseUIIntents(rowParts, currentLine)
 			if ok {
 				form.UI = append(form.UI, ui...)
 			}
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_FORM_TOKEN", fmt.Sprintf("Unexpected form token %q.", rowParts[0]), "Use fields or ui inside a form.")
+			p.addError(currentLine, 1, "UNEXPECTED_FORM_TOKEN", fmt.Sprintf("Unexpected form token %q.", rowParts[0]), "Use fields, id, class, or ui inside a form.")
 		}
 	}
 
 	p.addError(lineNumber, 1, "UNCLOSED_FORM", "Form is missing a closing brace.", "Add `}` after form settings.")
 	return form, len(p.lines) - 1
+}
+
+func (p *parser) setUIIdentityID(identity *UIIdentity, id string, position Position, lineNumber int) *UIIdentity {
+	if identity == nil {
+		return &UIIdentity{ID: id, Position: position}
+	}
+	if identity.ID != "" {
+		p.addError(lineNumber, 1, "DUPLICATE_UI_ID", fmt.Sprintf("UI id %s was already declared.", identity.ID), "Keep one id per generated UI element.")
+	}
+	identity.ID = id
+	if identity.Position.Line == 0 {
+		identity.Position = position
+	}
+	return identity
+}
+
+func addUIIdentityClasses(identity *UIIdentity, classes []string, position Position) *UIIdentity {
+	if identity == nil {
+		return &UIIdentity{Classes: classes, Position: position}
+	}
+	identity.Classes = append(identity.Classes, classes...)
+	if identity.Position.Line == 0 {
+		identity.Position = position
+	}
+	return identity
+}
+
+func (p *parser) mergeActionIntent(page *PageDecl, action string, ui []UIIntent, identity *UIIdentity, position Position, lineNumber int) {
+	for index := range page.ActionUI {
+		if page.ActionUI[index].Action != action {
+			continue
+		}
+		page.ActionUI[index].UI = append(page.ActionUI[index].UI, ui...)
+		if identity != nil {
+			page.ActionUI[index].Identity = p.mergeUIIdentity(page.ActionUI[index].Identity, identity, lineNumber)
+		}
+		return
+	}
+
+	intent := ActionUIIntent{
+		Action:   action,
+		UI:       ui,
+		Position: position,
+	}
+	if identity != nil {
+		intent.Identity = p.mergeUIIdentity(nil, identity, lineNumber)
+	}
+	page.ActionUI = append(page.ActionUI, intent)
+}
+
+func (p *parser) mergeUIIdentity(current *UIIdentity, update *UIIdentity, lineNumber int) *UIIdentity {
+	if update == nil {
+		return current
+	}
+	if current == nil {
+		return &UIIdentity{
+			ID:       update.ID,
+			Classes:  append([]string{}, update.Classes...),
+			Position: update.Position,
+		}
+	}
+	if update.ID != "" {
+		current = p.setUIIdentityID(current, update.ID, update.Position, lineNumber)
+	}
+	if len(update.Classes) > 0 {
+		current = addUIIdentityClasses(current, update.Classes, update.Position)
+	}
+	return current
 }
 
 func (p *parser) parseWorkflow(start int, parts []string) int {

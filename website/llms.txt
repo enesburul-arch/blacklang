@@ -49,8 +49,9 @@ Agent rule:
 6. When `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
 7. Use `black docs ui --json` before editing inline UI intent in `.black` files.
 8. Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
-9. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-10. Modify `.black` and `.blackthm` source files, not generated output.
-11. Run `black format --check --json`, `black lint --json`, and `black build`.
-12. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-13. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.
+9. Table/form/action UI identity can use `id Identifier` and `class ClassName...`; generated names are kebab-case.
+10. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+11. Modify `.black` and `.blackthm` source files, not generated output.
+12. Run `black format --check --json`, `black lint --json`, and `black build`.
+13. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+14. Keep secrets out of `.black` files. Use `env DATABASE_URL` style references.

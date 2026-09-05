@@ -175,16 +175,22 @@ page Products {
   source Product
 
   table {
+    id ProductsTable
+    class inventoryTable
     columns name
     ui table border 1 solid compact true
   }
 
   form {
+    id ProductForm
+    class inventoryForm
     fields name
     ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
   }
 
   actions create
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
 }`,
 		AgentNotes: []string{
@@ -193,11 +199,14 @@ page Products {
 			"Form UI currently accepts box, text, and button modes.",
 			"Table UI currently accepts box, text, and table modes.",
 			"Action button UI currently accepts button mode with `action <name> ui button ...`.",
+			"Use `id Identifier` and `class ClassName...` inside table/form blocks for explicit generated UI identity.",
+			"Use `action <name> id Identifier` and `action <name> class ClassName...` for action button identity.",
+			"Generated IDs and classes are normalized to kebab-case; repeated row action IDs get generated suffixes.",
 			"Values are compact positional data; read .blackthm profile.modes[].slots before generating them.",
 			"Web builds generate stable .bl-ui-* CSS classes from supported inline UI intent.",
 			"Full .blackthm token resolution is a later extension; current builds use standard v0.2 slots and safe defaults.",
 		},
-		Errors: []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT", "UNKNOWN_ACTION_UI"},
+		Errors: []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI", "INVALID_ACTION_INTENT", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT", "UNKNOWN_ACTION_UI"},
 	},
 	"docs": {
 		Keyword: "docs",
@@ -420,9 +429,11 @@ role Worker {
 	},
 	"table": {
 		Keyword: "table",
-		Purpose: "Defines list columns, searchable fields, field filters, default sort order, and pagination for a page.",
-		Syntax:  "table { columns <field...>; search <field...>; filter <field...>; sort <field> <asc|desc>; paginate <number>; ui <mode> <values...> }",
+		Purpose: "Defines list columns, searchable fields, field filters, default sort order, pagination, and generated UI identity for a page.",
+		Syntax:  "table { id <Identifier>; class <ClassName...>; columns <field...>; search <field...>; filter <field...>; sort <field> <asc|desc>; paginate <number>; ui <mode> <values...> }",
 		Example: `table {
+  id ProductsTable
+  class inventoryTable
   columns sku, name, stock
   search sku, name
   filter stock
@@ -438,8 +449,9 @@ role Worker {
 			"Sort direction must be asc or desc.",
 			"Paginate size must be a positive whole number.",
 			"Inline UI intent can be declared with table, box, or text modes.",
+			"Explicit id and class values are normalized to kebab-case in generated HTML.",
 		},
-		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
+		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"filter": {
 		Keyword: "filter",
@@ -467,9 +479,11 @@ role Worker {
 	},
 	"form": {
 		Keyword: "form",
-		Purpose: "Defines generated input fields for create and edit UI.",
-		Syntax:  "form { fields <field...>; ui <mode> <values...> }",
+		Purpose: "Defines generated input fields and generated UI identity for create and edit UI.",
+		Syntax:  "form { id <Identifier>; class <ClassName...>; fields <field...>; ui <mode> <values...> }",
 		Example: `form {
+  id ProductForm
+  class inventoryForm
   fields sku, name, stock
   ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
 }`,
@@ -485,21 +499,26 @@ role Worker {
 			"Field url modifiers generate URL validation for text fields.",
 			"Field message \"Text\" modifiers override generated validation text for that field.",
 			"Inline UI intent can be declared with box, text, or button modes.",
+			"Explicit id and class values are normalized to kebab-case in generated HTML.",
 		},
-		Errors: []string{"UNKNOWN_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
+		Errors: []string{"UNKNOWN_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"actions": {
 		Keyword: "actions",
-		Purpose: "Declares page behaviors that the generator should create.",
-		Syntax:  "actions create, edit, delete, archive, restore; action <name> ui button <values...>",
+		Purpose: "Declares page behaviors and optional generated action button identity.",
+		Syntax:  "actions create, edit, delete, archive, restore; action <name> id <Identifier>; action <name> class <ClassName...>; action <name> ui button <values...>",
 		Example: `actions create, edit, delete, archive, restore
+action create id CreateProductButton
+action create class primaryAction
 action create ui button primary white 6 md solid`,
 		AgentNotes: []string{
 			"v0.1 supports create, edit, delete, archive, and restore.",
 			"Do not invent action names without adding validator and generator support.",
 			"Use `action <name> ui button ...` to attach inline UI intent to one generated action button.",
+			"Use `action <name> id ...` and `action <name> class ...` to attach stable generated button identity.",
+			"Generated repeated row button IDs get suffixes so DOM IDs stay unique.",
 		},
-		Errors: []string{"UNSUPPORTED_ACTION", "INVALID_ACTION_UI", "UNKNOWN_ACTION_UI", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
+		Errors: []string{"UNSUPPORTED_ACTION", "INVALID_ACTION_UI", "INVALID_ACTION_INTENT", "UNKNOWN_ACTION_UI", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"search": {
 		Keyword: "search",

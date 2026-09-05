@@ -271,16 +271,22 @@ page Products {
   source Product
 
   table {
+    id ProductsTable
+    class inventoryTable
     columns name
     ui table border 1 solid compact true
   }
 
   form {
+    id ProductForm
+    class inventoryForm
     fields name
     ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
   }
 
   actions create
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
 }
 ```
@@ -291,6 +297,10 @@ Current rule:
 - Form UI accepts `box`, `text`, and `button`.
 - Table UI accepts `box`, `text`, and `table`.
 - Action button UI accepts `button`.
+- Table and form blocks can declare `id Identifier` and `class ClassName...`.
+- Page actions can declare `action <name> id Identifier` and `action <name> class ClassName...`.
+- Generated web IDs and custom classes are normalized to kebab-case.
+- Repeated row action IDs are expanded with generated suffixes so DOM IDs stay unique.
 - Values are positional and should follow the active `.blackthm` profile mode slots.
 - Generated web output appends stable `.bl-ui-*` classes to `src/styles.css`.
 - The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots and safe defaults.

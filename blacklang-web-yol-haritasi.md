@@ -2145,16 +2145,22 @@ page Products {
   source Product
 
   table {
+    id ProductsTable
+    class inventoryTable
     columns name
     ui table border 1 solid compact true
   }
 
   form {
+    id ProductForm
+    class inventoryForm
     fields name
     ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
   }
 
   actions create
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
 }
 ```
@@ -2169,6 +2175,25 @@ form    .bl-ui-form-<page>
 field   .bl-ui-field-<entity>-<field>
 action  .bl-ui-action-<page>-<action>
 ```
+
+Mevcut v0.2 uygulamasında table/form/action için explicit UI identity de desteklenir:
+
+```black
+table {
+  id ProductsTable
+  class inventoryTable
+}
+
+form {
+  id ProductForm
+  class inventoryForm
+}
+
+action create id CreateProductButton
+action create class primaryAction
+```
+
+Generator `id` ve `class` değerlerini kebab-case HTML çıktısına çevirir. Row action butonlarında aynı `id` tekrar etmesin diye aksiyon id'leri kullanım yerine göre `-open`, `-submit`, `-bulk` veya `-item-<recordId>` suffix'i alır.
 
 Geçerli bağlam kuralı:
 

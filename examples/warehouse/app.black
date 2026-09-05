@@ -108,6 +108,8 @@ page Products {
   access Admin, Worker
 
   table {
+    id ProductsTable
+    class inventoryTable
     columns sku, name, stock, price
     search sku, name
     filter stock
@@ -117,11 +119,17 @@ page Products {
   }
 
   form {
+    id ProductForm
+    class inventoryForm
     fields sku, name, stock, price
     ui box border 1 solid 12 12 12 12 8 left | button primary white 6 md solid
   }
   actions create, edit, delete, archive, restore
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
+  action delete id DeleteProductButton
+  action delete class dangerAction
   action delete ui button danger white 6 sm solid
 }
 

@@ -97,6 +97,25 @@ field   .bl-ui-field-<entity>-<field>
 action  .bl-ui-action-<page>-<action>
 ```
 
+Table and form blocks can also declare explicit generated HTML identity:
+
+```black
+table {
+  id ProductsTable
+  class inventoryTable compactPanel
+}
+
+form {
+  id ProductForm
+  class inventoryForm
+}
+
+action create id CreateProductButton
+action create class primaryAction
+```
+
+Generated IDs and classes are normalized to kebab-case. Repeated action buttons receive safe suffixes such as `-open`, `-submit`, `-bulk`, or `-item-<recordId>` so generated DOM IDs stay unique.
+
 Current standard slot mapping:
 
 ```text
@@ -113,6 +132,11 @@ Missing trailing values use safe defaults. This phase includes built-in color al
 ```text
 INVALID_UI_INTENT
 INVALID_ACTION_UI
+INVALID_ACTION_INTENT
+INVALID_UI_ID
+INVALID_UI_CLASS
+DUPLICATE_UI_ID
+DUPLICATE_UI_CLASS
 UNSUPPORTED_UI_MODE
 UNSUPPORTED_UI_TARGET_MODE
 DUPLICATE_UI_INTENT

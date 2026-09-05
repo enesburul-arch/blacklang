@@ -742,17 +742,25 @@ page Products {
   source Product
 
   table {
+    id ProductsTable
+    class dataPanel
     columns sku, stock
     ui table border 1 solid compact true
   }
 
   form {
+    id ProductForm
+    class editPanel
     fields sku, stock
     ui box black 1 solid 8 8 5 5 6 center | button primary white 6 md solid
   }
 
   actions create, edit, delete
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
+  action delete id DeleteProductButton
+  action delete class dangerAction
   action delete ui button danger white 6 sm solid
 }
 `
@@ -803,11 +811,12 @@ page Products {
 	}
 	pageText := string(page)
 	for _, value := range []string{
-		`<section className="panel bl-ui-table-products">`,
-		`<section className="panel bl-ui-form-products">`,
+		`<section id="products-table" className="panel data-panel bl-ui-table-products">`,
+		`<section id="product-form" className="panel edit-panel bl-ui-form-products">`,
 		`<label className="bl-ui-field-product-sku">`,
-		`className={!editingId ? "bl-ui-action-products-create" : undefined}`,
-		`className="danger bl-ui-action-products-delete"`,
+		`id={!editingId ? "create-product-button-submit" : undefined} className={!editingId ? "primary-action bl-ui-action-products-create" : undefined}`,
+		`id="delete-product-button-bulk" className="danger danger-action bl-ui-action-products-delete"`,
+		`id={"delete-product-button-item-" + item.id} className="danger danger-action bl-ui-action-products-delete"`,
 	} {
 		if !strings.Contains(pageText, value) {
 			t.Fatalf("expected generated page to contain %q, got:\n%s", value, pageText)

@@ -3608,7 +3608,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString(fmt.Sprintf("        <h1>%s</h1>\n", page.Name))
 	builder.WriteString(fmt.Sprintf("        <span>%s source: %s</span>\n", g.program.App.Name, entity.Name))
 	builder.WriteString("      </header>\n\n")
-	builder.WriteString(fmt.Sprintf("      <section%s>\n", classNameAttribute("panel", g.tableUIClass(page))))
+	builder.WriteString(fmt.Sprintf("      <section%s>\n", g.tablePanelAttributes(page)))
 	builder.WriteString("        <div className=\"toolbar\">\n")
 	builder.WriteString("          <input\n")
 	builder.WriteString("        value={search}\n")
@@ -3619,7 +3619,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("          <label className=\"inline-control\"><input checked={showArchived} type=\"checkbox\" onChange={(event) => setShowArchived(event.target.checked)} /> Show archived</label>\n")
 	}
 	if hasAction(page, "delete") {
-		builder.WriteString(fmt.Sprintf("          {canDelete && <button%s type=\"button\" disabled={saving || selectedIds.length === 0} onClick={bulkDeleteSelected}>Delete Selected ({selectedIds.length})</button>}\n", g.actionButtonClassAttribute(page, "delete", "danger")))
+		builder.WriteString(fmt.Sprintf("          {canDelete && <button%s type=\"button\" disabled={saving || selectedIds.length === 0} onClick={bulkDeleteSelected}>Delete Selected ({selectedIds.length})</button>}\n", g.actionButtonAttributesWithSuffix(page, "delete", "bulk", "danger")))
 	}
 	if hasState && hasAction(page, "create") {
 		builder.WriteString(g.openCreateModalButton(page, state, entity))
@@ -3694,16 +3694,16 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("                <div className=\"actions\">\n")
 		builder.WriteString("                  <button className=\"secondary\" type=\"button\" onClick={() => viewItem(item.id)}>View</button>\n")
 		if hasAction(page, "archive") {
-			builder.WriteString(fmt.Sprintf("                  {canUpdate && !item.archivedAt && <button%s type=\"button\" onClick={() => archiveItem(item)}>Archive</button>}\n", g.actionButtonClassAttribute(page, "archive", "secondary")))
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && !item.archivedAt && <button%s type=\"button\" onClick={() => archiveItem(item)}>Archive</button>}\n", g.actionRowButtonAttributes(page, "archive", "secondary")))
 		}
 		if hasAction(page, "restore") {
-			builder.WriteString(fmt.Sprintf("                  {canUpdate && item.archivedAt && <button%s type=\"button\" onClick={() => restoreItem(item)}>Restore</button>}\n", g.actionButtonClassAttribute(page, "restore", "secondary")))
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && item.archivedAt && <button%s type=\"button\" onClick={() => restoreItem(item)}>Restore</button>}\n", g.actionRowButtonAttributes(page, "restore", "secondary")))
 		}
 		if hasAction(page, "edit") {
-			builder.WriteString(fmt.Sprintf("                  {canUpdate && <button%s type=\"button\" onClick={() => editItem(item)}>Edit</button>}\n", g.actionButtonClassAttribute(page, "edit", "secondary")))
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && <button%s type=\"button\" onClick={() => editItem(item)}>Edit</button>}\n", g.actionRowButtonAttributes(page, "edit", "secondary")))
 		}
 		if hasAction(page, "delete") {
-			builder.WriteString(fmt.Sprintf("                  {canDelete && <button%s type=\"button\" onClick={() => deleteItem(item.id)}>Delete</button>}\n", g.actionButtonClassAttribute(page, "delete", "danger")))
+			builder.WriteString(fmt.Sprintf("                  {canDelete && <button%s type=\"button\" onClick={() => deleteItem(item.id)}>Delete</button>}\n", g.actionRowButtonAttributes(page, "delete", "danger")))
 		}
 		builder.WriteString(g.workflowPageActionButtons(entity))
 		builder.WriteString("                </div>\n")
@@ -3731,7 +3731,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("      </section>\n\n")
 	if hasAction(page, "create") || hasAction(page, "edit") {
 		builder.WriteString(fmt.Sprintf("      {%s && (\n", g.formVisibleExpression(page, entity, state, hasState)))
-		builder.WriteString(fmt.Sprintf("      <section%s>\n", classNameAttribute("panel", g.formUIClass(page))))
+		builder.WriteString(fmt.Sprintf("      <section%s>\n", g.formPanelAttributes(page)))
 		builder.WriteString(fmt.Sprintf("        <h2>{editingId ? \"Edit %s\" : \"Create %s\"}</h2>\n", entity.Name, entity.Name))
 		builder.WriteString("        {missingRequiredRelations && (\n")
 		builder.WriteString("          <div className=\"status relation-status\">\n")
@@ -3755,7 +3755,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		}
 		builder.WriteString("          </div>\n")
 		builder.WriteString("          <div className=\"toolbar\">\n")
-		builder.WriteString(fmt.Sprintf("            <button%s type=\"submit\" disabled={saving || missingRequiredRelations}>{saving ? \"Saving...\" : editingId ? \"Save Changes\" : \"Create\"}</button>\n", g.formSubmitClassAttribute(page)))
+		builder.WriteString(fmt.Sprintf("            <button%s type=\"submit\" disabled={saving || missingRequiredRelations}>{saving ? \"Saving...\" : editingId ? \"Save Changes\" : \"Create\"}</button>\n", g.formSubmitAttributes(page)))
 		builder.WriteString(fmt.Sprintf("            {%s && <button className=\"secondary\" type=\"button\" onClick={resetForm}>Cancel</button>}\n", g.cancelVisibleExpression(entity, state, hasState)))
 		builder.WriteString("          </div>\n")
 		builder.WriteString("        </form>\n")
@@ -4063,10 +4063,17 @@ func (g *webGenerator) closePageModals(state StateDecl) string {
 func (g *webGenerator) openCreateModalButton(page PageDecl, state StateDecl, entity EntityDecl) string {
 	for _, modal := range state.Modals {
 		if modal.Name == "create"+entity.Name {
-			return fmt.Sprintf("          {canCreate && !editingId && !%s && <button%s type=\"button\" onClick={open%s}>New %s</button>}\n", modalStateName(modal), g.actionButtonClassAttribute(page, "create", "secondary"), title(modal.Name), entity.Name)
+			return fmt.Sprintf("          {canCreate && !editingId && !%s && <button%s type=\"button\" onClick={open%s}>New %s</button>}\n", modalStateName(modal), g.actionButtonAttributesWithSuffix(page, "create", "open", "secondary"), title(modal.Name), entity.Name)
 		}
 	}
 	return ""
+}
+
+func (g *webGenerator) tablePanelAttributes(page PageDecl) string {
+	classes := []string{"panel"}
+	classes = append(classes, identityCSSClasses(page.Table.Identity)...)
+	classes = append(classes, g.tableUIClass(page))
+	return identityIDAttribute(page.Table.Identity) + classNameAttribute(classes...)
 }
 
 func (g *webGenerator) tableUIClass(page PageDecl) string {
@@ -4074,6 +4081,13 @@ func (g *webGenerator) tableUIClass(page PageDecl) string {
 		return ""
 	}
 	return "bl-ui-table-" + kebabCase(page.Name)
+}
+
+func (g *webGenerator) formPanelAttributes(page PageDecl) string {
+	classes := []string{"panel"}
+	classes = append(classes, identityCSSClasses(page.Form.Identity)...)
+	classes = append(classes, g.formUIClass(page))
+	return identityIDAttribute(page.Form.Identity) + classNameAttribute(classes...)
 }
 
 func (g *webGenerator) formUIClass(page PageDecl) string {
@@ -4103,15 +4117,90 @@ func (g *webGenerator) actionUIClass(page PageDecl, action string) string {
 	return ""
 }
 
+func (g *webGenerator) actionIdentity(page PageDecl, action string) *UIIdentity {
+	for _, actionUI := range page.ActionUI {
+		if actionUI.Action == action {
+			return actionUI.Identity
+		}
+	}
+	return nil
+}
+
 func (g *webGenerator) actionButtonClassAttribute(page PageDecl, action string, baseClasses ...string) string {
 	classes := append([]string{}, baseClasses...)
+	classes = append(classes, identityCSSClasses(g.actionIdentity(page, action))...)
 	classes = append(classes, g.actionUIClass(page, action))
 	return classNameAttribute(classes...)
 }
 
+func (g *webGenerator) actionButtonAttributes(page PageDecl, action string, baseClasses ...string) string {
+	return g.actionButtonIDAttribute(page, action) + g.actionButtonClassAttribute(page, action, baseClasses...)
+}
+
+func (g *webGenerator) actionButtonAttributesWithSuffix(page PageDecl, action string, suffix string, baseClasses ...string) string {
+	return g.actionButtonIDSuffixAttribute(page, action, suffix) + g.actionButtonClassAttribute(page, action, baseClasses...)
+}
+
+func (g *webGenerator) actionRowButtonAttributes(page PageDecl, action string, baseClasses ...string) string {
+	return g.actionRowButtonIDAttribute(page, action) + g.actionButtonClassAttribute(page, action, baseClasses...)
+}
+
+func (g *webGenerator) actionButtonIDAttribute(page PageDecl, action string) string {
+	id := g.actionHTMLID(page, action)
+	if id == "" {
+		return ""
+	}
+	return idAttribute(id)
+}
+
+func (g *webGenerator) actionButtonIDSuffixAttribute(page PageDecl, action string, suffix string) string {
+	id := g.actionHTMLID(page, action)
+	if id == "" {
+		return ""
+	}
+	if suffix != "" {
+		id += "-" + kebabCase(suffix)
+	}
+	return idAttribute(id)
+}
+
+func (g *webGenerator) actionRowButtonIDAttribute(page PageDecl, action string) string {
+	id := g.actionHTMLID(page, action)
+	if id == "" {
+		return ""
+	}
+	return fmt.Sprintf(" id={%q + item.id}", id+"-item-")
+}
+
+func (g *webGenerator) actionHTMLID(page PageDecl, action string) string {
+	identity := g.actionIdentity(page, action)
+	if identity == nil || identity.ID == "" {
+		return ""
+	}
+	return kebabCase(identity.ID)
+}
+
+func identityIDAttribute(identity *UIIdentity) string {
+	if identity == nil || identity.ID == "" {
+		return ""
+	}
+	return idAttribute(identity.ID)
+}
+
+func identityCSSClasses(identity *UIIdentity) []string {
+	if identity == nil || len(identity.Classes) == 0 {
+		return nil
+	}
+	classes := []string{}
+	for _, className := range identity.Classes {
+		classes = append(classes, kebabCase(className))
+	}
+	return classes
+}
+
 func (g *webGenerator) formSubmitClassAttribute(page PageDecl) string {
-	createClass := g.actionUIClass(page, "create")
-	editClass := g.actionUIClass(page, "edit")
+	createClass := g.actionButtonClassString(page, "create")
+	editClass := g.actionButtonClassString(page, "edit")
 	if createClass != "" && editClass != "" {
 		return fmt.Sprintf(" className={editingId ? %q : %q}", editClass, createClass)
 	}
@@ -4122,6 +4211,50 @@ func (g *webGenerator) formSubmitClassAttribute(page PageDecl) string {
 		return fmt.Sprintf(" className={editingId ? %q : undefined}", editClass)
 	}
 	return ""
+}
+
+func (g *webGenerator) formSubmitAttributes(page PageDecl) string {
+	return g.formSubmitIDAttribute(page) + g.formSubmitClassAttribute(page)
+}
+
+func (g *webGenerator) formSubmitIDAttribute(page PageDecl) string {
+	createID := g.actionHTMLIDSuffix(page, "create", "submit")
+	editID := g.actionHTMLIDSuffix(page, "edit", "submit")
+	if createID != "" && editID != "" {
+		return fmt.Sprintf(" id={editingId ? %q : %q}", editID, createID)
+	}
+	if createID != "" {
+		return fmt.Sprintf(" id={!editingId ? %q : undefined}", createID)
+	}
+	if editID != "" {
+		return fmt.Sprintf(" id={editingId ? %q : undefined}", editID)
+	}
+	return ""
+}
+
+func (g *webGenerator) actionHTMLIDSuffix(page PageDecl, action string, suffix string) string {
+	id := g.actionHTMLID(page, action)
+	if id == "" {
+		return ""
+	}
+	if suffix == "" {
+		return id
+	}
+	return id + "-" + kebabCase(suffix)
+}
+
+func (g *webGenerator) actionButtonClassString(page PageDecl, action string) string {
+	classes := identityCSSClasses(g.actionIdentity(page, action))
+	classes = append(classes, g.actionUIClass(page, action))
+	return joinCSSClasses(classes...)
+}
+
+func idAttribute(id string) string {
+	id = kebabCase(strings.TrimSpace(id))
+	if id == "" {
+		return ""
+	}
+	return fmt.Sprintf(" id=%q", id)
 }
 
 func classNameAttribute(classes ...string) string {

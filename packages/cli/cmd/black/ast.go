@@ -455,12 +455,13 @@ type SidebarDecl struct {
 }
 
 type TableDecl struct {
-	Columns  []string   `json:"columns"`
-	Search   []string   `json:"search"`
-	Sort     SortDecl   `json:"sort,omitempty"`
-	Paginate int        `json:"paginate,omitempty"`
-	Filters  []string   `json:"filters,omitempty"`
-	UI       []UIIntent `json:"ui,omitempty"`
+	Columns  []string    `json:"columns"`
+	Search   []string    `json:"search"`
+	Sort     SortDecl    `json:"sort,omitempty"`
+	Paginate int         `json:"paginate,omitempty"`
+	Filters  []string    `json:"filters,omitempty"`
+	Identity *UIIdentity `json:"identity,omitempty"`
+	UI       []UIIntent  `json:"ui,omitempty"`
 }
 
 type SortDecl struct {
@@ -469,8 +470,9 @@ type SortDecl struct {
 }
 
 type FormDecl struct {
-	Fields []string   `json:"fields"`
-	UI     []UIIntent `json:"ui,omitempty"`
+	Fields   []string    `json:"fields"`
+	Identity *UIIdentity `json:"identity,omitempty"`
+	UI       []UIIntent  `json:"ui,omitempty"`
 }
 
 type UIIntent struct {
@@ -479,10 +481,17 @@ type UIIntent struct {
 	Position Position `json:"position"`
 }
 
+type UIIdentity struct {
+	ID       string   `json:"id,omitempty"`
+	Classes  []string `json:"classes,omitempty"`
+	Position Position `json:"position"`
+}
+
 type ActionUIIntent struct {
-	Action   string     `json:"action"`
-	UI       []UIIntent `json:"ui"`
-	Position Position   `json:"position"`
+	Action   string      `json:"action"`
+	Identity *UIIdentity `json:"identity,omitempty"`
+	UI       []UIIntent  `json:"ui,omitempty"`
+	Position Position    `json:"position"`
 }
 
 type WorkflowDecl struct {

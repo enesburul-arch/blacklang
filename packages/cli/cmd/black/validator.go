@@ -580,6 +580,7 @@ func (v *semanticValidator) validatePages(entityIndex map[string]EntityDecl, lay
 
 		v.validatePageFields(page, source)
 		v.validateActions(page)
+		v.validatePageUIIdentities(page)
 		v.validatePageAccess(page, roleIndex)
 	}
 	return pageIndex
@@ -696,6 +697,62 @@ func (v *semanticValidator) validateActions(page PageDecl) {
 			}
 			actionModeIndex[key] = intent.Position
 		}
+	}
+}
+
+func (v *semanticValidator) validatePageUIIdentities(page PageDecl) {
+	seenIDs := map[string]Position{}
+	identities := []struct {
+		scope    string
+		name     string
+		identity *UIIdentity
+	}{
+		{scope: "table", name: page.Name + ".table", identity: page.Table.Identity},
+		{scope: "form", name: page.Name + ".form", identity: page.Form.Identity},
+	}
+
+	for _, actionUI := range page.ActionUI {
+		identities = append(identities, struct {
+			scope    string
+			name     string
+			identity *UIIdentity
+		}{scope: "action", name: page.Name + "." + actionUI.Action, identity: actionUI.Identity})
+	}
+
+	for _, item := range identities {
+		v.validateUIIdentity(item.scope, item.name, item.identity)
+		if item.identity == nil || item.identity.ID == "" {
+			continue
+		}
+		normalized := kebabCase(item.identity.ID)
+		if existing, ok := seenIDs[normalized]; ok {
+			v.addDiagnostic(item.identity.Position, "DUPLICATE_UI_ID", fmt.Sprintf("%s %s repeats generated UI id %s.", title(item.scope), item.name, normalized), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+			continue
+		}
+		seenIDs[normalized] = item.identity.Position
+	}
+}
+
+func (v *semanticValidator) validateUIIdentity(scope string, name string, identity *UIIdentity) {
+	if identity == nil {
+		return
+	}
+	if identity.ID != "" && !isThemeIdentifier(identity.ID) {
+		v.addDiagnostic(identity.Position, "INVALID_UI_ID", fmt.Sprintf("%s %s uses invalid UI id %q.", title(scope), name, identity.ID), "Use letters, numbers, underscores, or hyphens; start with a letter or underscore.")
+	}
+
+	seenClasses := map[string]Position{}
+	for _, className := range identity.Classes {
+		if !isThemeIdentifier(className) {
+			v.addDiagnostic(identity.Position, "INVALID_UI_CLASS", fmt.Sprintf("%s %s uses invalid UI class %q.", title(scope), name, className), "Use letters, numbers, underscores, or hyphens; start with a letter or underscore.")
+			continue
+		}
+		normalized := kebabCase(className)
+		if existing, ok := seenClasses[normalized]; ok {
+			v.addDiagnostic(identity.Position, "DUPLICATE_UI_CLASS", fmt.Sprintf("%s %s repeats generated UI class %s.", title(scope), name, normalized), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+			continue
+		}
+		seenClasses[normalized] = identity.Position
 	}
 }
 

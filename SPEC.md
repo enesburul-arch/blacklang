@@ -392,16 +392,22 @@ page Products {
   source Product
 
   table {
+    id ProductsTable
+    class inventoryTable
     columns name
     ui table border 1 solid compact true
   }
 
   form {
+    id ProductForm
+    class inventoryForm
     fields name
     ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
   }
 
   actions create
+  action create id CreateProductButton
+  action create class primaryAction
   action create ui button primary white 6 md solid
 }
 ```
@@ -425,11 +431,15 @@ Current semantic rules:
 - Form UI can use `box`, `text`, and `button`.
 - Table UI can use `box`, `text`, and `table`.
 - Action button UI can use `button`.
+- Table and form blocks can declare `id Identifier` and `class ClassName...`.
+- Page actions can declare `action <name> id Identifier` and `action <name> class ClassName...`.
+- Generated web IDs and custom classes are normalized to kebab-case.
 - `action <name> ui button ...` must reference an action listed in `actions`.
 - Repeating the same UI mode in the same scope returns `DUPLICATE_UI_INTENT`.
 - Unknown mode names return `UNSUPPORTED_UI_MODE`.
 - Mode names that do not apply to the current target return `UNSUPPORTED_UI_TARGET_MODE`.
-- Malformed UI lines return `INVALID_UI_INTENT` or `INVALID_ACTION_UI`.
+- Repeating the same UI id in one page returns `DUPLICATE_UI_ID`.
+- Malformed UI lines return `INVALID_UI_INTENT`, `INVALID_ACTION_UI`, or `INVALID_ACTION_INTENT`.
 
 Generated web output appends CSS rules to `src/styles.css` using stable class names:
 
@@ -438,6 +448,15 @@ table   .bl-ui-table-<page>
 form    .bl-ui-form-<page>
 field   .bl-ui-field-<entity>-<field>
 action  .bl-ui-action-<page>-<action>
+```
+
+Explicit action IDs are expanded by generated usage site to avoid duplicated DOM IDs:
+
+```text
+create action opener    <id>-open
+create/edit form submit <id>-submit
+bulk action button      <id>-bulk
+row action button       <id>-item-<recordId>
 ```
 
 The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots for `box`, `text`, `table`, and `button`. Missing trailing values fall back to safe defaults. Full `.blackthm` token value resolution remains a later extension.

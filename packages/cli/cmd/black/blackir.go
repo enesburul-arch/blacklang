@@ -144,6 +144,14 @@ func FormatBlackIR(program Program) string {
 		if page.Table.Paginate > 0 {
 			builder.WriteString(fmt.Sprintf("  paginate %d\n", page.Table.Paginate))
 		}
+		if page.Table.Identity != nil && page.Table.Identity.ID != "" {
+			builder.WriteString(fmt.Sprintf("  table-id %s\n", page.Table.Identity.ID))
+		}
+		if page.Table.Identity != nil && len(page.Table.Identity.Classes) > 0 {
+			builder.WriteString("  table-class ")
+			builder.WriteString(strings.Join(page.Table.Identity.Classes, " "))
+			builder.WriteString("\n")
+		}
 		if len(page.Table.UI) > 0 {
 			builder.WriteString("  table-ui ")
 			builder.WriteString(formatUIIntentSegments(page.Table.UI))
@@ -152,6 +160,14 @@ func FormatBlackIR(program Program) string {
 		if len(page.Form.Fields) > 0 {
 			builder.WriteString("  form ")
 			builder.WriteString(strings.Join(page.Form.Fields, " "))
+			builder.WriteString("\n")
+		}
+		if page.Form.Identity != nil && page.Form.Identity.ID != "" {
+			builder.WriteString(fmt.Sprintf("  form-id %s\n", page.Form.Identity.ID))
+		}
+		if page.Form.Identity != nil && len(page.Form.Identity.Classes) > 0 {
+			builder.WriteString("  form-class ")
+			builder.WriteString(strings.Join(page.Form.Identity.Classes, " "))
 			builder.WriteString("\n")
 		}
 		if len(page.Form.UI) > 0 {
@@ -165,9 +181,19 @@ func FormatBlackIR(program Program) string {
 			builder.WriteString("\n")
 		}
 		for _, actionUI := range page.ActionUI {
-			builder.WriteString(fmt.Sprintf("  action-ui %s ", actionUI.Action))
-			builder.WriteString(formatUIIntentSegments(actionUI.UI))
-			builder.WriteString("\n")
+			if actionUI.Identity != nil && actionUI.Identity.ID != "" {
+				builder.WriteString(fmt.Sprintf("  action-id %s %s\n", actionUI.Action, actionUI.Identity.ID))
+			}
+			if actionUI.Identity != nil && len(actionUI.Identity.Classes) > 0 {
+				builder.WriteString(fmt.Sprintf("  action-class %s ", actionUI.Action))
+				builder.WriteString(strings.Join(actionUI.Identity.Classes, " "))
+				builder.WriteString("\n")
+			}
+			if len(actionUI.UI) > 0 {
+				builder.WriteString(fmt.Sprintf("  action-ui %s ", actionUI.Action))
+				builder.WriteString(formatUIIntentSegments(actionUI.UI))
+				builder.WriteString("\n")
+			}
 		}
 		if len(page.Access) > 0 {
 			builder.WriteString("  access ")

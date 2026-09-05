@@ -428,6 +428,55 @@ page Products {
 	}
 }
 
+func TestParseExplicitUIIdentity(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  table {
+    id ProductsTable
+    class denseTable trackedPanel
+    columns name
+  }
+
+  form {
+    id ProductForm
+    class editPanel
+    fields name
+  }
+
+  actions create, edit
+  action create id CreateProductButton
+  action create class primaryAction
+  action create ui button primary white 6 md solid
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+
+	page := program.Pages[0]
+	if page.Table.Identity == nil || page.Table.Identity.ID != "ProductsTable" || len(page.Table.Identity.Classes) != 2 {
+		t.Fatalf("expected table identity, got %#v", page.Table.Identity)
+	}
+	if page.Form.Identity == nil || page.Form.Identity.ID != "ProductForm" || page.Form.Identity.Classes[0] != "editPanel" {
+		t.Fatalf("expected form identity, got %#v", page.Form.Identity)
+	}
+	if len(page.ActionUI) != 1 || page.ActionUI[0].Identity == nil || page.ActionUI[0].Identity.ID != "CreateProductButton" {
+		t.Fatalf("expected merged action identity, got %#v", page.ActionUI)
+	}
+	if page.ActionUI[0].UI[0].Mode != "button" || page.ActionUI[0].Identity.Classes[0] != "primaryAction" {
+		t.Fatalf("expected merged action UI and class, got %#v", page.ActionUI[0])
+	}
+}
+
 func TestParseInvalidInlineUIIntent(t *testing.T) {
 	source := `app Warehouse
 
@@ -446,7 +495,7 @@ page Products {
 	for _, diagnostic := range diagnostics {
 		codes[diagnostic.Code] = true
 	}
-	for _, code := range []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI"} {
+	for _, code := range []string{"INVALID_UI_INTENT", "INVALID_ACTION_INTENT"} {
 		if !codes[code] {
 			t.Fatalf("expected parse code %s, got %#v", code, diagnostics)
 		}

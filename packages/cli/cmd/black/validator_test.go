@@ -321,6 +321,49 @@ page Products {
 	}
 }
 
+func TestValidateExplicitUIIdentityErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text
+}
+
+page Products {
+  source Product
+
+  table {
+    id SharedPanel
+    class repeated repeated
+    columns name
+  }
+
+  form {
+    id SharedPanel
+    class validClass
+    fields name
+  }
+
+  actions create
+  action create id invalid.id
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_ID"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateEntityValidation(t *testing.T) {
 	source := `app Warehouse
 

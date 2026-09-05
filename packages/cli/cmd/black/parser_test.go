@@ -71,6 +71,10 @@ page Products {
   source Product
   access Admin
 
+  view {
+    order form, table, detail
+  }
+
   table {
     columns sku, name, stock, price
     search sku, name
@@ -174,6 +178,9 @@ page Products {
 	}
 	if len(program.Pages[0].Access) != 1 || program.Pages[0].Access[0] != "Admin" {
 		t.Fatalf("expected Products access Admin, got %#v", program.Pages[0].Access)
+	}
+	if program.Pages[0].View == nil || len(program.Pages[0].View.Order) != 3 || program.Pages[0].View.Order[0] != "form" || program.Pages[0].View.Order[1] != "table" || program.Pages[0].View.Order[2] != "detail" {
+		t.Fatalf("expected view order form table detail, got %#v", program.Pages[0].View)
 	}
 	if len(program.Pages[0].Table.Columns) != 4 {
 		t.Fatalf("expected 4 table columns, got %d", len(program.Pages[0].Table.Columns))
@@ -605,6 +612,45 @@ page Products {
 	}
 	if page.ActionUI[0].UI[0].Mode != "button" || page.ActionUI[0].Identity.Classes[0] != "primaryAction" {
 		t.Fatalf("expected merged action UI and class, got %#v", page.ActionUI[0])
+	}
+}
+
+func TestParsePageViewOrder(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	view := program.Pages[0].View
+	if view == nil || len(view.Order) != 3 {
+		t.Fatalf("expected view order, got %#v", view)
+	}
+	if view.Order[0] != "form" || view.Order[1] != "table" || view.Order[2] != "detail" {
+		t.Fatalf("expected form table detail order, got %#v", view.Order)
 	}
 }
 

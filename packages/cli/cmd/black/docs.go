@@ -253,6 +253,10 @@ entity Product {
 }
 page Products {
   source Product
+
+  view {
+    order form, table, detail
+  }
 }`,
 		AgentNotes: []string{
 			"Read blacklang.toml first to find source and output paths.",
@@ -412,18 +416,50 @@ label Product.name {
 	"page": {
 		Keyword: "page",
 		Purpose: "Declares a generated web screen bound to one source entity.",
-		Syntax:  "page <PascalCaseName> { layout <LayoutName>; source <EntityName>; table {...}; form {...}; actions ... }",
+		Syntax:  "page <PascalCaseName> { layout <LayoutName>; source <EntityName>; view {...}; table {...}; form {...}; actions ... }",
 		Example: `page Products {
   layout AdminLayout
   source Product
+  view {
+    order form, table, detail
+  }
   actions create, edit, delete, archive, restore
 }`,
 		AgentNotes: []string{
 			"Every page should have a source entity in v0.1.",
 			"Use layout when the page should belong to an explicit generated app shell.",
+			"Use view when table, detail, and form should render in a specific visual order.",
 			"Generated React pages are based on page blocks.",
 		},
-		Errors: []string{"DUPLICATE_PAGE", "MISSING_PAGE_SOURCE", "UNKNOWN_SOURCE_ENTITY", "UNKNOWN_PAGE_LAYOUT"},
+		Errors: []string{"DUPLICATE_PAGE", "MISSING_PAGE_SOURCE", "UNKNOWN_SOURCE_ENTITY", "UNKNOWN_PAGE_LAYOUT", "DUPLICATE_VIEW", "MISSING_VIEW_ORDER", "UNSUPPORTED_VIEW_SECTION", "DUPLICATE_VIEW_SECTION"},
+	},
+	"view": {
+		Keyword: "view",
+		Purpose: "Declares the generated section order inside one page without editing generated React or CSS.",
+		Syntax:  "view { order table, detail, form }",
+		Example: `page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+
+  table {
+    columns sku, name, stock
+  }
+
+  form {
+    fields sku, name, stock
+  }
+}`,
+		AgentNotes: []string{
+			"View is declared inside a page block.",
+			"Current web output supports table, detail, and form sections.",
+			"Listed sections render first; omitted supported sections are appended in the default order table, detail, form.",
+			"Generated web output adds stable bl-view-section-* classes and CSS order rules.",
+			"Use view for section ordering only; nested grid, tabs, modal, drawer, and coordinates are later composition features.",
+		},
+		Errors: []string{"INVALID_VIEW_DECLARATION", "INVALID_VIEW_ORDER", "DUPLICATE_VIEW", "DUPLICATE_VIEW_ORDER", "MISSING_VIEW_ORDER", "UNSUPPORTED_VIEW_SECTION", "DUPLICATE_VIEW_SECTION", "UNCLOSED_VIEW", "UNEXPECTED_VIEW_TOKEN"},
 	},
 	"layout": {
 		Keyword: "layout",

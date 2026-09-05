@@ -183,6 +183,11 @@ func FormatBlackIR(program Program) string {
 			builder.WriteString(fmt.Sprintf(" layout %s", page.Layout))
 		}
 		builder.WriteString(fmt.Sprintf(" source %s\n", page.Source))
+		if page.View != nil && len(page.View.Order) > 0 {
+			builder.WriteString("  view-order ")
+			builder.WriteString(strings.Join(page.View.Order, " "))
+			builder.WriteString("\n")
+		}
 		if len(page.Table.Columns) > 0 {
 			builder.WriteString("  table ")
 			builder.WriteString(strings.Join(page.Table.Columns, " "))

@@ -152,6 +152,10 @@ page Products {
   source Product
   access Admin, Worker
 
+  view {
+    order form, table, detail
+  }
+
   table {
     id ProductsTable
     class inventoryTable

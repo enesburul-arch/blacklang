@@ -321,6 +321,86 @@ page Products {
 	}
 }
 
+func TestValidatePageViewErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order form, sidebar, form
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_VIEW_SECTION", "DUPLICATE_VIEW_SECTION"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidatePageViewRequiresOrder(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 1 {
+		t.Fatalf("expected 1 validation diagnostic, got %#v", diagnostics)
+	}
+	if diagnostics[0].Code != "MISSING_VIEW_ORDER" {
+		t.Fatalf("expected MISSING_VIEW_ORDER, got %q", diagnostics[0].Code)
+	}
+}
+
 func TestValidateExplicitUIIdentityErrors(t *testing.T) {
 	source := `app Warehouse
 

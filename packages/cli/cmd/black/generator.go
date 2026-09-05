@@ -1646,6 +1646,16 @@ body {
   padding: 24px 20px 32px;
 }
 
+.page-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-view .panel {
+  margin-bottom: 0;
+}
+
 main > header {
   display: none;
 }
@@ -1983,16 +1993,78 @@ th {
   }
 }
 `
-	inlineUI := g.inlineUICSS()
-	if inlineUI == "" {
-		return base
+	blocks := []string{strings.TrimRight(base, "\n")}
+	if pageView := g.pageViewCSS(); pageView != "" {
+		blocks = append(blocks, pageView)
 	}
-	return strings.TrimRight(base, "\n") + "\n\n" + inlineUI
+	if inlineUI := g.inlineUICSS(); inlineUI != "" {
+		blocks = append(blocks, inlineUI)
+	}
+	return strings.Join(blocks, "\n\n") + "\n"
 }
 
 type uiCSSRule struct {
 	selector     string
 	declarations []string
+}
+
+func (g *webGenerator) pageViewCSS() string {
+	rules := []uiCSSRule{}
+	for _, page := range g.program.Pages {
+		if page.View == nil || len(page.View.Order) == 0 {
+			continue
+		}
+		for index, section := range pageViewOrder(page) {
+			if !supportedViewSections[section] {
+				continue
+			}
+			rules = append(rules, uiCSSRule{
+				selector:     fmt.Sprintf(".page-view-%s .bl-view-section-%s", kebabCase(page.Name), section),
+				declarations: []string{fmt.Sprintf("order: %d;", index+1)},
+			})
+		}
+	}
+
+	if len(rules) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("/* Generated from BlackLang page view order. */\n")
+	for _, rule := range rules {
+		builder.WriteString(rule.selector)
+		builder.WriteString(" {\n")
+		for _, declaration := range rule.declarations {
+			builder.WriteString("  ")
+			builder.WriteString(declaration)
+			builder.WriteString("\n")
+		}
+		builder.WriteString("}\n\n")
+	}
+	return strings.TrimRight(builder.String(), "\n")
+}
+
+func pageViewOrder(page PageDecl) []string {
+	defaultOrder := []string{"table", "detail", "form"}
+	if page.View == nil || len(page.View.Order) == 0 {
+		return defaultOrder
+	}
+
+	seen := map[string]bool{}
+	order := []string{}
+	for _, section := range page.View.Order {
+		if seen[section] || !supportedViewSections[section] {
+			continue
+		}
+		order = append(order, section)
+		seen[section] = true
+	}
+	for _, section := range defaultOrder {
+		if !seen[section] {
+			order = append(order, section)
+		}
+	}
+	return order
 }
 
 func (g *webGenerator) inlineUICSS() string {
@@ -3837,7 +3909,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	}
 	builder.WriteString(g.workflowPageActionFunctions(entity))
 	builder.WriteString("  return (\n")
-	builder.WriteString("    <main>\n")
+	builder.WriteString(fmt.Sprintf("    <main className=\"page-view page-view-%s\">\n", kebabCase(page.Name)))
 	builder.WriteString("      <header>\n")
 	builder.WriteString(fmt.Sprintf("        <h1>%s</h1>\n", page.Name))
 	builder.WriteString(fmt.Sprintf("        <span>%s source: %s</span>\n", g.program.App.Name, entity.Name))
@@ -3950,7 +4022,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("      </table>\n\n")
 	builder.WriteString(g.paginationToolbar(page.Table.Paginate, "        "))
 	builder.WriteString("      </section>\n\n")
-	builder.WriteString("      <section className=\"panel\">\n")
+	builder.WriteString("      <section className=\"panel bl-view-section-detail\">\n")
 	builder.WriteString(fmt.Sprintf("        <h2>%s Details</h2>\n", entity.Name))
 	builder.WriteString("        {reading && <div className=\"status\">Loading details...</div>}\n")
 	builder.WriteString("        {!reading && !selectedItem && <p className=\"muted\">Select a record to view details.</p>}\n")
@@ -4306,7 +4378,7 @@ func (g *webGenerator) openCreateModalButton(page PageDecl, state StateDecl, ent
 }
 
 func (g *webGenerator) tablePanelAttributes(page PageDecl) string {
-	classes := []string{"panel"}
+	classes := []string{"panel", "bl-view-section-table"}
 	classes = append(classes, identityCSSClasses(page.Table.Identity)...)
 	classes = append(classes, g.tableUIClass(page))
 	return identityIDAttribute(page.Table.Identity) + classNameAttribute(classes...)
@@ -4320,7 +4392,7 @@ func (g *webGenerator) tableUIClass(page PageDecl) string {
 }
 
 func (g *webGenerator) formPanelAttributes(page PageDecl) string {
-	classes := []string{"panel"}
+	classes := []string{"panel", "bl-view-section-form"}
 	classes = append(classes, identityCSSClasses(page.Form.Identity)...)
 	classes = append(classes, g.formUIClass(page))
 	return identityIDAttribute(page.Form.Identity) + classNameAttribute(classes...)

@@ -71,7 +71,7 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 			t.Fatalf("expected doc %q to include purpose and syntax, got %#v", doc.Keyword, doc)
 		}
 	}
-	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui", "target", "deploy"} {
+	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "view", "ui", "target", "deploy"} {
 		if !found[keyword] {
 			t.Fatalf("expected docs to include %q", keyword)
 		}
@@ -175,6 +175,19 @@ func TestFindUIDoc(t *testing.T) {
 	}
 }
 
+func TestFindViewDoc(t *testing.T) {
+	doc, ok := FindDoc("view")
+	if !ok {
+		t.Fatalf("expected view docs")
+	}
+	if !strings.Contains(doc.Syntax, "view { order") {
+		t.Fatalf("expected view docs to mention order syntax, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "UNSUPPORTED_VIEW_SECTION") {
+		t.Fatalf("expected view docs to mention view diagnostics, got %#v", doc)
+	}
+}
+
 func TestFindTargetDoc(t *testing.T) {
 	doc, ok := FindDoc("target")
 	if !ok {
@@ -201,6 +214,7 @@ func TestDiagnosticsReferenceMentionsCoreCodes(t *testing.T) {
 		"MISSING_AFFECTED_SYMBOL",
 		"UNSUPPORTED_FIELD_TYPE",
 		"UNSUPPORTED_TARGET",
+		"UNSUPPORTED_VIEW_SECTION",
 	} {
 		if !strings.Contains(text, code) {
 			t.Fatalf("expected diagnostics reference to mention %s", code)

@@ -461,6 +461,53 @@ row action button       <id>-item-<recordId>
 
 The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots for `box`, `text`, `table`, and `button`. Missing trailing values fall back to safe defaults. Full `.blackthm` token value resolution remains a later extension.
 
+## Current Page View Order
+
+Draft v0.2 supports a `view` block inside a page for ordering generated page sections from `.black` source.
+
+Syntax:
+
+```black
+page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+
+  table {
+    columns sku, name, stock
+  }
+
+  form {
+    fields sku, name, stock
+  }
+}
+```
+
+Current supported sections:
+
+```text
+table
+detail
+form
+```
+
+Rules:
+
+- `view` is declared inside a `page` block.
+- Only one `view` block may exist per page.
+- Only one `order` line may exist inside `view`.
+- `order` must list at least one section.
+- Listed sections render first.
+- Omitted supported sections are appended in default `table, detail, form` order.
+- Unsupported section names return `UNSUPPORTED_VIEW_SECTION`.
+- Duplicate section names return `DUPLICATE_VIEW_SECTION`.
+- The generated web page root includes `page-view` and `page-view-<page>` classes.
+- Generated table, detail, and form sections include stable `.bl-view-section-*` classes.
+- When a page declares `view`, generated `src/styles.css` receives deterministic order rules for that page.
+- Nested sections, grid, tabs, modal, drawer, and exact positioning are planned for later layout composition phases.
+
 ## Current Diagnostic Documentation
 
 Draft v0.2 records stable diagnostic behavior in `docs/diagnostics.md`.
@@ -1052,6 +1099,7 @@ black theme inspect --json
 black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
+black docs view --json
 black inspect app.black --affected Product.stock --json
 ```
 
@@ -1403,6 +1451,10 @@ Rules:
 page Products {
   source Product
 
+  view {
+    order form, table, detail
+  }
+
   table {
     columns sku, name, stock, price
     search sku, name
@@ -1421,6 +1473,7 @@ A `page` describes a generated web screen.
 Rules:
 
 - `source` must reference an existing entity.
+- `view.order` may list `table`, `detail`, and `form` to control generated section order.
 - `table.columns` must reference fields on the source entity.
 - `table.search` must reference searchable fields on the source entity. Draft v0.1 supports `text`, `email`, and entity reference search fields.
 - `form.fields` must reference fields on the source entity.

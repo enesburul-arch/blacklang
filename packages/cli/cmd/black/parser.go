@@ -828,6 +828,14 @@ func (p *parser) parsePage(start int, parts []string) int {
 				continue
 			}
 			page.Source = sectionParts[1]
+		case "view":
+			var view PageViewDecl
+			view, index = p.parsePageView(index, sectionParts)
+			if page.View != nil {
+				p.addError(currentLine, 1, "DUPLICATE_VIEW", "Page view is already declared.", "Keep one `view` block inside each page.")
+				continue
+			}
+			page.View = &view
 		case "table":
 			var table TableDecl
 			table, index = p.parseTable(index, sectionParts)
@@ -876,12 +884,47 @@ func (p *parser) parsePage(start int, parts []string) int {
 		case "access":
 			page.Access = parseList(sectionParts[1:])
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, table, form, actions, action, or access inside a page.")
+			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, view, table, form, actions, action, or access inside a page.")
 		}
 	}
 
 	p.addError(lineNumber, 1, "UNCLOSED_PAGE", fmt.Sprintf("Page %s is missing a closing brace.", page.Name), "Add `}` after the page body.")
 	return len(p.lines) - 1
+}
+
+func (p *parser) parsePageView(start int, parts []string) (PageViewDecl, int) {
+	lineNumber := p.lineNumber(start)
+	view := PageViewDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_VIEW_DECLARATION", "View declaration must be `view {`.", "Example: `view {` followed by `order form, table, detail`.")
+		return view, start
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			return view, index
+		}
+
+		switch rowParts[0] {
+		case "order":
+			if len(rowParts) < 2 {
+				p.addError(currentLine, 1, "INVALID_VIEW_ORDER", "View order must list at least one section.", "Example: `order form, table, detail`.")
+				continue
+			}
+			if len(view.Order) > 0 {
+				p.addError(currentLine, 1, "DUPLICATE_VIEW_ORDER", "View order is already declared.", "Keep one order line inside view.")
+				continue
+			}
+			view.Order = parseList(rowParts[1:])
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_VIEW_TOKEN", fmt.Sprintf("Unexpected view token %q.", rowParts[0]), "Use order inside a view block.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_VIEW", "View is missing a closing brace.", "Add `}` after view settings.")
+	return view, len(p.lines) - 1
 }
 
 func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {

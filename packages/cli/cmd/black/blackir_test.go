@@ -77,6 +77,9 @@ page Products {
   layout AdminLayout
   source Product
   access Admin
+  view {
+    order form, table, detail
+  }
   table {
     columns sku, stock
     search sku
@@ -132,6 +135,7 @@ page Products {
 		"layout AdminLayout",
 		"sidebar Products",
 		"page Products layout AdminLayout source Product",
+		"view-order form table detail",
 		"table sku stock",
 		"filter stock",
 		"sort stock desc",

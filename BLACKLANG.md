@@ -139,6 +139,7 @@ black theme inspect --json
 black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
+black docs view --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -311,6 +312,30 @@ Current rule:
 - Values are positional and should follow the active `.blackthm` profile mode slots.
 - Generated web output appends stable `.bl-ui-*` classes to `src/styles.css`.
 - The current generator uses the configured `.blackthm` slot order when available, and falls back to standard v0.2 slots and safe defaults.
+
+## Current Page View Order
+
+Draft v0.2 supports a `view` block inside a page for ordering generated page sections:
+
+```black
+page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+}
+```
+
+Current rule:
+
+- `view` belongs inside one `page`.
+- `order` may list `table`, `detail`, and `form`.
+- Listed sections render first.
+- Omitted supported sections are appended in default `table, detail, form` order.
+- Duplicate or unsupported section names are validation errors.
+- The current web generator emits stable `.bl-view-section-*` classes and deterministic CSS order rules.
+- Nested sections, grid, tabs, modal, drawer, and exact positioning are later layout composition features.
 
 ## Current Diagnostic Documentation
 

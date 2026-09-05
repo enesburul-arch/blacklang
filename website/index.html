@@ -47,6 +47,7 @@
         <a href="#entity">entity</a>
         <a href="#fields">Field Tipleri</a>
         <a href="#page">page</a>
+        <a href="#view">view</a>
         <a href="#table">table</a>
         <a href="#form">form</a>
         <a href="#actions">actions</a>
@@ -344,6 +345,39 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
         <p>
           `source`, var olan bir entity'yi göstermelidir. Table ve form alanları source
           entity içinde yoksa validator stabil hata kodu üretir.
+        </p>
+      </section>
+
+      <section id="view">
+        <h2>view</h2>
+        <p>
+          `view`, bir page içindeki generated section sırasını `.black` kaynakta kontrol
+          eder. Böylece formu tablonun üstüne almak için React veya CSS çıktısını elle
+          düzenlemek gerekmez.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Sayfa içi section sırası</div>
+          <pre><code class="language-black">page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+
+  table {
+    columns sku, name, stock, price
+  }
+
+  form {
+    fields sku, name, stock, price
+  }
+}</code></pre>
+        </div>
+        <p>
+          v0.2 başlangıcında desteklenen section adları `table`, `detail` ve `form`dur.
+          Yazılan section'lar önce gelir; eksik bırakılan destekli section'lar varsayılan
+          `table, detail, form` sırasıyla sona eklenir. Generator bu niyetten
+          `.bl-view-section-*` class'ları ve deterministik order CSS'i üretir.
         </p>
       </section>
 
@@ -1507,7 +1541,8 @@ Phase 21: Query, actions, and data logic
 Phase 22: Tests, benchmarks, and evals
 Phase 23: Protected source mode
 Phase 24: Documentation site
-Phase 25: Real app templates</code></pre>
+Phase 25: Real app templates
+Phase 28: Page view order and layout composition</code></pre>
         </div>
         <p>
           Bu site Phase 24'ün ilk yayınlanabilir sürümüdür. Dil büyüdükçe her yeni syntax,

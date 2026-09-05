@@ -142,6 +142,19 @@ This phase makes the long-term web target measurable instead of vague.
 - [ ] Add a `black benchmark` coverage report command
 - [ ] Publish coverage status on the documentation site
 
+## Phase 28: Page View Order and Layout Composition
+
+This phase starts moving generated page composition into `.black` source instead of generated React or CSS edits.
+
+- [x] Add `view { order ... }` syntax inside page blocks
+- [x] Validate supported view sections and duplicates
+- [x] Include view order in JSON/BlackIR output
+- [x] Generate stable page section classes for table, detail, and form
+- [x] Generate deterministic web CSS order rules from view intent
+- [x] Add human and AI documentation for page view order
+- [ ] Add nested sections, grid, stack, tabs, modal, drawer, and responsive composition syntax
+- [ ] Add DOM-order rendering for richer composition when the layout model grows beyond simple ordering
+
 ## v0.2 Exit Criteria
 
 v0.2 is ready when:

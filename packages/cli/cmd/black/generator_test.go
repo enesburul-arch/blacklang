@@ -119,6 +119,10 @@ page Products {
   source Product
   access Admin
 
+  view {
+    order form, table, detail
+  }
+
   table {
     columns sku, name, stock, price
     search sku, name
@@ -694,6 +698,8 @@ page Orders {
 	}
 	productPageText := string(productPage)
 	for _, value := range []string{
+		`<main className="page-view page-view-products">`,
+		`<section className="panel bl-view-section-detail">`,
 		`import { StockBadge } from "../components/StockBadge";`,
 		`{visibleColumns.stock && permissions.fields.stock !== false && <td>{<StockBadge stock={Number(item.stock ?? 0)} />}</td>}`,
 		`{permissions.fields.stock !== false && <div><dt>Stock Count</dt><dd>{<StockBadge stock={Number(selectedItem.stock ?? 0)} />}</dd></div>}`,
@@ -829,6 +835,13 @@ page Orders {
 		".breadcrumb {",
 		".field-preview {",
 		"main > header {",
+		"/* Generated from BlackLang page view order. */",
+		".page-view-products .bl-view-section-form {",
+		"order: 1;",
+		".page-view-products .bl-view-section-table {",
+		"order: 2;",
+		".page-view-products .bl-view-section-detail {",
+		"order: 3;",
 		"@media (max-width: 760px) {",
 		".app-shell.nav-open .app-sidebar {",
 	} {
@@ -919,8 +932,8 @@ page Products {
 	}
 	pageText := string(page)
 	for _, value := range []string{
-		`<section id="products-table" className="panel data-panel bl-ui-table-products">`,
-		`<section id="product-form" className="panel edit-panel bl-ui-form-products">`,
+		`<section id="products-table" className="panel bl-view-section-table data-panel bl-ui-table-products">`,
+		`<section id="product-form" className="panel bl-view-section-form edit-panel bl-ui-form-products">`,
 		`<label className="bl-ui-field-product-sku">`,
 		`id={!editingId ? "create-product-button-submit" : undefined} className={!editingId ? "primary-action bl-ui-action-products-create" : undefined}`,
 		`id="delete-product-button-bulk" className="danger danger-action bl-ui-action-products-delete"`,

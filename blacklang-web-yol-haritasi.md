@@ -110,7 +110,7 @@ Core içine her şeyi doldurmak dili ağırlaştırır. Ama her şeyi plugin'e b
 | Data model | Entity, relation, index, constraint, migration, seed | Kısmen var |
 | CRUD | Create, read, update, delete, archive, restore, bulk actions | Kısmen var |
 | Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var |
-| UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Başlangıç gerekli |
+| UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Başlangıç var |
 | Styling/theme | Token, theme profile, responsive rule, state style, animation | Kısmen var |
 | Forms | Inputs, validation, wizard, dynamic field, file field, dependent select | Kısmen var |
 | Routing | Nested route, dynamic route, protected route, layout route | Başlangıç gerekli |
@@ -2342,6 +2342,56 @@ form    box, text, button
 table   box, text, table
 button  button
 ```
+
+## Aşama 26.1: Page View Order
+
+Bu aşama, bir sayfa içindeki generated parçaların sırasını `.black` kaynak dosyasından değiştirmeyi sağlar.
+
+Amaç; formu, tabloyu veya detail panelini taşımak için generated React/CSS dosyalarına elle dokunmadan, sayfa niyetini BlackLang içinde tutmaktır.
+
+### Mevcut Durum
+
+BlackLang artık page içinde `view` bloğunu okuyabilir:
+
+```black
+page Products {
+  source Product
+
+  view {
+    order form, table, detail
+  }
+
+  table {
+    columns sku, name, stock, price
+  }
+
+  form {
+    fields sku, name, stock, price
+  }
+}
+```
+
+Bu örnekte form önce, table sonra, detail paneli en sonda görünür.
+
+İlk kapsam:
+
+- `view` bloğu page içinde kullanılır.
+- `order` satırı `table`, `detail`, `form` section adlarını kabul eder.
+- Yazılan section'lar önce gelir.
+- Eksik bırakılan destekli section'lar varsayılan `table, detail, form` sırasıyla sona eklenir.
+- Duplicate veya desteklenmeyen section adları validator hatası üretir.
+- Generator table/detail/form için stable `.bl-view-section-*` class'ları üretir.
+- `view` intent varsa `src/styles.css` içinde deterministik order kuralları üretilir.
+
+Sonraki genişleme:
+
+- nested section
+- grid ve stack
+- tabs
+- modal ve drawer
+- responsive layout kuralları
+- tam DOM-order rendering
+- coordinate/fixed placement gibi kontrollü pozisyonlama
 
 ## Aşama 27: Internationalization
 

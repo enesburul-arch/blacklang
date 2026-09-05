@@ -497,12 +497,18 @@ type PageDecl struct {
 	Name     string           `json:"name"`
 	Layout   string           `json:"layout,omitempty"`
 	Source   string           `json:"source"`
+	View     *PageViewDecl    `json:"view,omitempty"`
 	Table    TableDecl        `json:"table"`
 	Form     FormDecl         `json:"form"`
 	Actions  []string         `json:"actions"`
 	ActionUI []ActionUIIntent `json:"actionUI,omitempty"`
 	Access   []string         `json:"access,omitempty"`
 	Position Position         `json:"position"`
+}
+
+type PageViewDecl struct {
+	Order    []string `json:"order,omitempty"`
+	Position Position `json:"position"`
 }
 
 type LayoutDecl struct {

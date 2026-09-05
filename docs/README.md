@@ -22,6 +22,7 @@ It should explain:
 - How compact UI profile slots are read
 - How standard UI mode groups work
 - How inline UI intent is written near fields, forms, tables, and action buttons
+- How page view order moves generated form, table, and detail sections
 - How locked UI profiles enforce append-only slot changes
 - How i18n locale and field label translations work
 - How security CORS policy is declared without hardcoding deployment origins
@@ -43,6 +44,7 @@ docs/
 ├── target.md
 ├── i18n.md
 ├── inline-ui.md
+├── view.md
 ├── deployment.md
 ├── security-cors.md
 ├── release-artifacts.md
@@ -67,6 +69,7 @@ docs/
 - Reference: page
 - Reference: table
 - Reference: form
+- Reference: view
 - CLI: parse
 - CLI: format
 - CLI: lint

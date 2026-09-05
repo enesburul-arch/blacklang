@@ -55,6 +55,12 @@ var supportedInlineUIModes = setOf(
 	"button",
 )
 
+var supportedViewSections = setOf(
+	"table",
+	"detail",
+	"form",
+)
+
 var supportedAuthStrategies = setOf(
 	"emailPassword",
 )
@@ -822,12 +828,36 @@ func (v *semanticValidator) validatePages(entityIndex map[string]EntityDecl, lay
 			continue
 		}
 
+		v.validatePageView(page)
 		v.validatePageFields(page, source)
 		v.validateActions(page)
 		v.validatePageUIIdentities(page)
 		v.validatePageAccess(page, roleIndex)
 	}
 	return pageIndex
+}
+
+func (v *semanticValidator) validatePageView(page PageDecl) {
+	if page.View == nil {
+		return
+	}
+	if len(page.View.Order) == 0 {
+		v.addDiagnostic(page.View.Position, "MISSING_VIEW_ORDER", fmt.Sprintf("Page %s view block is missing order.", page.Name), "Add `order table, detail, form` or remove the empty view block.")
+		return
+	}
+
+	seen := map[string]Position{}
+	for _, section := range page.View.Order {
+		if !supportedViewSections[section] {
+			v.addDiagnostic(page.View.Position, "UNSUPPORTED_VIEW_SECTION", fmt.Sprintf("Page %s view uses unsupported section %q.", page.Name, section), "Use table, detail, or form.")
+			continue
+		}
+		if existing, ok := seen[section]; ok {
+			v.addDiagnostic(page.View.Position, "DUPLICATE_VIEW_SECTION", fmt.Sprintf("Page %s view repeats section %s.", page.Name, section), fmt.Sprintf("First definition is at %s:%d.", existing.File, existing.Line))
+			continue
+		}
+		seen[section] = page.View.Position
+	}
 }
 
 func (v *semanticValidator) validatePageAccess(page PageDecl, roleIndex map[string]RoleDecl) {

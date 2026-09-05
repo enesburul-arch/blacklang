@@ -234,7 +234,7 @@ Current syntax:
 blackthm WarehouseTheme {
   version 1
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
   token color surface "#ffffff"
@@ -243,6 +243,11 @@ blackthm WarehouseTheme {
 
   profile UICompact {
     version 1
+    baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
     mode table color width style density zebra
@@ -271,7 +276,7 @@ JSON shape:
     "name": "WarehouseTheme",
     "version": 1,
     "target": "web",
-    "locked": false,
+    "locked": true,
     "tokens": [],
     "profile": {
       "name": "UICompact",
@@ -283,9 +288,11 @@ JSON shape:
         "missingTrailingSlots": "default",
         "extraValues": "error",
         "duplicateSlots": "error",
+        "lockBaseline": "required-when-locked",
         "existingSlotsAfterLock": "immutable",
         "newSlotsAfterLock": "append-only"
       },
+      "baselines": [],
       "modes": []
     }
   },
@@ -303,9 +310,33 @@ Current compact UI profile rules:
 - Missing trailing values use defaults in later CSS generation phases.
 - Extra values are errors because they cannot map to known slots.
 - A slot name may appear only once inside the same mode.
+- Locked profiles must include `baseline <mode> <slot...>` lines.
+- Current mode slots must start with the exact baseline slot sequence.
 - After a profile is locked, existing slots are immutable and new slots are append-only.
 
-Profile locking and append-only migration enforcement are planned for later Phase 20 steps.
+For example, this locked profile change is valid because `shadow` is appended:
+
+```blackthm
+profile UICompact {
+  version 2
+  baseline box color width style
+  mode box color width style shadow
+}
+```
+
+This change is invalid because `shadow` is inserted before locked slots:
+
+```blackthm
+profile UICompact {
+  version 2
+  baseline box color width style
+  mode box color shadow width style
+}
+```
+
+It returns `NON_APPEND_ONLY_UI_SLOT`.
+
+Profile migration tooling for intentional reorder operations is planned for later Phase 20 steps.
 
 ## Current Diagnostic Documentation
 

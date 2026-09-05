@@ -11,6 +11,11 @@ The UI profile keeps future inline UI intent short and deterministic without mak
 ```blackthm
 profile UICompact {
   version 1
+  baseline box color width style pt pr pb pl radius place
+  baseline text color size weight align
+  baseline table color width style density zebra
+  baseline button bg color radius size variant
+
   mode box color width style pt pr pb pl radius place
   mode text color size weight align
   mode table color width style density zebra
@@ -19,6 +24,8 @@ profile UICompact {
 ```
 
 Each `mode` line defines a left-to-right slot order.
+
+Each `baseline` line defines the frozen prefix for the matching mode after the theme has `locked true`.
 
 ## Planned Inline Syntax
 
@@ -64,6 +71,42 @@ text.align  = left
 - Each slot name may appear only once inside a mode.
 - After a profile is locked, existing slots are immutable.
 - After a profile is locked, new slots are append-only.
+- Locked profiles require one baseline for each current mode.
+- A locked mode must start with the exact baseline slot sequence.
+
+## Locked Append-Only Example
+
+This is valid because `shadow` is appended after the baseline:
+
+```blackthm
+blackthm WarehouseTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style
+    mode box color width style shadow
+  }
+}
+```
+
+This is invalid because `shadow` was inserted before existing slots:
+
+```blackthm
+blackthm WarehouseTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style
+    mode box color shadow width style
+  }
+}
+```
+
+The compiler reports `NON_APPEND_ONLY_UI_SLOT`.
 
 ## CLI
 

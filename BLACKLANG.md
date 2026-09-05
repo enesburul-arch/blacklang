@@ -202,12 +202,15 @@ Draft v0.2 supports a separate `.blackthm` source file for UI theme/profile meta
 blackthm WarehouseTheme {
   version 1
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
 
   profile UICompact {
     version 1
+    baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
   }
@@ -233,9 +236,11 @@ black theme inspect --json
 - Missing trailing values use defaults.
 - Extra values are errors.
 - Duplicate slots inside one mode are errors.
+- Locked profiles require `baseline <mode> <slot...>` lines.
+- Current mode slots must keep baseline slots as their exact prefix.
 - After profile lock, existing slots are immutable and new slots are append-only.
 
-This phase validates and exposes theme/profile metadata plus compact slot profile rules. CSS generation from theme intent comes later in Phase 20.
+This phase validates and exposes theme/profile metadata plus compact slot profile rules and locked append-only checks. CSS generation from theme intent comes later in Phase 20.
 
 ## Current Diagnostic Documentation
 

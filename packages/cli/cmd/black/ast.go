@@ -266,11 +266,12 @@ type ThemeToken struct {
 }
 
 type UIProfileDecl struct {
-	Name     string         `json:"name"`
-	Version  int            `json:"version"`
-	Rules    UIProfileRules `json:"rules"`
-	Modes    []UIModeDecl   `json:"modes"`
-	Position Position       `json:"position"`
+	Name      string         `json:"name"`
+	Version   int            `json:"version"`
+	Rules     UIProfileRules `json:"rules"`
+	Baselines []UIModeDecl   `json:"baselines,omitempty"`
+	Modes     []UIModeDecl   `json:"modes"`
+	Position  Position       `json:"position"`
 }
 
 type UIProfileRules struct {
@@ -280,6 +281,7 @@ type UIProfileRules struct {
 	MissingTrailingSlots   string `json:"missingTrailingSlots"`
 	ExtraValues            string `json:"extraValues"`
 	DuplicateSlots         string `json:"duplicateSlots"`
+	LockBaseline           string `json:"lockBaseline"`
 	ExistingSlotsAfterLock string `json:"existingSlotsAfterLock"`
 	NewSlotsAfterLock      string `json:"newSlotsAfterLock"`
 }

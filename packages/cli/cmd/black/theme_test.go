@@ -41,6 +41,9 @@ func TestParseTheme(t *testing.T) {
 	if theme.Profile.Rules.SlotOrder != "left-to-right" || theme.Profile.Rules.NewSlotsAfterLock != "append-only" {
 		t.Fatalf("expected compact slot profile rules, got %#v", theme.Profile.Rules)
 	}
+	if theme.Profile.Rules.LockBaseline != "required-when-locked" {
+		t.Fatalf("expected lock baseline rule, got %#v", theme.Profile.Rules)
+	}
 	if len(theme.Profile.Modes) != 2 {
 		t.Fatalf("expected two modes, got %#v", theme.Profile.Modes)
 	}
@@ -124,6 +127,82 @@ func TestParseThemeRejectsDuplicateUISlot(t *testing.T) {
 	}
 }
 
+func TestParseLockedThemeAllowsAppendOnlySlots(t *testing.T) {
+	theme, diagnostics := ParseTheme("theme.blackthm", `blackthm LockedTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style
+    mode box color width style shadow
+  }
+}
+`)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected append-only locked profile to pass, got %#v", diagnostics)
+	}
+	if len(theme.Profile.Baselines) != 1 {
+		t.Fatalf("expected one baseline, got %#v", theme.Profile.Baselines)
+	}
+	if strings.Join(theme.Profile.Modes[0].Slots, " ") != "color width style shadow" {
+		t.Fatalf("expected appended slot to be preserved, got %#v", theme.Profile.Modes[0])
+	}
+}
+
+func TestParseLockedThemeRequiresBaseline(t *testing.T) {
+	_, diagnostics := ParseTheme("theme.blackthm", `blackthm LockedTheme {
+  version 1
+  locked true
+
+  profile UICompact {
+    version 1
+    mode box color width
+  }
+}
+`)
+	codes := diagnosticCodes(diagnostics)
+	if !codes["MISSING_UI_LOCK_BASELINE"] {
+		t.Fatalf("expected MISSING_UI_LOCK_BASELINE, got %#v", diagnostics)
+	}
+}
+
+func TestParseLockedThemeRejectsReorderedSlots(t *testing.T) {
+	_, diagnostics := ParseTheme("theme.blackthm", `blackthm LockedTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style
+    mode box color shadow width style
+  }
+}
+`)
+	codes := diagnosticCodes(diagnostics)
+	if !codes["NON_APPEND_ONLY_UI_SLOT"] {
+		t.Fatalf("expected NON_APPEND_ONLY_UI_SLOT, got %#v", diagnostics)
+	}
+}
+
+func TestParseLockedThemeRejectsRemovedMode(t *testing.T) {
+	_, diagnostics := ParseTheme("theme.blackthm", `blackthm LockedTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width
+    mode text color size
+  }
+}
+`)
+	codes := diagnosticCodes(diagnostics)
+	if !codes["LOCKED_UI_MODE_REMOVED"] {
+		t.Fatalf("expected LOCKED_UI_MODE_REMOVED, got %#v", diagnostics)
+	}
+}
+
 func TestParseThemeRequiresProfile(t *testing.T) {
 	_, diagnostics := ParseTheme("theme.blackthm", `blackthm EmptyTheme {
   version 1
@@ -137,15 +216,16 @@ func TestParseThemeRequiresProfile(t *testing.T) {
 
 func TestFormatThemeIR(t *testing.T) {
 	theme, diagnostics := ParseTheme("theme.blackthm", `blackthm WarehouseTheme {
-  version 1
+  version 2
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
 
   profile UICompact {
-    version 1
-    mode box color width
+    version 2
+    baseline box color width
+    mode box color width shadow
   }
 }
 `)
@@ -163,11 +243,12 @@ func TestFormatThemeIR(t *testing.T) {
 	})
 	for _, value := range []string{
 		"theme inspect ok",
-		"theme WarehouseTheme version 1 target web locked false",
+		"theme WarehouseTheme version 2 target web locked true",
 		"color primary \"#2563eb\"",
-		"profile UICompact version 1",
-		"rules syntax \"ui <mode> <values...> [| <mode> <values...>...]\" order left-to-right",
-		"mode box slots color width",
+		"profile UICompact version 2",
+		"baseline required-when-locked",
+		"baseline box slots color width",
+		"mode box slots color width shadow",
 	} {
 		if !strings.Contains(ir, value) {
 			t.Fatalf("expected IR to contain %q, got:\n%s", value, ir)

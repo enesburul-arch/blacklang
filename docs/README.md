@@ -19,6 +19,7 @@ It should explain:
 - How JSON diagnostics work
 - How `.blackthm` theme profile files work
 - How compact UI profile slots are read
+- How locked UI profiles enforce append-only slot changes
 - How AI agents should use the language
 
 ## Planned Structure

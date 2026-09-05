@@ -51,6 +51,8 @@ Use `black theme inspect --json` to inspect `.blackthm` UI token and profile met
 
 Use returned `profile.rules` and `profile.modes[].slots` before writing future compact inline UI intent.
 
+When a theme has `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
+
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
 Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, or APIs.

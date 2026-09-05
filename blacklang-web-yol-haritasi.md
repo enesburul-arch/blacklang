@@ -2090,6 +2090,38 @@ Bu yaklaşımın amacı:
 - İnsanların sıralamayı dokümantasyon sitesinden veya `blackdir` profilinden kopyalayıp kullanabilmesi
 - İleride tüm CSS özelliklerinin değil, güvenli ve desteklenen UI özelliklerinin bu profile kontrollü şekilde eklenmesi
 
+### Mevcut v0.2 Uygulaması: `.blackthm` Lock Baseline
+
+v0.2 içinde bu kararın ilk çalışan karşılığı `.blackthm` dosyasıdır. Profil kilitliyse current `mode` satırlarının eski sırayı bozmadığını anlamak için `baseline` satırları kullanılır.
+
+```blackthm
+blackthm WarehouseTheme {
+  version 2
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style pt pr pb pl radius place
+    mode box color width style pt pr pb pl radius place shadow
+  }
+}
+```
+
+Compiler kuralı:
+
+```text
+baseline slotları current mode satırının birebir başlangıcı olmalıdır.
+Yeni slotlar sadece baseline sonrasına eklenebilir.
+```
+
+Bu yüzden aşağıdaki kullanım hatalıdır:
+
+```blackthm
+mode box color width shadow style pt pr pb pl radius place
+```
+
+Çünkü `shadow` araya eklenmiştir ve eski UI satırlarının anlamını kaydırabilir. Compiler bu durumda `NON_APPEND_ONLY_UI_SLOT` hatası verir.
+
 ## Aşama 27: Internationalization
 
 Çok dilli uygulamalar için metinler kaynak koddan ayrılmalıdır.

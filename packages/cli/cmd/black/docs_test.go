@@ -128,6 +128,9 @@ func TestFindThemeDoc(t *testing.T) {
 	if !strings.Contains(strings.Join(doc.Errors, ","), "INVALID_UI_MODE") {
 		t.Fatalf("expected theme docs to mention UI diagnostics, got %#v", doc)
 	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "NON_APPEND_ONLY_UI_SLOT") {
+		t.Fatalf("expected theme docs to mention lock diagnostics, got %#v", doc)
+	}
 }
 
 func TestFindUIProfileDoc(t *testing.T) {
@@ -140,6 +143,9 @@ func TestFindUIProfileDoc(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "DUPLICATE_UI_SLOT") {
 		t.Fatalf("expected ui-profile docs to mention duplicate slot diagnostics, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.Errors, ","), "MISSING_UI_LOCK_BASELINE") {
+		t.Fatalf("expected ui-profile docs to mention lock baseline diagnostics, got %#v", doc)
 	}
 }
 

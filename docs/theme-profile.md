@@ -32,7 +32,7 @@ theme = "examples/warehouse/theme.blackthm"
 blackthm WarehouseTheme {
   version 1
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
   token color surface "#ffffff"
@@ -41,6 +41,11 @@ blackthm WarehouseTheme {
 
   profile UICompact {
     version 1
+    baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
     mode table color width style density zebra
@@ -55,14 +60,17 @@ blackthm WarehouseTheme {
 - `version <number>` declares the theme file version.
 - `target web` is the only supported target in draft v0.2.
 - `locked false` means the profile is still editable.
-- `locked true` will mean existing positional slots are frozen in later phases.
+- `locked true` means existing positional slots are frozen and checked against baselines.
 - `token <kind> <name> <value>` declares reusable design tokens.
 - Hex colors must be quoted because `#` starts a comment outside quoted strings.
 - A theme must contain one `profile <Name> { ... }`.
 - A profile must contain `version <number>`.
 - A profile must contain one or more `mode` lines.
+- A locked profile must contain `baseline <mode> <slot...>` lines.
 - `mode <name> <slot...>` defines the left-to-right slot order for compact inline UI intent.
 - A slot name may appear only once inside one mode.
+- In locked profiles, every baseline must be a prefix of the matching current mode.
+- In locked profiles, new slots are valid only when appended after the baseline prefix.
 
 ## Compact UI Slot Rules
 
@@ -76,6 +84,7 @@ blackthm WarehouseTheme {
   "missingTrailingSlots": "default",
   "extraValues": "error",
   "duplicateSlots": "error",
+  "lockBaseline": "required-when-locked",
   "existingSlotsAfterLock": "immutable",
   "newSlotsAfterLock": "append-only"
 }
@@ -106,6 +115,32 @@ text.align = left
 ```
 
 This keeps UI intent short without making the generator guess which value belongs to which style property.
+
+## Locked Profile Example
+
+When a profile is locked, baseline lines record the frozen prefix:
+
+```blackthm
+profile UICompact {
+  version 2
+  baseline box color width style pt pr pb pl radius place
+  mode box color width style pt pr pb pl radius place shadow
+}
+```
+
+This is valid because `shadow` is appended at the end.
+
+This is invalid:
+
+```blackthm
+profile UICompact {
+  version 2
+  baseline box color width style pt pr pb pl radius place
+  mode box color width shadow style pt pr pb pl radius place
+}
+```
+
+It reports `NON_APPEND_ONLY_UI_SLOT` because the old slot order changed.
 
 ## Current CLI
 

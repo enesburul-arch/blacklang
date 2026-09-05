@@ -45,7 +45,7 @@ This phase starts the BlackLang-native UI layer instead of forcing users or AI a
 
 - [x] Define `blackthm` or theme profile file format
 - [x] Define compact UI slot profile rules
-- [ ] Make UI slots append-only after profile lock
+- [x] Make UI slots append-only after profile lock
 - [ ] Add mode groups such as `box`, `text`, `table`, and `button`
 - [ ] Support inline UI intent near fields, forms, tables, and buttons
 - [ ] Generate CSS from UI intent

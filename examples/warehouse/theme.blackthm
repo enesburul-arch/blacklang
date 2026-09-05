@@ -1,7 +1,7 @@
 blackthm WarehouseTheme {
   version 1
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
   token color surface "#ffffff"
@@ -14,6 +14,11 @@ blackthm WarehouseTheme {
 
   profile UICompact {
     version 1
+    baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
     mode table color width style density zebra

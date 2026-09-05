@@ -137,6 +137,7 @@ Implemented so far:
 - `agent startup --json` command for deterministic AI project entry checklists
 - `theme inspect --json` command for `.blackthm` UI theme/profile files
 - Compact UI slot profile rules in `theme inspect` output
+- Append-only slot checks for locked UI profiles
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`

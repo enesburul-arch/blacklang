@@ -105,19 +105,21 @@ black theme inspect examples/warehouse/theme.blackthm --ir`,
 			"Use .blackthm for deterministic UI tokens and mode slot profile metadata.",
 			"Set theme = \"path/to/theme.blackthm\" in blacklang.toml so agents can discover it.",
 			"Theme inspect returns profile.rules so agents know how compact inline UI values will be read.",
+			"When locked is true, baseline lines freeze existing mode slot prefixes.",
 			"Hex colors should be quoted because # starts a comment outside strings.",
 			"CSS generation from theme intent is planned for later Phase 20 steps.",
 			"Treat .blackthm files as source assets, not generated output.",
 		},
-		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT"},
+		Errors: []string{"FILE_READ_ERROR", "INVALID_THEME_DECLARATION", "MISSING_THEME_VERSION", "MISSING_UI_PROFILE", "INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
 	},
 	"ui-profile": {
 		Keyword: "ui-profile",
 		Purpose: "Documents compact positional UI mode slot rules used by .blackthm profiles.",
-		Syntax:  "mode <name> <slot...> -> ui <mode> <values...> [| <mode> <values...>...]",
+		Syntax:  "baseline <mode> <slot...>; mode <name> <slot...> -> ui <mode> <values...> [| <mode> <values...>...]",
 		Example: `profile UICompact {
-  version 1
-  mode box color width style pt pr pb pl radius place
+  version 2
+  baseline box color width style pt pr pb pl radius place
+  mode box color width style pt pr pb pl radius place shadow
   mode text color size weight align
 }
 
@@ -132,8 +134,9 @@ form {
 			"Extra values are errors because they cannot map to a known slot.",
 			"Each slot name may appear only once inside a mode.",
 			"After a profile is locked, existing slots are immutable and new slots are append-only.",
+			"Locked profiles require baseline lines so the compiler can verify mode slots still start with the frozen order.",
 		},
-		Errors: []string{"INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT"},
+		Errors: []string{"INVALID_UI_BASELINE", "DUPLICATE_UI_BASELINE", "INVALID_UI_MODE", "DUPLICATE_UI_MODE", "DUPLICATE_UI_SLOT", "MISSING_UI_LOCK_BASELINE", "LOCKED_UI_MODE_REMOVED", "NON_APPEND_ONLY_UI_SLOT"},
 	},
 	"docs": {
 		Keyword: "docs",

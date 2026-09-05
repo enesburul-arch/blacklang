@@ -532,7 +532,7 @@ page Products {
           <pre><code class="language-blackthm">blackthm WarehouseTheme {
   version 1
   target web
-  locked false
+  locked true
 
   token color primary "#2563eb"
   token color surface "#ffffff"
@@ -541,6 +541,11 @@ page Products {
 
   profile UICompact {
     version 1
+    baseline box color width style pt pr pb pl radius place
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
     mode box color width style pt pr pb pl radius place
     mode text color size weight align
     mode table color width style density zebra
@@ -555,8 +560,9 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
         </div>
         <p>
           Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
-          `profile.modes[].slots` alanı ileride inline `ui` satırlarının soldan sağa nasıl
-          okunacağını belirleyen kaynak gerçek olacaktır.
+          `profile.baselines` kilitli sırayı, `profile.modes[].slots` ise güncel sırayı
+          gösterir. Compiler, locked profilde mode satırlarının baseline ile başlamasını
+          zorunlu tutar.
         </p>
       </section>
 
@@ -571,6 +577,9 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
           <div class="code-title">Slot order</div>
           <pre><code class="language-blackthm">profile UICompact {
   version 1
+  baseline box color width style pt pr pb pl radius place
+  baseline text color size weight align
+
   mode box color width style pt pr pb pl radius place
   mode text color size weight align
 }</code></pre>
@@ -583,6 +592,7 @@ black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
           Değerler soldan sağa okunur. Eksik sondaki değerler default alır, fazladan
           değer hata sayılır, aynı mode içinde aynı slot iki kez yazılamaz. Profile
           kilitlendiğinde mevcut slotlar taşınamaz; yeni slotlar sadece sona eklenir.
+          Araya slot eklenirse compiler `NON_APPEND_ONLY_UI_SLOT` hatası verir.
         </p>
       </section>
 

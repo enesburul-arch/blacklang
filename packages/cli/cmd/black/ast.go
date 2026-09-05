@@ -328,6 +328,7 @@ type Program struct {
 	Auth       *AuthDecl              `json:"auth,omitempty"`
 	Database   *DatabaseDecl          `json:"database,omitempty"`
 	Security   *SecurityDecl          `json:"security,omitempty"`
+	Deploy     *DeployDecl            `json:"deploy,omitempty"`
 	I18N       *I18NDecl              `json:"i18n,omitempty"`
 	Labels     []LabelTranslationDecl `json:"labels,omitempty"`
 	Entities   []EntityDecl           `json:"entities"`
@@ -383,6 +384,25 @@ type CORSDecl struct {
 	Origins     EnvRef   `json:"origins,omitempty"`
 	Credentials string   `json:"credentials,omitempty"`
 	Position    Position `json:"position"`
+}
+
+type DeployDecl struct {
+	Target   string          `json:"target,omitempty"`
+	Port     *DeployPortDecl `json:"port,omitempty"`
+	Env      []DeployEnvDecl `json:"env,omitempty"`
+	Position Position        `json:"position"`
+}
+
+type DeployPortDecl struct {
+	Env      EnvRef   `json:"env,omitempty"`
+	Default  string   `json:"default,omitempty"`
+	Position Position `json:"position"`
+}
+
+type DeployEnvDecl struct {
+	Name     string   `json:"name"`
+	Mode     string   `json:"mode"`
+	Position Position `json:"position"`
 }
 
 type I18NDecl struct {

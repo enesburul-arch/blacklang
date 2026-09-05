@@ -2403,10 +2403,36 @@ BlackLang sadece kod üretmekle kalmayıp uygulamanın nasıl çalıştırılaca
 ```black
 deploy {
   target docker
-  database postgres
+  port env PORT default 3001
   env DATABASE_URL required
+  env CORS_ORIGINS optional
 }
 ```
+
+### Mevcut Durum
+
+Bu aşamanın ilk çalışan parçası eklendi. BlackLang artık top-level `deploy` bloğunu okuyabilir:
+
+```black
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+```
+
+Bu blok şunları üretir:
+
+- `Dockerfile`
+- `.dockerignore`
+- `docker-compose.yml`
+- `.env.example` içinde `PORT`
+- generated `package.json` içinde `start`
+- generated `src/server.ts` içinde `process.env["PORT"]`
+- generated Express server üzerinden `dist` frontend servis etme
+
+Şimdilik deploy target olarak yalnızca `docker` desteklenir. `database postgres` syntax'ı, generator gerçekten PostgreSQL runtime üretebildiği aşamada açılmalıdır; mevcut generated runtime SQLite tabanlıdır.
 
 ## Aşama 30: Plugin ve Target Sistemi
 

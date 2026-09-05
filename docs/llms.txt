@@ -21,6 +21,9 @@ Read these pages first:
 - /reference/ui-profile
 - /reference/ui-modes
 - /reference/inline-ui
+- /reference/i18n
+- /reference/security-cors
+- /reference/deployment
 
 Core local files in this repository:
 
@@ -33,6 +36,9 @@ Core local files in this repository:
 - docs/ui-profile.md
 - docs/ui-modes.md
 - docs/inline-ui.md
+- docs/i18n.md
+- docs/security-cors.md
+- docs/deployment.md
 - examples/warehouse/app.black
 - examples/warehouse/theme.blackthm
 - examples/crm/app.black
@@ -67,6 +73,12 @@ Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
 
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
-Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, or APIs.
+Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
+
+Use `security { cors { origins env CORS_ORIGINS } }` for browser API origin policy without hardcoding deployment domains.
+
+Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
+
+Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, APIs, security, deploy, auth, database, or app metadata.
 
 Use `docs/diagnostics.md` and `black docs diagnostics --json` when interpreting diagnostic codes.

@@ -24,6 +24,7 @@ It should explain:
 - How locked UI profiles enforce append-only slot changes
 - How i18n locale and field label translations work
 - How security CORS policy is declared without hardcoding deployment origins
+- How Docker deployment intent generates production runtime files
 - How AI agents should use the language
 
 ## Planned Structure
@@ -38,6 +39,7 @@ docs/
 ├── github-publish.md
 ├── i18n.md
 ├── inline-ui.md
+├── deployment.md
 ├── security-cors.md
 ├── release-artifacts.md
 ├── npm-wrapper.md

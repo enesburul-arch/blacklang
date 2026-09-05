@@ -62,6 +62,35 @@ func TestAnalyzeAffectedUnknownSymbol(t *testing.T) {
 	}
 }
 
+func TestAnalyzeAffectedDeploy(t *testing.T) {
+	source := `app Warehouse
+
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+
+	analysis, diagnostics := AnalyzeAffected(program, "deploy")
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if !analysis.Found || analysis.Kind != "deploy" {
+		t.Fatalf("expected deploy affected analysis, got %#v", analysis)
+	}
+	for _, file := range []string{".env.example", ".dockerignore", "Dockerfile", "docker-compose.yml", "package.json", "src/server.ts"} {
+		if !affectedItemsContain(analysis.GeneratedFiles, file) {
+			t.Fatalf("expected affected generated file %s, got %#v", file, analysis.GeneratedFiles)
+		}
+	}
+}
+
 func TestFirstNonOptionArgSkipsAffectedValue(t *testing.T) {
 	file := firstNonOptionArg([]string{"--affected", "Product.stock", "--json"})
 	if file != "" {

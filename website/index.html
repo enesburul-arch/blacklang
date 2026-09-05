@@ -63,6 +63,7 @@
         <a href="#api">api</a>
         <a href="#security">security</a>
         <a href="#cors">cors</a>
+        <a href="#deploy">deploy</a>
         <a href="#cli">CLI</a>
         <a href="#errors">Hata Çıktıları</a>
         <a href="#ai-agents">AI Agents</a>
@@ -840,6 +841,29 @@ security {
           Generated Express server `CORS_ORIGINS` değerini virgülle ayrılmış liste olarak okur,
           listede olmayan browser origin'lerini `403` ile reddeder, `OPTIONS` preflight yanıtı
           üretir ve `credentials true` varsa cookie-auth uyumlu header ekler.
+        </p>
+      </section>
+
+      <section id="deploy">
+        <h2>deploy</h2>
+        <p>
+          `deploy`, generated web uygulamasının production ortamında nasıl ayağa kalkacağını
+          tarif eder. İlk çalışan hedef Docker'dır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Docker deployment</div>
+          <pre><code class="language-black">deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}</code></pre>
+        </div>
+        <p>
+          Bu niyet `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `.env.example` içinde
+          `PORT`, generated `package.json` içinde `start` scripti ve generated server içinde
+          `process.env["PORT"]` kullanımı üretir. Mevcut runtime SQLite tabanlı olduğu için
+          PostgreSQL target'ı sonraki runtime aşamasına bırakılmıştır.
         </p>
       </section>
 

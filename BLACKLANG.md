@@ -571,6 +571,23 @@ security {
 
 Generated Express servers read `CORS_ORIGINS` as a comma-separated list, reject unlisted browser origins, answer `OPTIONS` preflight requests, and add credential headers when `credentials true` is declared.
 
+## Current Deployment Declaration
+
+Draft v0.1 supports Docker deployment intent:
+
+```black
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+```
+
+When `target docker` is declared, the web generator writes `Dockerfile`, `.dockerignore`, and `docker-compose.yml`, adds `PORT` to `.env.example`, adds a `start` script to generated `package.json`, makes the generated server read the configured port environment variable, and serves the built Vite frontend from `dist`.
+
+Draft v0.1 keeps the generated runtime on SQLite. PostgreSQL deployment syntax should wait until the generator can produce a matching PostgreSQL runtime.
+
 ## Current Auth Declaration
 
 Draft v0.1 supports a top-level auth declaration:

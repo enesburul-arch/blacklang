@@ -305,6 +305,26 @@ page Products {
 		},
 		Errors: []string{"INVALID_SECURITY_DECLARATION", "DUPLICATE_SECURITY", "INVALID_CORS_DECLARATION", "DUPLICATE_CORS", "INVALID_CORS_ORIGINS", "DUPLICATE_CORS_ORIGINS", "MISSING_CORS_ORIGINS", "INVALID_CORS_CREDENTIALS", "DUPLICATE_CORS_CREDENTIALS", "INVALID_ENV_NAME"},
 	},
+	"deploy": {
+		Keyword: "deploy",
+		Purpose: "Declares production deployment intent and generated environment wiring for web targets.",
+		Syntax:  "deploy { target docker; port env <ENV_NAME> default <PORT>; env <ENV_NAME> required|optional }",
+		Example: `deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}`,
+		AgentNotes: []string{
+			"Use one deploy block per project.",
+			"Draft v0.1 supports target docker.",
+			"`port env NAME default PORT` makes the generated server read its listen port from an environment variable.",
+			"`env NAME required|optional` documents deployment-time environment variables without placing secrets in .black source.",
+			"When target docker is declared, the web generator writes Dockerfile, .dockerignore, and docker-compose.yml.",
+			"Generated Docker Compose keeps the SQLite dev database under /app/data unless DATABASE_URL overrides it.",
+		},
+		Errors: []string{"INVALID_DEPLOY_DECLARATION", "DUPLICATE_DEPLOY", "UNCLOSED_DEPLOY", "UNEXPECTED_DEPLOY_TOKEN", "INVALID_DEPLOY_TARGET", "DUPLICATE_DEPLOY_TARGET", "MISSING_DEPLOY_TARGET", "UNSUPPORTED_DEPLOY_TARGET", "INVALID_DEPLOY_PORT", "DUPLICATE_DEPLOY_PORT", "MISSING_DEPLOY_PORT_ENV", "INVALID_DEPLOY_PORT_DEFAULT", "INVALID_DEPLOY_ENV", "DUPLICATE_DEPLOY_ENV", "UNSUPPORTED_DEPLOY_ENV_MODE", "INVALID_ENV_NAME"},
+	},
 	"i18n": {
 		Keyword: "i18n",
 		Purpose: "Declares supported locales and the default locale for generated application text.",

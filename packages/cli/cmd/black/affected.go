@@ -91,6 +91,18 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 		populateDatabaseAffected(&analysis)
 		return analysis, missingTopLevelDiagnostic(analysis, "database")
 	}
+	if symbol == "security" || symbol == "cors" {
+		analysis.Kind = "security"
+		analysis.Found = program.Security != nil
+		populateSecurityAffected(&analysis, program)
+		return analysis, missingTopLevelDiagnostic(analysis, "security")
+	}
+	if symbol == "deploy" {
+		analysis.Kind = "deploy"
+		analysis.Found = program.Deploy != nil
+		populateDeployAffected(&analysis)
+		return analysis, missingTopLevelDiagnostic(analysis, "deploy")
+	}
 	if symbol == "app" || symbol == program.App.Name {
 		analysis.Kind = "app"
 		analysis.Found = program.App.Name != ""
@@ -101,7 +113,7 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 	return analysis, []Diagnostic{{
 		Code:       "UNKNOWN_AFFECTED_SYMBOL",
 		Message:    fmt.Sprintf("Affected symbol %q was not found.", symbol),
-		Suggestion: "Use an existing entity, field, page, role, workflow, state, component, api, auth, database, or app symbol.",
+		Suggestion: "Use an existing entity, field, page, role, workflow, state, component, api, auth, database, security, deploy, or app symbol.",
 	}}
 }
 
@@ -352,6 +364,23 @@ func populateDatabaseAffected(analysis *AffectedAnalysis) {
 	analysis.addGeneratedFile("prisma/schema.prisma", "Database provider and schema are emitted for generated persistence.")
 	analysis.addGeneratedFile("src/db.ts", "Generated Prisma client reads database configuration.")
 	analysis.addGeneratedFile("src/setup-db.ts", "Generated SQLite setup writes the local MVP database.")
+}
+
+func populateSecurityAffected(analysis *AffectedAnalysis, program Program) {
+	analysis.addGeneratedFile(".env.example", "Security env references are documented for local setup.")
+	analysis.addGeneratedFile("src/server.ts", "Generated server emits security middleware from security intent.")
+	if program.Deploy != nil && program.Deploy.Target == "docker" {
+		analysis.addGeneratedFile("docker-compose.yml", "Generated compose environment mirrors security env references.")
+	}
+}
+
+func populateDeployAffected(analysis *AffectedAnalysis) {
+	analysis.addGeneratedFile(".env.example", "Deployment env defaults are documented for local setup.")
+	analysis.addGeneratedFile(".dockerignore", "Docker build context exclusions are generated from deploy intent.")
+	analysis.addGeneratedFile("Dockerfile", "Docker image build instructions are generated from deploy intent.")
+	analysis.addGeneratedFile("docker-compose.yml", "Docker Compose service wiring is generated from deploy intent.")
+	analysis.addGeneratedFile("package.json", "Generated package scripts include the production start command.")
+	analysis.addGeneratedFile("src/server.ts", "Generated server reads the configured deploy port environment variable.")
 }
 
 func populateAppAffected(analysis *AffectedAnalysis, program Program) {

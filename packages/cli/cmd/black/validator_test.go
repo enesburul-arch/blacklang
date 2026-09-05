@@ -628,6 +628,33 @@ security {
 	}
 }
 
+func TestValidateDeployErrors(t *testing.T) {
+	source := `app Warehouse
+
+deploy {
+  target zip
+  port env port default 70000
+  env DATABASE_URL maybe
+  env DATABASE_URL required
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_DEPLOY_TARGET", "INVALID_ENV_NAME", "INVALID_DEPLOY_PORT_DEFAULT", "UNSUPPORTED_DEPLOY_ENV_MODE", "DUPLICATE_DEPLOY_ENV"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestParseRejectsLiteralDatabaseURL(t *testing.T) {
 	source := `app Warehouse
 

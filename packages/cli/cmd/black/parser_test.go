@@ -246,6 +246,39 @@ entity Product {
 	}
 }
 
+func TestParseDeployDocker(t *testing.T) {
+	source := `app Warehouse
+
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.Deploy == nil {
+		t.Fatalf("expected deploy declaration")
+	}
+	if program.Deploy.Target != "docker" {
+		t.Fatalf("expected docker target, got %#v", program.Deploy)
+	}
+	if program.Deploy.Port == nil || program.Deploy.Port.Env.Name != "PORT" || program.Deploy.Port.Default != "3001" {
+		t.Fatalf("expected port env PORT default 3001, got %#v", program.Deploy.Port)
+	}
+	if len(program.Deploy.Env) != 2 || program.Deploy.Env[0].Name != "DATABASE_URL" || program.Deploy.Env[0].Mode != "required" {
+		t.Fatalf("expected deploy env declarations, got %#v", program.Deploy.Env)
+	}
+}
+
 func TestParseReportsInvalidTableSort(t *testing.T) {
 	source := `app Warehouse
 

@@ -71,7 +71,7 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 			t.Fatalf("expected doc %q to include purpose and syntax, got %#v", doc.Keyword, doc)
 		}
 	}
-	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui"} {
+	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "ui", "deploy"} {
 		if !found[keyword] {
 			t.Fatalf("expected docs to include %q", keyword)
 		}

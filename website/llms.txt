@@ -25,6 +25,7 @@ Read first:
 - `#i18n` for locale and label translation rules.
 - `#security` for source security rules.
 - `#cors` for CORS policy syntax and generated server behavior.
+- `#deploy` for Docker deployment and environment wiring.
 - `#cli` for machine-readable commands.
 - `#ai-agents` for `black agent startup --json` project entry output.
 - `#errors` for diagnostic JSON shape and code families.
@@ -35,6 +36,7 @@ Read first:
 - `/inline-ui.md` for inline UI intent placement rules.
 - `/i18n.md` for locale and field label translation rules.
 - `/security-cors.md` for CORS policy syntax and generated server behavior.
+- `/deployment.md` for Docker deployment and environment wiring.
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
@@ -59,4 +61,5 @@ Agent rule:
 12. Modify `.black` and `.blackthm` source files, not generated output.
 13. Run `black format --check --json`, `black lint --json`, and `black build`.
 14. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-15. Keep secrets out of `.black` files. Use `env DATABASE_URL` and `origins env CORS_ORIGINS` style references.
+15. Keep secrets out of `.black` files. Use `env DATABASE_URL`, `origins env CORS_ORIGINS`, and `deploy env NAME required|optional` style references.
+16. Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.

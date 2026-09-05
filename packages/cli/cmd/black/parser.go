@@ -40,6 +40,8 @@ func (p *parser) parse() {
 			index = p.parseDatabase(index, parts)
 		case "security":
 			index = p.parseSecurity(index, parts)
+		case "deploy":
+			index = p.parseDeploy(index, parts)
 		case "i18n":
 			index = p.parseI18N(index, parts)
 		case "label":
@@ -61,7 +63,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, security, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, auth, database, security, deploy, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -261,6 +263,77 @@ func (p *parser) parseCORS(start int, parts []string) (CORSDecl, int) {
 
 	p.addError(lineNumber, 1, "UNCLOSED_CORS", "CORS block is missing a closing brace.", "Add `}` after the cors block.")
 	return cors, len(p.lines) - 1
+}
+
+func (p *parser) parseDeploy(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_DEPLOY_DECLARATION", "Deploy declaration must be `deploy {`.", "Start with `deploy {`, then add target, port, and env lines.")
+		return start
+	}
+	if p.program.Deploy != nil {
+		p.addError(lineNumber, 1, "DUPLICATE_DEPLOY", "Only one deploy declaration is allowed.", "Keep a single `deploy` block per project.")
+		return start
+	}
+
+	deploy := DeployDecl{
+		Env:      []DeployEnvDecl{},
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Deploy = &deploy
+			return index
+		}
+
+		switch rowParts[0] {
+		case "target":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_TARGET", "Deploy target must be `target name`.", "Example: `target docker`.")
+				continue
+			}
+			if deploy.Target != "" {
+				p.addError(currentLine, 1, "DUPLICATE_DEPLOY_TARGET", "Deploy target is already declared.", "Keep one target line inside deploy.")
+				continue
+			}
+			deploy.Target = rowParts[1]
+		case "port":
+			if len(rowParts) != 5 || rowParts[1] != "env" || rowParts[3] != "default" {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_PORT", "Deploy port must be `port env NAME default NUMBER`.", "Example: `port env PORT default 3001`.")
+				continue
+			}
+			if deploy.Port != nil {
+				p.addError(currentLine, 1, "DUPLICATE_DEPLOY_PORT", "Deploy port is already declared.", "Keep one port line inside deploy.")
+				continue
+			}
+			deploy.Port = &DeployPortDecl{
+				Env: EnvRef{
+					Name:     rowParts[2],
+					Position: p.position(currentLine, 1),
+				},
+				Default:  rowParts[4],
+				Position: p.position(currentLine, 1),
+			}
+		case "env":
+			if len(rowParts) != 3 {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_ENV", "Deploy env must be `env NAME required|optional`.", "Example: `env DATABASE_URL required`.")
+				continue
+			}
+			deploy.Env = append(deploy.Env, DeployEnvDecl{
+				Name:     rowParts[1],
+				Mode:     rowParts[2],
+				Position: p.position(currentLine, 1),
+			})
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_DEPLOY_TOKEN", fmt.Sprintf("Unexpected deploy token %q.", rowParts[0]), "Use target, port, or env inside deploy.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_DEPLOY", "Deploy block is missing a closing brace.", "Add `}` after the deploy block.")
+	return len(p.lines) - 1
 }
 
 func (p *parser) parseI18N(start int, parts []string) int {

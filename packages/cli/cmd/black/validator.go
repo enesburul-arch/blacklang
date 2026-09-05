@@ -63,6 +63,15 @@ var supportedAuthSessions = setOf(
 	"cookie",
 )
 
+var supportedDeployTargets = setOf(
+	"docker",
+)
+
+var supportedDeployEnvModes = setOf(
+	"required",
+	"optional",
+)
+
 var supportedPermissionActions = setOf(
 	"all",
 	"manage",
@@ -99,6 +108,7 @@ func (v *semanticValidator) validate() {
 	v.validateAuth()
 	v.validateDatabase()
 	v.validateSecurity()
+	v.validateDeploy()
 	entityIndex := v.validateEntities()
 	v.validateI18N()
 	v.validateLabelTranslations(entityIndex)
@@ -378,6 +388,46 @@ func (v *semanticValidator) validateSecurity() {
 
 	if cors.Credentials != "" && cors.Credentials != "true" && cors.Credentials != "false" {
 		v.addDiagnostic(cors.Position, "INVALID_CORS_CREDENTIALS", fmt.Sprintf("CORS credentials uses unsupported value %q.", cors.Credentials), "Use `credentials true` or `credentials false`.")
+	}
+}
+
+func (v *semanticValidator) validateDeploy() {
+	if v.program.Deploy == nil {
+		return
+	}
+
+	deploy := *v.program.Deploy
+	if deploy.Target == "" {
+		v.addDiagnostic(deploy.Position, "MISSING_DEPLOY_TARGET", "Deploy block is missing a target.", "Add `target docker` inside deploy.")
+	} else if !supportedDeployTargets[deploy.Target] {
+		v.addDiagnostic(deploy.Position, "UNSUPPORTED_DEPLOY_TARGET", fmt.Sprintf("Deploy target %q is not supported.", deploy.Target), "Use docker in v0.1.")
+	}
+
+	if deploy.Port != nil {
+		if deploy.Port.Env.Name == "" {
+			v.addDiagnostic(deploy.Port.Position, "MISSING_DEPLOY_PORT_ENV", "Deploy port is missing an environment variable name.", "Use `port env PORT default 3001`.")
+		} else if !validEnvName(deploy.Port.Env.Name) {
+			v.addDiagnostic(deploy.Port.Env.Position, "INVALID_ENV_NAME", fmt.Sprintf("Deploy port references invalid environment variable %q.", deploy.Port.Env.Name), "Use uppercase letters, numbers, and underscores, such as PORT.")
+		}
+		port, err := strconv.Atoi(deploy.Port.Default)
+		if err != nil || port < 1 || port > 65535 {
+			v.addDiagnostic(deploy.Port.Position, "INVALID_DEPLOY_PORT_DEFAULT", fmt.Sprintf("Deploy port default %q is invalid.", deploy.Port.Default), "Use a TCP port between 1 and 65535.")
+		}
+	}
+
+	envIndex := map[string]DeployEnvDecl{}
+	for _, env := range deploy.Env {
+		if !validEnvName(env.Name) {
+			v.addDiagnostic(env.Position, "INVALID_ENV_NAME", fmt.Sprintf("Deploy env references invalid environment variable %q.", env.Name), "Use uppercase letters, numbers, and underscores, such as DATABASE_URL.")
+		}
+		if !supportedDeployEnvModes[env.Mode] {
+			v.addDiagnostic(env.Position, "UNSUPPORTED_DEPLOY_ENV_MODE", fmt.Sprintf("Deploy env %s uses unsupported mode %q.", env.Name, env.Mode), "Use required or optional.")
+		}
+		if existing, ok := envIndex[env.Name]; ok {
+			v.addDiagnostic(env.Position, "DUPLICATE_DEPLOY_ENV", fmt.Sprintf("Deploy env %s is already declared.", env.Name), fmt.Sprintf("First definition is at %s:%d.", existing.Position.File, existing.Position.Line))
+			continue
+		}
+		envIndex[env.Name] = env
 	}
 }
 

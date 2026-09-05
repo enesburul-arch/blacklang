@@ -56,6 +56,20 @@ func FormatBlackIR(program Program) string {
 		}
 	}
 
+	if program.Deploy != nil {
+		builder.WriteString("\ndeploy")
+		if program.Deploy.Target != "" {
+			builder.WriteString(fmt.Sprintf(" target %s", program.Deploy.Target))
+		}
+		builder.WriteString("\n")
+		if program.Deploy.Port != nil {
+			builder.WriteString(fmt.Sprintf("  port env %s default %s\n", program.Deploy.Port.Env.Name, program.Deploy.Port.Default))
+		}
+		for _, env := range program.Deploy.Env {
+			builder.WriteString(fmt.Sprintf("  env %s %s\n", env.Name, env.Mode))
+		}
+	}
+
 	if program.I18N != nil {
 		builder.WriteString("\ni18n")
 		if program.I18N.Default != "" {

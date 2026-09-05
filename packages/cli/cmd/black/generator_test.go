@@ -27,6 +27,13 @@ security {
   }
 }
 
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+
 entity Product {
   sku text required unique length 3..40 regex "^[A-Z0-9]+$" message "Use uppercase letters and numbers"
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name"
@@ -176,13 +183,16 @@ page Orders {
 	if len(diagnostics) != 0 {
 		t.Fatalf("expected no build diagnostics, got %#v", diagnostics)
 	}
-	if len(files) != 34 {
-		t.Fatalf("expected 34 generated files, got %d", len(files))
+	if len(files) != 37 {
+		t.Fatalf("expected 37 generated files, got %d", len(files))
 	}
 
 	expected := []string{
 		"README.md",
 		".env.example",
+		".dockerignore",
+		"Dockerfile",
+		"docker-compose.yml",
 		"openapi.json",
 		"package.json",
 		"index.html",
@@ -228,11 +238,56 @@ page Orders {
 	}
 	envExampleText := string(envExample)
 	for _, value := range []string{
+		`PORT=3001`,
 		`DATABASE_URL="file:./dev.db"`,
 		`CORS_ORIGINS="http://localhost:5173"`,
 	} {
 		if !strings.Contains(envExampleText, value) {
 			t.Fatalf("expected env example to contain %q, got:\n%s", value, envExampleText)
+		}
+	}
+
+	packageJSON, err := os.ReadFile(filepath.Join(outDir, "package.json"))
+	if err != nil {
+		t.Fatalf("expected generated package.json: %v", err)
+	}
+	if !strings.Contains(string(packageJSON), `"start": "tsx src/server.ts"`) {
+		t.Fatalf("expected package.json to contain start script, got:\n%s", string(packageJSON))
+	}
+
+	dockerfile, err := os.ReadFile(filepath.Join(outDir, "Dockerfile"))
+	if err != nil {
+		t.Fatalf("expected generated Dockerfile: %v", err)
+	}
+	dockerfileText := string(dockerfile)
+	for _, value := range []string{
+		`FROM node:22-alpine`,
+		`RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi`,
+		`RUN npm run build`,
+		`ENV PORT=3001`,
+		`EXPOSE 3001`,
+		`CMD ["sh", "-c", "npm run db:setup && npm run start"]`,
+	} {
+		if !strings.Contains(dockerfileText, value) {
+			t.Fatalf("expected Dockerfile to contain %q, got:\n%s", value, dockerfileText)
+		}
+	}
+
+	compose, err := os.ReadFile(filepath.Join(outDir, "docker-compose.yml"))
+	if err != nil {
+		t.Fatalf("expected generated docker-compose.yml: %v", err)
+	}
+	composeText := string(compose)
+	for _, value := range []string{
+		`warehouse:`,
+		`- "${PORT:-3001}:${PORT:-3001}"`,
+		`PORT: "${PORT:-3001}"`,
+		`DATABASE_URL: "${DATABASE_URL:-file:/app/data/dev.db}"`,
+		`CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173}"`,
+		`warehouse-data:/app/data`,
+	} {
+		if !strings.Contains(composeText, value) {
+			t.Fatalf("expected docker-compose.yml to contain %q, got:\n%s", value, composeText)
 		}
 	}
 
@@ -310,6 +365,7 @@ page Orders {
 	for _, value := range []string{
 		`import { authRouter, requireAuth, requireCsrf } from "./routes/auth";`,
 		`import path from "node:path";`,
+		`const port = Number(process.env["PORT"] ?? "3001");`,
 		`const rateWindowMs = 60_000;`,
 		`const rateLimit = 120;`,
 		`app.disable("x-powered-by");`,
@@ -331,6 +387,8 @@ page Orders {
 		`app.use("/api", requireCsrf);`,
 		`app.get("/openapi.json", (_req, res) => {`,
 		`res.sendFile(path.join(process.cwd(), "openapi.json"));`,
+		`app.use(express.static(path.join(process.cwd(), "dist")));`,
+		`res.sendFile(path.join(process.cwd(), "dist", "index.html"));`,
 	} {
 		if !strings.Contains(serverText, value) {
 			t.Fatalf("expected server to contain %q, got:\n%s", value, serverText)

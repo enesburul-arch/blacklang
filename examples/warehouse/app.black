@@ -21,6 +21,13 @@ security {
   }
 }
 
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+
 i18n {
   default tr
   locales tr, en

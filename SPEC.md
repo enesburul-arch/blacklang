@@ -510,7 +510,7 @@ JSON shape:
 }
 ```
 
-Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `auth`, `database`, and `app`.
+Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `auth`, `database`, `security`, `deploy`, and `app`.
 
 Unknown symbols return `UNKNOWN_AFFECTED_SYMBOL`. Missing `--affected` values return `MISSING_AFFECTED_SYMBOL`.
 
@@ -640,6 +640,32 @@ black package --production
 The production package copies generated output while excluding `.black` source files, `.env`, local database files, `node_modules`, and generated Prisma client output.
 
 Generated package scripts keep `db:push` mapped to BlackLang's deterministic SQLite setup for MVP safety. `db:push:native` is emitted as an explicit opt-in Prisma `db push` command for local schema-engine checks.
+
+## Current Deployment Declaration
+
+Draft v0.1 supports a top-level `deploy` declaration:
+
+```black
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+  env CORS_ORIGINS optional
+}
+```
+
+The parser, validator, JSON output, BlackIR output, generated `.env.example`, generated server, package scripts, Dockerfile, `.dockerignore`, and Docker Compose output understand this declaration.
+
+Rules:
+
+- Use one `deploy` block per project.
+- `target docker` is the only supported target in v0.1.
+- `port env NAME default PORT` declares the environment variable the generated server reads for its listen port.
+- The default port must be between 1 and 65535.
+- `env NAME required|optional` declares runtime environment variables without storing secret values in `.black` source.
+- `required` and `optional` are documentation/runtime wiring modes in v0.1.
+- Generated Docker Compose persists the default SQLite database under `/app/data` unless `DATABASE_URL` overrides it.
+- PostgreSQL deployment syntax is planned after the generated database runtime supports PostgreSQL.
 
 ## Generated Form Validation
 

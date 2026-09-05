@@ -21,6 +21,12 @@ database {
   url env DATABASE_URL
 }
 
+deploy {
+  target docker
+  port env PORT default 3001
+  env DATABASE_URL required
+}
+
 entity Product {
   sku text required unique
   stock number default 0 ui text "#172026" 14 semibold left
@@ -96,6 +102,9 @@ page Products {
 		"email email required unique",
 		"database",
 		"url env DATABASE_URL",
+		"deploy target docker",
+		"port env PORT default 3001",
+		"env DATABASE_URL required",
 		"entity Product",
 		"sku text required unique",
 		"stock number default 0 ui text #172026 14 semibold left",

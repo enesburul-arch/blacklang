@@ -59,6 +59,7 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Generate package metadata
 - [x] Generate output README
 - [x] Generate database workflow scripts and environment example
+- [x] Generate Docker deployment files from deploy intent
 - [x] Generate Vite entry files
 - [x] Generate basic create/edit/delete UI behavior from actions
 - [x] Verify generated Vite app with npm install and production build
@@ -223,3 +224,15 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Detect likely hardcoded passwords, API keys, tokens, and private keys
 - [x] Add production packaging that excludes protected source by default
 - [x] Explore encrypted source mode such as `app.black.enc`
+
+## Phase 18: Deployment and Environment
+
+- [x] Parse `deploy { target docker }`
+- [x] Validate deploy target, port env, and deploy env declarations
+- [x] Include deploy intent in JSON/BlackIR outputs
+- [x] Generate `.env.example` port/default env wiring
+- [x] Generate Dockerfile, `.dockerignore`, and `docker-compose.yml`
+- [x] Make generated server read `PORT`
+- [x] Serve built Vite frontend from the generated Express server
+- [ ] Add PostgreSQL runtime support before enabling postgres deploy target
+- [ ] Add preview deployment target

@@ -142,6 +142,7 @@ Implemented so far:
 - Append-only slot checks for locked UI profiles
 - Standard UI mode groups for `box`, `text`, `table`, and `button`
 - Parsed and validated inline UI intent near fields, forms, tables, and action buttons
+- Generated CSS classes from inline UI intent
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`

@@ -48,7 +48,7 @@ This phase starts the BlackLang-native UI layer instead of forcing users or AI a
 - [x] Make UI slots append-only after profile lock
 - [x] Add mode groups such as `box`, `text`, `table`, and `button`
 - [x] Support inline UI intent near fields, forms, tables, and buttons
-- [ ] Generate CSS from UI intent
+- [x] Generate CSS from UI intent
 - [ ] Add migration rules for UI profile changes
 
 ## Phase 21: Query, Actions, and Data Logic

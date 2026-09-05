@@ -178,7 +178,7 @@ black theme inspect examples/warehouse/theme.blackthm --json
 black theme inspect examples/warehouse/theme.blackthm --ir
 ```
 
-In this phase, `black theme inspect` reads and validates `.blackthm` metadata. CSS generation from `.blackthm` is planned for later Phase 20 steps.
+In this phase, `black theme inspect` reads and validates `.blackthm` metadata. Inline `.black` UI intent can already generate CSS; full CSS generation directly from `.blackthm` token resolution is planned for later Phase 20 steps.
 
 ## AI Agent Rule
 

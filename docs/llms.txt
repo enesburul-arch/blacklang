@@ -61,6 +61,8 @@ Use `black docs ui-modes --json` or `profile.modeGroups` to understand the stand
 
 Use `black docs ui --json` before editing compact inline UI intent in `.black` files.
 
+Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
+
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
 Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, or APIs.

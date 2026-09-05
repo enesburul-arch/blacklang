@@ -6,7 +6,7 @@ This document defines the current compact `ui` syntax inside `.black` files.
 
 Inline UI intent keeps styling instructions near the field, form, table, or action button they belong to, without requiring raw CSS in the source file.
 
-CSS generation from this intent is planned for the next Phase 20 step.
+The web generator now turns supported inline UI intent into stable CSS classes in `src/styles.css`.
 
 ## Syntax
 
@@ -83,6 +83,28 @@ Parsed fields, forms, tables, and action UI declarations expose `ui` arrays:
   ]
 }
 ```
+
+## Generated CSS
+
+Generated web output uses deterministic class names:
+
+```text
+table   .bl-ui-table-<page>
+form    .bl-ui-form-<page>
+field   .bl-ui-field-<entity>-<field>
+action  .bl-ui-action-<page>-<action>
+```
+
+Current standard slot mapping:
+
+```text
+box     color width style pt pr pb pl radius place
+text    color size weight align
+table   color width style density zebra
+button  bg color radius size variant
+```
+
+Missing trailing values use safe defaults. This phase includes built-in color aliases such as `primary`, `black`, `white`, `border`, `muted`, `danger`, and `success`. Full `.blackthm` token resolution is a later extension.
 
 ## Diagnostics
 

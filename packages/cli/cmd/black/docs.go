@@ -96,7 +96,7 @@ black agent startup --ir`,
 	},
 	"theme": {
 		Keyword: "theme",
-		Purpose: "Inspects .blackthm UI theme/profile files before CSS generation exists.",
+		Purpose: "Inspects .blackthm UI theme/profile files before theme-driven CSS generation exists.",
 		Syntax:  "black theme inspect [file] [--json|--ir]",
 		Example: `black theme inspect --json
 black theme inspect examples/warehouse/theme.blackthm --json
@@ -131,7 +131,7 @@ form {
 		AgentNotes: []string{
 			"Read profile.modes[].slots from black theme inspect --json before writing inline UI intent.",
 			"Slots are positional and are read left to right.",
-			"Trailing missing values use defaults in later CSS generation phases.",
+			"Trailing missing values use CSS generation defaults.",
 			"Extra values are errors because they cannot map to a known slot.",
 			"Each slot name may appear only once inside a mode.",
 			"After a profile is locked, existing slots are immutable and new slots are append-only.",
@@ -192,7 +192,8 @@ page Products {
 			"Table UI currently accepts box, text, and table modes.",
 			"Action button UI currently accepts button mode with `action <name> ui button ...`.",
 			"Values are compact positional data; read .blackthm profile.modes[].slots before generating them.",
-			"CSS generation from inline UI intent is planned for a later Phase 20 step.",
+			"Web builds generate stable .bl-ui-* CSS classes from supported inline UI intent.",
+			"Full .blackthm token resolution is a later extension; current builds use standard v0.2 slots and safe defaults.",
 		},
 		Errors: []string{"INVALID_UI_INTENT", "INVALID_ACTION_UI", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT", "UNKNOWN_ACTION_UI"},
 	},

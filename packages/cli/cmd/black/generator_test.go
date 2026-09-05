@@ -730,6 +730,91 @@ page Orders {
 	}
 }
 
+func TestBuildWebGeneratesInlineUICSS(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text required ui text "#172026" 14 semibold left
+  stock number default 0
+}
+
+page Products {
+  source Product
+
+  table {
+    columns sku, stock
+    ui table border 1 solid compact true
+  }
+
+  form {
+    fields sku, stock
+    ui box black 1 solid 8 8 5 5 6 center | button primary white 6 md solid
+  }
+
+  actions create, edit, delete
+  action create ui button primary white 6 md solid
+  action delete ui button danger white 6 sm solid
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	validateDiagnostics := Validate(program)
+	if len(validateDiagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", validateDiagnostics)
+	}
+
+	outDir := t.TempDir()
+	if _, diagnostics := BuildWeb(program, outDir); len(diagnostics) != 0 {
+		t.Fatalf("expected no build diagnostics, got %#v", diagnostics)
+	}
+
+	styles, err := os.ReadFile(filepath.Join(outDir, "src", "styles.css"))
+	if err != nil {
+		t.Fatalf("expected generated styles: %v", err)
+	}
+	stylesText := string(styles)
+	for _, value := range []string{
+		"/* Generated from BlackLang inline UI intent. */",
+		".bl-ui-table-products table {",
+		"border: 1px solid #d8dee4;",
+		".bl-ui-table-products tbody tr:nth-child(even) {",
+		".bl-ui-form-products {",
+		"padding: 8px 8px 5px 5px;",
+		".bl-ui-form-products button {",
+		".bl-ui-field-product-sku {",
+		"font-size: 14px;",
+		"font-weight: 600;",
+		".bl-ui-action-products-create {",
+		"background: #2563eb;",
+		".bl-ui-action-products-delete {",
+		"font-size: 13px;",
+	} {
+		if !strings.Contains(stylesText, value) {
+			t.Fatalf("expected generated inline UI CSS to contain %q, got:\n%s", value, stylesText)
+		}
+	}
+
+	page, err := os.ReadFile(filepath.Join(outDir, "src", "pages", "ProductsPage.tsx"))
+	if err != nil {
+		t.Fatalf("expected generated products page: %v", err)
+	}
+	pageText := string(page)
+	for _, value := range []string{
+		`<section className="panel bl-ui-table-products">`,
+		`<section className="panel bl-ui-form-products">`,
+		`<label className="bl-ui-field-product-sku">`,
+		`className={!editingId ? "bl-ui-action-products-create" : undefined}`,
+		`className="danger bl-ui-action-products-delete"`,
+	} {
+		if !strings.Contains(pageText, value) {
+			t.Fatalf("expected generated page to contain %q, got:\n%s", value, pageText)
+		}
+	}
+}
+
 func TestBuildWebUsesLowerCamelIdentifiersForCompoundEntityNames(t *testing.T) {
 	source := `app InventoryControl
 

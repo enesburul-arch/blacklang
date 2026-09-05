@@ -370,7 +370,7 @@ If any standard mode is missing, `black theme inspect --json` returns `MISSING_S
 
 ## Current Inline UI Intent
 
-Draft v0.2 supports compact inline UI intent inside `.black` source. This records visual intent near the field, form, table, or action button it belongs to. It does not generate CSS yet; CSS generation is the next Phase 20 step.
+Draft v0.2 supports compact inline UI intent inside `.black` source. This records visual intent near the field, form, table, or action button it belongs to and generates deterministic CSS classes in the web target.
 
 Syntax:
 
@@ -427,6 +427,17 @@ Current semantic rules:
 - Unknown mode names return `UNSUPPORTED_UI_MODE`.
 - Mode names that do not apply to the current target return `UNSUPPORTED_UI_TARGET_MODE`.
 - Malformed UI lines return `INVALID_UI_INTENT` or `INVALID_ACTION_UI`.
+
+Generated web output appends CSS rules to `src/styles.css` using stable class names:
+
+```text
+table   .bl-ui-table-<page>
+form    .bl-ui-form-<page>
+field   .bl-ui-field-<entity>-<field>
+action  .bl-ui-action-<page>-<action>
+```
+
+The current generator uses the standard v0.2 slots for `box`, `text`, `table`, and `button`. Missing trailing values fall back to safe defaults. Full `.blackthm` token resolution remains a later extension.
 
 ## Current Diagnostic Documentation
 

@@ -69,7 +69,7 @@ text.align  = left
 
 - Slots are positional and read left to right.
 - `|` separates multiple UI mode groups.
-- Missing trailing values use defaults in later CSS generation phases.
+- Missing trailing values use CSS generation defaults.
 - Extra values are errors.
 - Each slot name may appear only once inside a mode.
 - After a profile is locked, existing slots are immutable.

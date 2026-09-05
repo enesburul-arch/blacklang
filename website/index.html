@@ -649,8 +649,8 @@ button  generated veya explicit action control stilleri</code></pre>
         <h2>inline-ui</h2>
         <p>
           `ui`, görsel niyeti `.black` dosyasında ilgili field, form, table veya action
-          button yanında tutar. Bu aşamada CSS üretmez; parser, validator ve JSON/IR
-          çıktıları için intent bilgisini taşır.
+          button yanında tutar. Web target artık bu intent bilgisinden stable `.bl-ui-*`
+          class adları ve `src/styles.css` içinde CSS kuralları üretir.
         </p>
         <div class="code-panel">
           <div class="code-title">Field, table, form ve action button</div>
@@ -688,6 +688,13 @@ button  button</code></pre>
           `UNSUPPORTED_UI_TARGET_MODE`, tekrar eden mode kullanımı `DUPLICATE_UI_INTENT`
           olarak raporlanır. Field satırında normal modifier'lar `ui` öncesinde kalmalıdır.
         </p>
+        <div class="code-panel">
+          <div class="code-title">Generated class düzeni</div>
+          <pre><code>table   .bl-ui-table-&lt;page&gt;
+form    .bl-ui-form-&lt;page&gt;
+field   .bl-ui-field-&lt;entity&gt;-&lt;field&gt;
+action  .bl-ui-action-&lt;page&gt;-&lt;action&gt;</code></pre>
+        </div>
       </section>
 
       <section id="api">

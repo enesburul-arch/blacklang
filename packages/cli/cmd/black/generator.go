@@ -1319,7 +1319,7 @@ func (g *webGenerator) setupDBTS() string {
 }
 
 func (g *webGenerator) stylesCSS() string {
-	return `:root {
+	base := `:root {
   color: #172026;
   background: #f6f8fa;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -1743,6 +1743,381 @@ th {
   }
 }
 `
+	inlineUI := g.inlineUICSS()
+	if inlineUI == "" {
+		return base
+	}
+	return strings.TrimRight(base, "\n") + "\n\n" + inlineUI
+}
+
+type uiCSSRule struct {
+	selector     string
+	declarations []string
+}
+
+func (g *webGenerator) inlineUICSS() string {
+	rules := []uiCSSRule{}
+	seenFieldRules := map[string]bool{}
+
+	for _, page := range g.program.Pages {
+		if len(page.Table.UI) > 0 {
+			rules = append(rules, inlineUIRulesFor("."+g.tableUIClass(page), "table", page.Table.UI)...)
+		}
+		if len(page.Form.UI) > 0 {
+			rules = append(rules, inlineUIRulesFor("."+g.formUIClass(page), "form", page.Form.UI)...)
+		}
+		for _, actionUI := range page.ActionUI {
+			if len(actionUI.UI) == 0 {
+				continue
+			}
+			rules = append(rules, inlineUIRulesFor("."+g.actionUIClass(page, actionUI.Action), "button", actionUI.UI)...)
+		}
+
+		entity, ok := g.findEntity(page.Source)
+		if !ok {
+			continue
+		}
+		for _, fieldName := range page.Form.Fields {
+			field, ok := findField(entity, fieldName)
+			if !ok || len(field.UI) == 0 {
+				continue
+			}
+			className := g.fieldUIClass(entity, field)
+			if seenFieldRules[className] {
+				continue
+			}
+			seenFieldRules[className] = true
+			rules = append(rules, inlineUIRulesFor("."+className, "field", field.UI)...)
+		}
+	}
+
+	if len(rules) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("/* Generated from BlackLang inline UI intent. */\n")
+	for _, rule := range rules {
+		if len(rule.declarations) == 0 {
+			continue
+		}
+		builder.WriteString(rule.selector)
+		builder.WriteString(" {\n")
+		for _, declaration := range rule.declarations {
+			builder.WriteString("  ")
+			builder.WriteString(declaration)
+			builder.WriteString("\n")
+		}
+		builder.WriteString("}\n\n")
+	}
+	return strings.TrimRight(builder.String(), "\n") + "\n"
+}
+
+func inlineUIRulesFor(selector string, target string, intents []UIIntent) []uiCSSRule {
+	rules := []uiCSSRule{}
+	for _, intent := range intents {
+		switch intent.Mode {
+		case "box":
+			rules = append(rules, uiCSSRule{selector: selector, declarations: boxUIDeclarations(intent.Values)})
+		case "text":
+			textDeclarations := textUIDeclarations(intent.Values)
+			rules = append(rules, uiCSSRule{selector: selector, declarations: textDeclarations})
+			switch target {
+			case "form":
+				rules = append(rules, uiCSSRule{selector: selector + " label, " + selector + " h2", declarations: textDeclarations})
+			case "table":
+				rules = append(rules, uiCSSRule{selector: selector + " th, " + selector + " td", declarations: textDeclarations})
+			}
+		case "table":
+			rules = append(rules, tableUIRules(selector, intent.Values)...)
+		case "button":
+			buttonSelector := selector
+			if target == "form" {
+				buttonSelector += " button"
+			}
+			rules = append(rules, uiCSSRule{selector: buttonSelector, declarations: buttonUIDeclarations(intent.Values)})
+		}
+	}
+	return rules
+}
+
+func boxUIDeclarations(values []string) []string {
+	declarations := []string{}
+	color := uiValue(values, 0)
+	width := uiValue(values, 1)
+	style := uiValue(values, 2)
+	pt := uiValue(values, 3)
+	pr := uiValue(values, 4)
+	pb := uiValue(values, 5)
+	pl := uiValue(values, 6)
+	radius := uiValue(values, 7)
+	place := uiValue(values, 8)
+
+	if color != "" {
+		declarations = append(declarations, "border-color: "+cssColor(color)+";")
+	}
+	if width != "" {
+		declarations = append(declarations, "border-width: "+cssLength(width)+";")
+	}
+	if style != "" {
+		declarations = append(declarations, "border-style: "+style+";")
+	}
+	if pt != "" || pr != "" || pb != "" || pl != "" {
+		declarations = append(declarations, "padding: "+cssPadding(pt, pr, pb, pl)+";")
+	}
+	if radius != "" {
+		declarations = append(declarations, "border-radius: "+cssRadius(radius)+";")
+	}
+	if place != "" {
+		declarations = append(declarations, "text-align: "+place+";")
+	}
+	return declarations
+}
+
+func textUIDeclarations(values []string) []string {
+	declarations := []string{}
+	if color := uiValue(values, 0); color != "" {
+		declarations = append(declarations, "color: "+cssColor(color)+";")
+	}
+	if size := uiValue(values, 1); size != "" {
+		declarations = append(declarations, "font-size: "+cssLength(size)+";")
+	}
+	if weight := uiValue(values, 2); weight != "" {
+		declarations = append(declarations, "font-weight: "+cssFontWeight(weight)+";")
+	}
+	if align := uiValue(values, 3); align != "" {
+		declarations = append(declarations, "text-align: "+align+";")
+	}
+	return declarations
+}
+
+func tableUIRules(selector string, values []string) []uiCSSRule {
+	color := cssColor(uiValue(values, 0))
+	width := cssLength(uiValue(values, 1))
+	style := uiValue(values, 2)
+	density := strings.ToLower(uiValue(values, 3))
+	zebra := strings.ToLower(uiValue(values, 4))
+
+	if color == "" {
+		color = "#d8dee4"
+	}
+	if width == "" {
+		width = "1px"
+	}
+	if style == "" {
+		style = "solid"
+	}
+
+	cellPadding := "10px"
+	switch density {
+	case "tight":
+		cellPadding = "6px"
+	case "compact":
+		cellPadding = "8px"
+	case "comfortable", "relaxed":
+		cellPadding = "14px"
+	}
+
+	rules := []uiCSSRule{
+		{
+			selector: selector + " table",
+			declarations: []string{
+				"border-collapse: separate;",
+				"border-spacing: 0;",
+				fmt.Sprintf("border: %s %s %s;", width, style, color),
+				"border-radius: 6px;",
+				"overflow: hidden;",
+			},
+		},
+		{
+			selector: selector + " th, " + selector + " td",
+			declarations: []string{
+				fmt.Sprintf("border-bottom: %s %s %s;", width, style, color),
+				"padding: " + cellPadding + ";",
+			},
+		},
+	}
+
+	if zebra == "true" || zebra == "yes" || zebra == "on" || zebra == "zebra" {
+		rules = append(rules, uiCSSRule{
+			selector: selector + " tbody tr:nth-child(even)",
+			declarations: []string{
+				"background: rgba(37, 99, 235, 0.045);",
+			},
+		})
+	}
+	return rules
+}
+
+func buttonUIDeclarations(values []string) []string {
+	bg := cssColor(uiValue(values, 0))
+	color := cssColor(uiValue(values, 1))
+	radius := cssRadius(uiValue(values, 2))
+	size := strings.ToLower(uiValue(values, 3))
+	variant := strings.ToLower(uiValue(values, 4))
+
+	if bg == "" {
+		bg = "#1f6feb"
+	}
+	if color == "" {
+		color = "#ffffff"
+	}
+	if radius == "" {
+		radius = "6px"
+	}
+
+	padding := "9px 12px"
+	fontSize := ""
+	switch size {
+	case "xs":
+		padding = "5px 8px"
+		fontSize = "12px"
+	case "sm":
+		padding = "7px 10px"
+		fontSize = "13px"
+	case "lg":
+		padding = "11px 16px"
+		fontSize = "15px"
+	case "xl":
+		padding = "13px 18px"
+		fontSize = "16px"
+	}
+
+	declarations := []string{
+		"border-color: " + bg + ";",
+		"border-radius: " + radius + ";",
+		"padding: " + padding + ";",
+	}
+	if fontSize != "" {
+		declarations = append(declarations, "font-size: "+fontSize+";")
+	}
+
+	switch variant {
+	case "outline":
+		declarations = append(declarations,
+			"background: transparent;",
+			"color: "+bg+";",
+		)
+	case "ghost":
+		declarations = append(declarations,
+			"background: transparent;",
+			"border-color: transparent;",
+			"color: "+bg+";",
+		)
+	default:
+		declarations = append(declarations,
+			"background: "+bg+";",
+			"color: "+color+";",
+		)
+	}
+	return declarations
+}
+
+func uiValue(values []string, index int) string {
+	if index >= len(values) {
+		return ""
+	}
+	value := strings.TrimSpace(values[index])
+	if value == "" || value == "_" || value == "-" || strings.EqualFold(value, "default") {
+		return ""
+	}
+	return value
+}
+
+func cssColor(value string) string {
+	switch strings.ToLower(value) {
+	case "":
+		return ""
+	case "primary":
+		return "#2563eb"
+	case "surface", "white":
+		return "#ffffff"
+	case "text", "black":
+		return "#172026"
+	case "border":
+		return "#d8dee4"
+	case "muted":
+		return "#57606a"
+	case "danger":
+		return "#cf222e"
+	case "success":
+		return "#087f5b"
+	default:
+		return value
+	}
+}
+
+func cssLength(value string) string {
+	switch strings.ToLower(value) {
+	case "":
+		return ""
+	case "xs":
+		return "4px"
+	case "sm":
+		return "8px"
+	case "md":
+		return "12px"
+	case "lg":
+		return "16px"
+	case "xl":
+		return "24px"
+	}
+	if isNumericLiteral(value) {
+		return value + "px"
+	}
+	return value
+}
+
+func cssRadius(value string) string {
+	switch strings.ToLower(value) {
+	case "":
+		return ""
+	case "none":
+		return "0"
+	case "sm":
+		return "4px"
+	case "md":
+		return "6px"
+	case "lg":
+		return "8px"
+	case "xl":
+		return "12px"
+	case "full", "pill":
+		return "999px"
+	default:
+		return cssLength(value)
+	}
+}
+
+func cssPadding(top string, right string, bottom string, left string) string {
+	values := []string{cssLength(top), cssLength(right), cssLength(bottom), cssLength(left)}
+	for index, value := range values {
+		if value == "" {
+			values[index] = "0"
+		}
+	}
+	return strings.Join(values, " ")
+}
+
+func cssFontWeight(value string) string {
+	switch strings.ToLower(value) {
+	case "thin":
+		return "100"
+	case "light":
+		return "300"
+	case "regular", "normal":
+		return "400"
+	case "medium":
+		return "500"
+	case "semibold":
+		return "600"
+	case "bold":
+		return "700"
+	case "black":
+		return "900"
+	default:
+		return value
+	}
 }
 
 func (g *webGenerator) viteEnv() string {
@@ -3189,7 +3564,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString(fmt.Sprintf("        <h1>%s</h1>\n", page.Name))
 	builder.WriteString(fmt.Sprintf("        <span>%s source: %s</span>\n", g.program.App.Name, entity.Name))
 	builder.WriteString("      </header>\n\n")
-	builder.WriteString("      <section className=\"panel\">\n")
+	builder.WriteString(fmt.Sprintf("      <section%s>\n", classNameAttribute("panel", g.tableUIClass(page))))
 	builder.WriteString("        <div className=\"toolbar\">\n")
 	builder.WriteString("          <input\n")
 	builder.WriteString("        value={search}\n")
@@ -3200,10 +3575,10 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("          <label className=\"inline-control\"><input checked={showArchived} type=\"checkbox\" onChange={(event) => setShowArchived(event.target.checked)} /> Show archived</label>\n")
 	}
 	if hasAction(page, "delete") {
-		builder.WriteString("          {canDelete && <button className=\"danger\" type=\"button\" disabled={saving || selectedIds.length === 0} onClick={bulkDeleteSelected}>Delete Selected ({selectedIds.length})</button>}\n")
+		builder.WriteString(fmt.Sprintf("          {canDelete && <button%s type=\"button\" disabled={saving || selectedIds.length === 0} onClick={bulkDeleteSelected}>Delete Selected ({selectedIds.length})</button>}\n", g.actionButtonClassAttribute(page, "delete", "danger")))
 	}
 	if hasState && hasAction(page, "create") {
-		builder.WriteString(g.openCreateModalButton(state, entity))
+		builder.WriteString(g.openCreateModalButton(page, state, entity))
 	}
 	builder.WriteString("        </div>\n")
 	if len(page.Table.Filters) > 0 {
@@ -3275,16 +3650,16 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("                <div className=\"actions\">\n")
 		builder.WriteString("                  <button className=\"secondary\" type=\"button\" onClick={() => viewItem(item.id)}>View</button>\n")
 		if hasAction(page, "archive") {
-			builder.WriteString("                  {canUpdate && !item.archivedAt && <button className=\"secondary\" type=\"button\" onClick={() => archiveItem(item)}>Archive</button>}\n")
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && !item.archivedAt && <button%s type=\"button\" onClick={() => archiveItem(item)}>Archive</button>}\n", g.actionButtonClassAttribute(page, "archive", "secondary")))
 		}
 		if hasAction(page, "restore") {
-			builder.WriteString("                  {canUpdate && item.archivedAt && <button className=\"secondary\" type=\"button\" onClick={() => restoreItem(item)}>Restore</button>}\n")
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && item.archivedAt && <button%s type=\"button\" onClick={() => restoreItem(item)}>Restore</button>}\n", g.actionButtonClassAttribute(page, "restore", "secondary")))
 		}
 		if hasAction(page, "edit") {
-			builder.WriteString("                  {canUpdate && <button className=\"secondary\" type=\"button\" onClick={() => editItem(item)}>Edit</button>}\n")
+			builder.WriteString(fmt.Sprintf("                  {canUpdate && <button%s type=\"button\" onClick={() => editItem(item)}>Edit</button>}\n", g.actionButtonClassAttribute(page, "edit", "secondary")))
 		}
 		if hasAction(page, "delete") {
-			builder.WriteString("                  {canDelete && <button className=\"danger\" type=\"button\" onClick={() => deleteItem(item.id)}>Delete</button>}\n")
+			builder.WriteString(fmt.Sprintf("                  {canDelete && <button%s type=\"button\" onClick={() => deleteItem(item.id)}>Delete</button>}\n", g.actionButtonClassAttribute(page, "delete", "danger")))
 		}
 		builder.WriteString(g.workflowPageActionButtons(entity))
 		builder.WriteString("                </div>\n")
@@ -3312,7 +3687,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("      </section>\n\n")
 	if hasAction(page, "create") || hasAction(page, "edit") {
 		builder.WriteString(fmt.Sprintf("      {%s && (\n", g.formVisibleExpression(page, entity, state, hasState)))
-		builder.WriteString("      <section className=\"panel\">\n")
+		builder.WriteString(fmt.Sprintf("      <section%s>\n", classNameAttribute("panel", g.formUIClass(page))))
 		builder.WriteString(fmt.Sprintf("        <h2>{editingId ? \"Edit %s\" : \"Create %s\"}</h2>\n", entity.Name, entity.Name))
 		builder.WriteString("        {missingRequiredRelations && (\n")
 		builder.WriteString("          <div className=\"status relation-status\">\n")
@@ -3329,14 +3704,14 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 			}
 			if g.isRelationField(field) {
 				optionsName := relationOptionsStateName(field)
-				builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label>\n              %s\n              <select%s disabled={%s.length === 0} value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)}>\n                <option value=\"\">%s</option>\n                {%s.map((option) => (\n                  <option key={option.id} value={option.id}>{%s}</option>\n                ))}\n              </select>\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s{%s.length === 0 && <span className=\"field-note\">Create a %s record before selecting %s.</span>}\n            </label>}\n", field.Name, field.Name, fieldLabel(field), selectAttributes(field), optionsName, field.Name, field.Name, fieldPlaceholder(field, "Select "+fieldLabel(field)), optionsName, g.relationOptionLabelExpression("option", field.Type), field.Name, field.Name, helpElement(field), optionsName, field.Type, fieldLabel(field)))
+				builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <select%s disabled={%s.length === 0} value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)}>\n                <option value=\"\">%s</option>\n                {%s.map((option) => (\n                  <option key={option.id} value={option.id}>{%s}</option>\n                ))}\n              </select>\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s{%s.length === 0 && <span className=\"field-note\">Create a %s record before selecting %s.</span>}\n            </label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), fieldLabel(field), selectAttributes(field), optionsName, field.Name, field.Name, fieldPlaceholder(field, "Select "+fieldLabel(field)), optionsName, g.relationOptionLabelExpression("option", field.Type), field.Name, field.Name, helpElement(field), optionsName, field.Type, fieldLabel(field)))
 				continue
 			}
-			builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label>\n              %s\n              <input%s%s value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)} />\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s%s</label>}\n", field.Name, field.Name, fieldLabel(field), inputAttributes(field), placeholderAttribute(field), field.Name, field.Name, field.Name, field.Name, g.formComponentPreview(field), helpElement(field)))
+			builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && (editingId ? permissions.writeFields.%s !== false : canCreate) && <label%s>\n              %s\n              <input%s%s value={form.%s} onChange={(event) => updateField(\"%s\", event.target.value)} />\n              {visibleFormErrors.%s && <span className=\"field-error\">{visibleFormErrors.%s}</span>}\n              %s%s</label>}\n", field.Name, field.Name, g.fieldUIClassAttribute(entity, field), fieldLabel(field), inputAttributes(field), placeholderAttribute(field), field.Name, field.Name, field.Name, field.Name, g.formComponentPreview(field), helpElement(field)))
 		}
 		builder.WriteString("          </div>\n")
 		builder.WriteString("          <div className=\"toolbar\">\n")
-		builder.WriteString("            <button type=\"submit\" disabled={saving || missingRequiredRelations}>{saving ? \"Saving...\" : editingId ? \"Save Changes\" : \"Create\"}</button>\n")
+		builder.WriteString(fmt.Sprintf("            <button%s type=\"submit\" disabled={saving || missingRequiredRelations}>{saving ? \"Saving...\" : editingId ? \"Save Changes\" : \"Create\"}</button>\n", g.formSubmitClassAttribute(page)))
 		builder.WriteString(fmt.Sprintf("            {%s && <button className=\"secondary\" type=\"button\" onClick={resetForm}>Cancel</button>}\n", g.cancelVisibleExpression(entity, state, hasState)))
 		builder.WriteString("          </div>\n")
 		builder.WriteString("        </form>\n")
@@ -3641,13 +4016,88 @@ func (g *webGenerator) closePageModals(state StateDecl) string {
 	return builder.String()
 }
 
-func (g *webGenerator) openCreateModalButton(state StateDecl, entity EntityDecl) string {
+func (g *webGenerator) openCreateModalButton(page PageDecl, state StateDecl, entity EntityDecl) string {
 	for _, modal := range state.Modals {
 		if modal.Name == "create"+entity.Name {
-			return fmt.Sprintf("          {canCreate && !editingId && !%s && <button className=\"secondary\" type=\"button\" onClick={open%s}>New %s</button>}\n", modalStateName(modal), title(modal.Name), entity.Name)
+			return fmt.Sprintf("          {canCreate && !editingId && !%s && <button%s type=\"button\" onClick={open%s}>New %s</button>}\n", modalStateName(modal), g.actionButtonClassAttribute(page, "create", "secondary"), title(modal.Name), entity.Name)
 		}
 	}
 	return ""
+}
+
+func (g *webGenerator) tableUIClass(page PageDecl) string {
+	if len(page.Table.UI) == 0 {
+		return ""
+	}
+	return "bl-ui-table-" + kebabCase(page.Name)
+}
+
+func (g *webGenerator) formUIClass(page PageDecl) string {
+	if len(page.Form.UI) == 0 {
+		return ""
+	}
+	return "bl-ui-form-" + kebabCase(page.Name)
+}
+
+func (g *webGenerator) fieldUIClass(entity EntityDecl, field FieldDecl) string {
+	return "bl-ui-field-" + kebabCase(entity.Name) + "-" + kebabCase(field.Name)
+}
+
+func (g *webGenerator) fieldUIClassAttribute(entity EntityDecl, field FieldDecl) string {
+	if len(field.UI) == 0 {
+		return ""
+	}
+	return classNameAttribute(g.fieldUIClass(entity, field))
+}
+
+func (g *webGenerator) actionUIClass(page PageDecl, action string) string {
+	for _, actionUI := range page.ActionUI {
+		if actionUI.Action == action && len(actionUI.UI) > 0 {
+			return "bl-ui-action-" + kebabCase(page.Name) + "-" + kebabCase(action)
+		}
+	}
+	return ""
+}
+
+func (g *webGenerator) actionButtonClassAttribute(page PageDecl, action string, baseClasses ...string) string {
+	classes := append([]string{}, baseClasses...)
+	classes = append(classes, g.actionUIClass(page, action))
+	return classNameAttribute(classes...)
+}
+
+func (g *webGenerator) formSubmitClassAttribute(page PageDecl) string {
+	createClass := g.actionUIClass(page, "create")
+	editClass := g.actionUIClass(page, "edit")
+	if createClass != "" && editClass != "" {
+		return fmt.Sprintf(" className={editingId ? %q : %q}", editClass, createClass)
+	}
+	if createClass != "" {
+		return fmt.Sprintf(" className={!editingId ? %q : undefined}", createClass)
+	}
+	if editClass != "" {
+		return fmt.Sprintf(" className={editingId ? %q : undefined}", editClass)
+	}
+	return ""
+}
+
+func classNameAttribute(classes ...string) string {
+	joined := joinCSSClasses(classes...)
+	if joined == "" {
+		return ""
+	}
+	return fmt.Sprintf(" className=%q", joined)
+}
+
+func joinCSSClasses(classes ...string) string {
+	filtered := []string{}
+	for _, className := range classes {
+		className = strings.TrimSpace(className)
+		if className == "" {
+			continue
+		}
+		filtered = append(filtered, className)
+	}
+	return strings.Join(filtered, " ")
 }
 
 func (g *webGenerator) formVisibleExpression(page PageDecl, entity EntityDecl, state StateDecl, hasState bool) string {

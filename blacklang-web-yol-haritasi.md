@@ -2159,7 +2159,16 @@ page Products {
 }
 ```
 
-Compiler bu aşamada UI intent bilgisini parse eder, validate eder ve JSON/BlackIR çıktısına taşır. CSS üretimi bir sonraki Phase 20 adımıdır.
+Compiler bu aşamada UI intent bilgisini parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web target için stable `.bl-ui-*` class kurallarıyla CSS üretir.
+
+Üretilen class düzeni:
+
+```text
+table   .bl-ui-table-<page>
+form    .bl-ui-form-<page>
+field   .bl-ui-field-<entity>-<field>
+action  .bl-ui-action-<page>-<action>
+```
 
 Geçerli bağlam kuralı:
 

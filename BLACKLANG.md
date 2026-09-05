@@ -258,7 +258,7 @@ Standard mode groups:
 
 ## Current Inline UI Intent
 
-Draft v0.2 can parse and validate compact `ui` intent inside `.black` source:
+Draft v0.2 can parse, validate, and generate CSS from compact `ui` intent inside `.black` source:
 
 ```black
 entity Product {
@@ -290,7 +290,8 @@ Current rule:
 - Table UI accepts `box`, `text`, and `table`.
 - Action button UI accepts `button`.
 - Values are positional and should follow the active `.blackthm` profile mode slots.
-- CSS generation from inline UI intent is planned for the next Phase 20 step.
+- Generated web output appends stable `.bl-ui-*` classes to `src/styles.css`.
+- The current generator uses standard v0.2 slots and safe defaults; full `.blackthm` token resolution remains a later extension.
 
 ## Current Diagnostic Documentation
 

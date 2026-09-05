@@ -16,7 +16,7 @@ database {
 
 entity Product {
   sku text required unique length 3..40
-  name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders"
+  name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders" ui text text 14 semibold left
   stock number default 0 min 0 label "Stock Count" placeholder "Enter stock count" help "Current available quantity"
   price money min 0 label "Unit Price" placeholder "Enter unit price" help "Selling price for one unit"
 }
@@ -113,12 +113,16 @@ page Products {
     filter stock
     sort stock desc
     paginate 10
+    ui table border 1 solid compact true
   }
 
   form {
     fields sku, name, stock, price
+    ui box border 1 solid 12 12 12 12 8 left | button primary white 6 md solid
   }
   actions create, edit, delete, archive, restore
+  action create ui button primary white 6 md solid
+  action delete ui button danger white 6 sm solid
 }
 
 page Customers {

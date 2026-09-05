@@ -1,0 +1,519 @@
+app ProjectPulse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Organization {
+  name text required unique label "Organization Name" placeholder "Enter organization name" help "Client or internal organization"
+  domain text optional unique label "Domain" placeholder "example.com" help "Organization domain"
+  segment text default client label "Segment" placeholder "client" help "Client, internal, or partner"
+  status text default active label "Organization Status" placeholder "active" help "Organization lifecycle status"
+}
+
+entity Team {
+  organization Organization required label "Organization" placeholder "Select organization" help "Organization that owns the team"
+  name text required unique label "Team Name" placeholder "Enter team name" help "Project delivery team"
+  code text required unique length 2..20 label "Team Code" placeholder "ENG" help "Short team code"
+  status text default active label "Team Status" placeholder "active" help "Team availability"
+}
+
+entity TeamMember {
+  team Team required label "Team" placeholder "Select team" help "Team this member belongs to"
+  name text required label "Member Name" placeholder "Enter member name" help "Project contributor name"
+  email email required unique label "Member Email" placeholder "member@example.com" help "Contributor email"
+  roleTitle text optional label "Role Title" placeholder "Product Manager" help "Role on the team"
+  capacityHours number default 40 min 0 max 80 label "Capacity Hours" placeholder "40" help "Weekly available hours"
+  status text default active label "Member Status" placeholder "active" help "Member availability"
+}
+
+entity Project {
+  organization Organization required label "Organization" placeholder "Select organization" help "Client or owner organization"
+  owner TeamMember required label "Owner" placeholder "Select owner" help "Person accountable for delivery"
+  team Team required label "Team" placeholder "Select team" help "Team delivering the project"
+  name text required unique length 3..120 label "Project Name" placeholder "Enter project name" help "Readable project name"
+  code text required unique length 2..20 regex "^[A-Z0-9-]+$" message "Use uppercase letters, numbers, and dashes"
+  description text optional length 10..500 label "Description" placeholder "Describe the project" help "Project scope summary"
+  startDate date optional label "Start Date" placeholder "Select start date" help "Planned start date"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "Target completion date"
+  budget money default 0 min 0 label "Budget" placeholder "Enter budget" help "Approved project budget"
+  actualCost money default 0 min 0 label "Actual Cost" placeholder "Enter actual cost" help "Tracked project cost"
+  progress number default 0 min 0 max 100 label "Progress" placeholder "Enter progress" help "Completion percentage from 0 to 100"
+  status text default planning label "Project Status" placeholder "planning" help "Project lifecycle status"
+  internalNotes text optional length 3..500 label "Internal Notes" placeholder "Private project note" help "Internal-only delivery notes"
+  validate actualCost <= budget message "Actual cost cannot exceed budget"
+}
+
+entity Milestone {
+  project Project required label "Project" placeholder "Select project" help "Project that owns this milestone"
+  owner TeamMember required label "Owner" placeholder "Select owner" help "Person accountable for milestone"
+  name text required length 3..120 label "Milestone Name" placeholder "Enter milestone name" help "Milestone title"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "Target milestone date"
+  progress number default 0 min 0 max 100 label "Progress" placeholder "Enter progress" help "Milestone completion percentage"
+  status text default planned label "Milestone Status" placeholder "planned" help "Milestone lifecycle status"
+}
+
+entity ProjectTask {
+  project Project required label "Project" placeholder "Select project" help "Project that owns this task"
+  milestone Milestone optional label "Milestone" placeholder "Select milestone" help "Optional milestone grouping"
+  assignee TeamMember optional label "Assignee" placeholder "Select assignee" help "Person assigned to the task"
+  title text required length 3..160 label "Task Title" placeholder "Enter task title" help "Task summary"
+  description text optional length 5..500 label "Description" placeholder "Describe the task" help "Task details"
+  priority text default normal label "Priority" placeholder "normal" help "Low, normal, high, or urgent"
+  estimateHours number default 1 min 0 label "Estimate Hours" placeholder "1" help "Estimated effort"
+  loggedHours number default 0 min 0 label "Logged Hours" placeholder "0" help "Tracked effort"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "Target task date"
+  status text default todo label "Task Status" placeholder "todo" help "Task lifecycle status"
+  blockedReason text optional length 3..160 label "Blocked Reason" placeholder "Enter blocked reason" help "Required when task is blocked"
+  validate loggedHours <= estimateHours message "Logged hours cannot exceed estimate"
+  validate blockedReason required when status == blocked message "Blocked reason is required when task is blocked"
+}
+
+entity TaskComment {
+  task ProjectTask required label "Task" placeholder "Select task" help "Task this comment belongs to"
+  author TeamMember required label "Author" placeholder "Select author" help "Team member writing the comment"
+  message text required length 2..500 label "Message" placeholder "Enter comment" help "Task discussion message"
+  visibility text default internal label "Visibility" placeholder "internal" help "Internal or client-visible comment"
+  status text default active label "Comment Status" placeholder "active" help "Comment lifecycle status"
+}
+
+entity TimeEntry {
+  project Project required label "Project" placeholder "Select project" help "Project being tracked"
+  task ProjectTask optional label "Task" placeholder "Select task" help "Optional task being tracked"
+  member TeamMember required label "Member" placeholder "Select member" help "Person logging time"
+  entryDate date optional label "Entry Date" placeholder "Select date" help "Date work was performed"
+  hours number default 1 min 0 max 24 label "Hours" placeholder "1" help "Hours logged"
+  billable boolean default true label "Billable" help "Whether this time can be billed"
+  notes text optional length 3..300 label "Notes" placeholder "Enter work notes" help "Short work summary"
+  status text default draft label "Time Status" placeholder "draft" help "Time entry approval status"
+}
+
+entity Risk {
+  project Project required label "Project" placeholder "Select project" help "Project this risk belongs to"
+  owner TeamMember required label "Owner" placeholder "Select owner" help "Person managing the risk"
+  title text required length 3..160 label "Risk Title" placeholder "Enter risk title" help "Risk summary"
+  probability number default 1 min 1 max 5 label "Probability" placeholder "1" help "Risk probability from 1 to 5"
+  impact number default 1 min 1 max 5 label "Impact" placeholder "1" help "Risk impact from 1 to 5"
+  mitigation text optional length 3..500 label "Mitigation" placeholder "Enter mitigation" help "Required when risk is escalated"
+  status text default open label "Risk Status" placeholder "open" help "Risk lifecycle status"
+  validate mitigation required when status == escalated message "Mitigation is required when risk is escalated"
+}
+
+entity ProjectUpdate {
+  project Project required label "Project" placeholder "Select project" help "Project receiving the update"
+  author TeamMember required label "Author" placeholder "Select author" help "Person publishing the update"
+  title text required length 3..120 label "Update Title" placeholder "Enter update title" help "Update headline"
+  summary text required length 10..500 label "Summary" placeholder "Enter update summary" help "Progress update details"
+  health text default green label "Health" placeholder "green" help "Green, yellow, or red status"
+  published boolean default false label "Published" help "Whether the update is client-visible"
+  status text default draft label "Update Status" placeholder "draft" help "Update review status"
+}
+
+role Admin {
+  allow all
+}
+
+role ProjectManager {
+  allow read Organization
+  allow create Organization
+  allow update Organization
+  allow read Team
+  allow create Team
+  allow update Team
+  allow read TeamMember
+  allow create TeamMember
+  allow update TeamMember
+  allow read Project
+  allow create Project
+  allow update Project
+  allow read Milestone
+  allow create Milestone
+  allow update Milestone
+  allow read ProjectTask
+  allow create ProjectTask
+  allow update ProjectTask
+  allow read TaskComment
+  allow create TaskComment
+  allow update TaskComment
+  allow read TimeEntry
+  allow create TimeEntry
+  allow update TimeEntry
+  allow read Risk
+  allow create Risk
+  allow update Risk
+  allow read ProjectUpdate
+  allow create ProjectUpdate
+  allow update ProjectUpdate
+}
+
+role TeamMemberRole {
+  allow read Organization
+  allow read Team
+  allow read TeamMember
+  allow read Project
+  deny read Project budget
+  deny read Project actualCost
+  allow update Project progress status internalNotes
+  allow read Milestone
+  allow update Milestone progress status
+  allow read ProjectTask
+  allow create ProjectTask
+  allow update ProjectTask title description priority estimateHours loggedHours dueDate status blockedReason
+  allow read TaskComment
+  allow create TaskComment
+  allow update TaskComment message visibility status
+  allow read TimeEntry
+  allow create TimeEntry
+  allow update TimeEntry task hours billable notes status
+  allow read Risk
+  allow create Risk
+  allow update Risk probability impact mitigation status
+  allow read ProjectUpdate
+  allow create ProjectUpdate
+  allow update ProjectUpdate title summary health published status
+}
+
+role ClientViewer {
+  allow read Organization
+  allow read Team
+  allow read TeamMember
+  allow read Project
+  deny read Project budget
+  deny read Project actualCost
+  deny read Project internalNotes
+  allow read Milestone
+  allow read ProjectTask
+  allow read TaskComment
+  deny read TaskComment visibility
+  allow read ProjectUpdate
+}
+
+api ProjectHealthReport {
+  method GET
+  path "/api/reports/project-health/{projectCode}"
+  param projectCode text
+  query limit integer
+  private
+}
+
+api ProjectWebhook {
+  method POST
+  path "/api/webhooks/projects"
+  webhook
+  public
+}
+
+workflow ProjectLifecycle {
+  source Project
+  states planning, active, atRisk, paused, completed, cancelled
+
+  transition start {
+    from planning
+    to active
+    allow Admin, ProjectManager
+  }
+
+  transition flagRisk {
+    from active
+    to atRisk
+    allow Admin, ProjectManager, TeamMemberRole
+  }
+
+  transition pause {
+    from active
+    to paused
+    allow Admin, ProjectManager
+  }
+
+  transition resume {
+    from paused
+    to active
+    allow Admin, ProjectManager
+  }
+
+  transition complete {
+    from active
+    to completed
+    allow Admin, ProjectManager
+  }
+
+  transition cancel {
+    from planning
+    to cancelled
+    allow Admin, ProjectManager
+  }
+}
+
+workflow TaskLifecycle {
+  source ProjectTask
+  states todo, inProgress, blocked, review, done
+
+  transition start {
+    from todo
+    to inProgress
+    allow Admin, ProjectManager, TeamMemberRole
+  }
+
+  transition block {
+    from inProgress
+    to blocked
+    allow Admin, ProjectManager, TeamMemberRole
+  }
+
+  transition unblock {
+    from blocked
+    to inProgress
+    allow Admin, ProjectManager, TeamMemberRole
+  }
+
+  transition submitReview {
+    from inProgress
+    to review
+    allow Admin, ProjectManager, TeamMemberRole
+  }
+
+  transition finish {
+    from review
+    to done
+    allow Admin, ProjectManager
+  }
+}
+
+state ProjectsPageState {
+  selectedProjects Project[]
+  activeFilter text
+  modal createProject closed
+}
+
+state ProjectTasksPageState {
+  selectedProjectTasks ProjectTask[]
+  activeFilter text
+  modal createProjectTask closed
+}
+
+component ProgressBadge {
+  input progress number
+  variant low when progress < 50
+  variant high when progress >= 50
+}
+
+component BillableBadge {
+  input billable boolean
+  variant billable when billable == true
+  variant nonbillable when billable == false
+}
+
+layout ProjectLayout {
+  sidebar {
+    item Organizations
+    item Teams
+    item TeamMembers
+    item Projects
+    item Milestones
+    item ProjectTasks
+    item TaskComments
+    item TimeEntries
+    item Risks
+    item ProjectUpdates
+  }
+}
+
+page Organizations {
+  layout ProjectLayout
+  source Organization
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns name, domain, segment, status
+    search name, domain, segment, status
+    filter segment, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, domain, segment, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Teams {
+  layout ProjectLayout
+  source Team
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns organization, name, code, status
+    search organization, name, code, status
+    filter organization, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields organization, name, code, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page TeamMembers {
+  layout ProjectLayout
+  source TeamMember
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns team, name, email, roleTitle, capacityHours, status
+    search team, name, email, roleTitle, status
+    filter team, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields team, name, email, roleTitle, capacityHours, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Projects {
+  layout ProjectLayout
+  source Project
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns organization, owner, team, name, code, startDate, dueDate, budget, actualCost, progress, status, internalNotes
+    search organization, owner, team, name, code, description, status, internalNotes
+    filter organization, owner, team, status
+    sort dueDate asc
+    paginate 10
+  }
+
+  form {
+    fields organization, owner, team, name, code, description, startDate, dueDate, budget, actualCost, progress, status, internalNotes
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Milestones {
+  layout ProjectLayout
+  source Milestone
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns project, owner, name, dueDate, progress, status
+    search project, owner, name, status
+    filter project, owner, status
+    sort dueDate asc
+    paginate 10
+  }
+
+  form {
+    fields project, owner, name, dueDate, progress, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page ProjectTasks {
+  layout ProjectLayout
+  source ProjectTask
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns project, milestone, assignee, title, priority, estimateHours, loggedHours, dueDate, status, blockedReason
+    search project, milestone, assignee, title, description, priority, status, blockedReason
+    filter project, milestone, assignee, priority, status
+    sort dueDate asc
+    paginate 10
+  }
+
+  form {
+    fields project, milestone, assignee, title, description, priority, estimateHours, loggedHours, dueDate, status, blockedReason
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page TaskComments {
+  layout ProjectLayout
+  source TaskComment
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns task, author, message, visibility, status
+    search task, author, message, visibility, status
+    filter task, author, visibility, status
+    sort author asc
+    paginate 10
+  }
+
+  form {
+    fields task, author, message, visibility, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page TimeEntries {
+  layout ProjectLayout
+  source TimeEntry
+  access Admin, ProjectManager, TeamMemberRole
+
+  table {
+    columns project, task, member, entryDate, hours, billable, notes, status
+    search project, task, member, notes, status
+    filter project, task, member, billable, status
+    sort entryDate asc
+    paginate 10
+  }
+
+  form {
+    fields project, task, member, entryDate, hours, billable, notes, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Risks {
+  layout ProjectLayout
+  source Risk
+  access Admin, ProjectManager, TeamMemberRole
+
+  table {
+    columns project, owner, title, probability, impact, mitigation, status
+    search project, owner, title, mitigation, status
+    filter project, owner, probability, impact, status
+    sort title asc
+    paginate 10
+  }
+
+  form {
+    fields project, owner, title, probability, impact, mitigation, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page ProjectUpdates {
+  layout ProjectLayout
+  source ProjectUpdate
+  access Admin, ProjectManager, TeamMemberRole, ClientViewer
+
+  table {
+    columns project, author, title, summary, health, published, status
+    search project, author, title, summary, health, status
+    filter project, author, health, published, status
+    sort title asc
+    paginate 10
+  }
+
+  form {
+    fields project, author, title, summary, health, published, status
+  }
+  actions create, edit, delete, archive, restore
+}

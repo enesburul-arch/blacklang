@@ -66,6 +66,7 @@
         <a href="#helpdesk-template">Helpdesk Template</a>
         <a href="#invoice-template">Invoice Template</a>
         <a href="#appointment-template">Appointment Template</a>
+        <a href="#project-management-template">Project Management Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -1017,6 +1018,77 @@ page Appointments {
           Bu şablon zamanlama alanındaki `date`, `datetime`, regex tabanlı saat metni,
           relation yoğunluğu ve boolean onay göstergelerini bugünkü compiler kapasitesiyle
           ölçer. Benchmark raporu `benchmarks/appointment-v0.2.md` altında tutulur.
+        </p>
+      </section>
+
+      <section id="project-management-template">
+        <h2>Project Management Template</h2>
+        <p>
+          ProjectPulse, altıncı gerçek uygulama şablonudur. Organization, Team,
+          TeamMember, Project, Milestone, ProjectTask, TaskComment, TimeEntry, Risk
+          ve ProjectUpdate kayıtlarını tek `.black` kaynakta tanımlar; proje teslimi,
+          görev akışı, milestone takibi, zaman kaydı, risk yönetimi, field-level access,
+          validation ve API contract davranışlarını birlikte ölçer.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/project-management/app.black</div>
+          <pre><code class="language-black">app ProjectPulse
+
+entity ProjectTask {
+  project Project required
+  assignee TeamMember optional
+  taskCode text required unique length 3..40
+  title text required length 3..120
+  priority text default medium
+  estimateHours number default 0 min 0 max 1000
+  loggedHours number default 0 min 0 max 1000
+  status text default todo
+  blockedReason text optional length 3..200
+  validate blockedReason required when status == blocked message "Blocked tasks must include a reason"
+  validate loggedHours &lt;= estimateHours message "Logged hours cannot exceed estimate"
+}
+
+workflow TaskLifecycle {
+  source ProjectTask
+  states todo, inProgress, blocked, review, done
+}
+
+page ProjectTasks {
+  source ProjectTask
+
+  table {
+    columns taskCode, title, project, assignee, priority, estimateHours, loggedHours, status
+  }
+
+  form {
+    fields project, assignee, taskCode, title, priority, estimateHours, loggedHours, status
+  }
+  actions create, edit, delete, archive, restore
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>519</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>63</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>15621</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon relation yoğunluğu, iki ayrı workflow, görev state'i,
+          proje sağlık raporu API'si ve webhook contract davranışlarını bugünkü compiler
+          kapasitesiyle ölçer. Benchmark raporu `benchmarks/project-management-v0.2.md`
+          altında tutulur.
         </p>
       </section>
 

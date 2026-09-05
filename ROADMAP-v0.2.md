@@ -108,7 +108,7 @@ This phase grows the examples from Warehouse into reusable app patterns.
 - [x] Add helpdesk example
 - [x] Add invoice example
 - [x] Add appointment example
-- [ ] Add project management example
+- [x] Add project management example
 - [x] Add template benchmark reports
 
 ## v0.2 Exit Criteria

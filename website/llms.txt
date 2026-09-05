@@ -25,6 +25,7 @@ Read first:
 - `#helpdesk-template` for the SupportDesk template benchmark.
 - `#invoice-template` for the InvoiceFlow template benchmark.
 - `#appointment-template` for the AppointmentBook template benchmark.
+- `#project-management-template` for the ProjectPulse template benchmark.
 
 Agent rule:
 

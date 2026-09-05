@@ -63,6 +63,7 @@
         <a href="#examples">Örnekler</a>
         <a href="#crm-template">CRM Template</a>
         <a href="#inventory-template">Inventory Template</a>
+        <a href="#helpdesk-template">Helpdesk Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -794,6 +795,79 @@ page StockMovements {
           `PurchaseOrder` ve `StockMovement` generated TypeScript tarafında
           `purchaseOrder` ve `stockMovement` olarak doğru kullanılır. Benchmark raporu
           `benchmarks/inventory-v0.2.md` altında tutulur.
+        </p>
+      </section>
+
+      <section id="helpdesk-template">
+        <h2>Helpdesk Template</h2>
+        <p>
+          SupportDesk, üçüncü gerçek uygulama şablonudur. Organization, Customer,
+          Team, SupportAgent, ServiceLevelAgreement, Ticket, TicketComment ve
+          KnowledgeArticle kayıtlarını tek `.black` kaynakta tanımlar; destek kuyruğu,
+          SLA takibi, ticket lifecycle, bilgi bankası yayını, field-level access ve API
+          contract davranışlarını birlikte ölçer.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/helpdesk/app.black</div>
+          <pre><code class="language-black">app SupportDesk
+
+entity Ticket {
+  organization Organization required
+  requester Customer required
+  assignedTeam Team required
+  assignedAgent SupportAgent optional
+  sla ServiceLevelAgreement required
+  ticketNumber text required unique length 3..40
+  subject text required length 3..120
+  description text required length 10..500
+  priorityScore number default 2 min 1 max 5
+  status text default open
+  resolution text optional length 3..500
+  internalNotes text optional length 3..500
+  validate resolution required when status == resolved message "Resolution is required when ticket is resolved"
+}
+
+workflow TicketLifecycle {
+  source Ticket
+  states open, triaged, inProgress, waitingCustomer, resolved, closed
+}
+
+page Tickets {
+  source Ticket
+
+  table {
+    columns organization, requester, assignedTeam, ticketNumber, subject, priorityScore, status
+  }
+
+  form {
+    fields organization, requester, assignedTeam, sla, ticketNumber, subject, description, status
+  }
+  actions create, edit, delete, archive, restore
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>423</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>55</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>12466</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon destek operasyonlarının yoğun ilişki yapısını test eder: müşteriler,
+          ekipler, ajanlar, SLA kayıtları, ticket yorumları ve bilgi bankası aynı uygulama
+          kabuğunda üretilir. Benchmark raporu `benchmarks/helpdesk-v0.2.md` altında
+          tutulur.
         </p>
       </section>
 

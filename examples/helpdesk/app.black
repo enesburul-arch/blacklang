@@ -1,0 +1,423 @@
+app SupportDesk
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Organization {
+  name text required unique label "Organization Name" placeholder "Enter organization name" help "Customer company or account"
+  domain text optional unique label "Email Domain" placeholder "example.com" help "Domain used to group customers"
+  plan text default standard label "Support Plan" placeholder "standard" help "Service plan for priority routing"
+  status text default active label "Organization Status" placeholder "active" help "Account status"
+}
+
+entity Customer {
+  organization Organization required label "Organization" placeholder "Select organization" help "Customer account"
+  name text required label "Customer Name" placeholder "Enter customer name" help "Requester display name"
+  email email required unique label "Customer Email" placeholder "customer@example.com" help "Requester email address"
+  phone text optional label "Customer Phone" placeholder "Enter phone number" help "Optional contact number"
+  status text default active label "Customer Status" placeholder "active" help "Requester status"
+}
+
+entity Team {
+  name text required unique label "Team Name" placeholder "Enter team name" help "Support group responsible for tickets"
+  code text required unique length 2..20 label "Team Code" placeholder "L2" help "Short routing code"
+  queue text default general label "Queue" placeholder "general" help "Default ticket queue"
+  status text default active label "Team Status" placeholder "active" help "Team availability"
+}
+
+entity SupportAgent {
+  team Team required label "Team" placeholder "Select support team" help "Agent team"
+  name text required label "Agent Name" placeholder "Enter agent name" help "Support agent display name"
+  email email required unique label "Agent Email" placeholder "agent@example.com" help "Agent login or contact email"
+  level number default 1 min 1 max 5 label "Support Level" placeholder "Enter level" help "Escalation level from 1 to 5"
+  status text default active label "Agent Status" placeholder "active" help "Agent availability"
+}
+
+entity ServiceLevelAgreement {
+  name text required unique label "SLA Name" placeholder "Enter SLA name" help "Service level agreement name"
+  code text required unique length 2..20 label "SLA Code" placeholder "STD" help "Short SLA identifier"
+  firstResponseHours number default 4 min 1 label "First Response Hours" placeholder "4" help "Target first response time"
+  resolutionHours number default 24 min 1 label "Resolution Hours" placeholder "24" help "Target resolution time"
+  status text default active label "SLA Status" placeholder "active" help "Agreement status"
+  validate firstResponseHours <= resolutionHours message "First response target cannot exceed resolution target"
+}
+
+entity Ticket {
+  organization Organization required label "Organization" placeholder "Select organization" help "Account that owns the ticket"
+  requester Customer required label "Requester" placeholder "Select requester" help "Customer who opened the ticket"
+  assignedTeam Team required label "Assigned Team" placeholder "Select team" help "Team responsible for the ticket"
+  assignedAgent SupportAgent optional label "Assigned Agent" placeholder "Select agent" help "Optional assigned support agent"
+  sla ServiceLevelAgreement required label "SLA" placeholder "Select SLA" help "Service target for this ticket"
+  ticketNumber text required unique length 3..40 label "Ticket Number" placeholder "HD-1001" help "External or internal ticket number"
+  subject text required length 3..120 label "Subject" placeholder "Enter ticket subject" help "Short support issue title"
+  description text required length 10..500 label "Description" placeholder "Describe the issue" help "Customer-visible issue details"
+  channel text default email label "Channel" placeholder "email" help "Email, chat, phone, or portal"
+  priority text default normal label "Priority" placeholder "normal" help "Business priority"
+  priorityScore number default 2 min 1 max 5 label "Priority Score" placeholder "2" help "Numeric priority from 1 to 5"
+  status text default open label "Ticket Status" placeholder "open" help "Lifecycle status"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "SLA or manual due date"
+  resolution text optional length 3..500 label "Resolution" placeholder "Enter resolution" help "Required when ticket is resolved"
+  internalNotes text optional length 3..500 label "Internal Notes" placeholder "Private support note" help "Internal-only troubleshooting notes"
+  satisfactionScore number optional min 1 max 5 label "Satisfaction Score" placeholder "5" help "Customer rating from 1 to 5"
+  validate resolution required when status == resolved message "Resolution is required when ticket is resolved"
+}
+
+entity TicketComment {
+  ticket Ticket required label "Ticket" placeholder "Select ticket" help "Ticket this comment belongs to"
+  authorName text required label "Author Name" placeholder "Enter author name" help "Comment author"
+  message text required length 2..500 label "Message" placeholder "Enter comment" help "Ticket conversation message"
+  visibility text default internal label "Visibility" placeholder "internal" help "Internal or public comment"
+  public boolean default false label "Public" help "Whether the comment is customer-visible"
+  status text default active label "Comment Status" placeholder "active" help "Comment lifecycle status"
+}
+
+entity KnowledgeArticle {
+  author SupportAgent required label "Author" placeholder "Select author" help "Support agent who owns the article"
+  title text required unique length 3..120 label "Article Title" placeholder "Enter article title" help "Knowledge base article title"
+  category text default general label "Category" placeholder "general" help "Article grouping"
+  body text required length 20..1000 label "Body" placeholder "Write article body" help "Reusable support answer"
+  status text default draft label "Article Status" placeholder "draft" help "Review lifecycle status"
+  published boolean default false label "Published" help "Whether the article is visible"
+}
+
+role Admin {
+  allow all
+}
+
+role SupportManager {
+  allow read Organization
+  allow create Organization
+  allow update Organization
+  allow read Customer
+  allow create Customer
+  allow update Customer
+  allow read Team
+  allow create Team
+  allow update Team
+  allow read SupportAgent
+  allow create SupportAgent
+  allow update SupportAgent
+  allow read ServiceLevelAgreement
+  allow create ServiceLevelAgreement
+  allow update ServiceLevelAgreement
+  allow read Ticket
+  allow create Ticket
+  allow update Ticket
+  allow read TicketComment
+  allow create TicketComment
+  allow update TicketComment
+  allow read KnowledgeArticle
+  allow create KnowledgeArticle
+  allow update KnowledgeArticle
+}
+
+role SupportAgentRole {
+  allow read Organization
+  allow read Customer
+  allow read Team
+  allow read SupportAgent
+  allow read ServiceLevelAgreement
+  allow read Ticket
+  allow create Ticket
+  allow update Ticket status priority priorityScore dueDate resolution internalNotes satisfactionScore
+  allow read TicketComment
+  allow create TicketComment
+  allow update TicketComment message visibility public status
+  allow read KnowledgeArticle
+  allow create KnowledgeArticle
+  allow update KnowledgeArticle title category body status published
+}
+
+role CustomerSupportViewer {
+  allow read Organization
+  allow read Customer
+  allow read Team
+  allow read ServiceLevelAgreement
+  allow read Ticket
+  deny read Ticket internalNotes
+  allow create Ticket
+  allow update Ticket status resolution satisfactionScore
+  allow read TicketComment
+  deny read TicketComment visibility
+  allow create TicketComment
+  allow read KnowledgeArticle
+}
+
+api TicketIntakeWebhook {
+  method POST
+  path "/api/webhooks/tickets"
+  webhook
+  public
+}
+
+api SLAReport {
+  method GET
+  path "/api/reports/sla/{teamCode}"
+  param teamCode text
+  query limit integer
+  private
+}
+
+workflow TicketLifecycle {
+  source Ticket
+  states open, triaged, inProgress, waitingCustomer, resolved, closed
+
+  transition triage {
+    from open
+    to triaged
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition start {
+    from triaged
+    to inProgress
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition waitCustomer {
+    from inProgress
+    to waitingCustomer
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition resume {
+    from waitingCustomer
+    to inProgress
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition resolve {
+    from inProgress
+    to resolved
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition close {
+    from resolved
+    to closed
+    allow Admin, SupportManager
+  }
+}
+
+workflow ArticleReview {
+  source KnowledgeArticle
+  states draft, review, published, archived
+
+  transition submit {
+    from draft
+    to review
+    allow Admin, SupportManager, SupportAgentRole
+  }
+
+  transition publish {
+    from review
+    to published
+    allow Admin, SupportManager
+  }
+
+  transition archive {
+    from published
+    to archived
+    allow Admin, SupportManager
+  }
+}
+
+state TicketsPageState {
+  selectedTickets Ticket[]
+  activeQueue text
+  modal createTicket closed
+}
+
+state KnowledgeArticlesPageState {
+  selectedArticles KnowledgeArticle[]
+  activeFilter text
+  modal createKnowledgeArticle closed
+}
+
+component PriorityScoreBadge {
+  input priorityScore number
+  variant low when priorityScore < 3
+  variant high when priorityScore >= 3
+}
+
+component PublishedBadge {
+  input published boolean
+  variant live when published == true
+  variant draft when published == false
+}
+
+layout HelpdeskLayout {
+  sidebar {
+    item Organizations
+    item Customers
+    item Teams
+    item SupportAgents
+    item ServiceLevelAgreements
+    item Tickets
+    item TicketComments
+    item KnowledgeArticles
+  }
+}
+
+page Organizations {
+  layout HelpdeskLayout
+  source Organization
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns name, domain, plan, status
+    search name, domain, plan, status
+    filter plan, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, domain, plan, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Customers {
+  layout HelpdeskLayout
+  source Customer
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns organization, name, email, phone, status
+    search organization, name, email, phone, status
+    filter organization, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields organization, name, email, phone, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Teams {
+  layout HelpdeskLayout
+  source Team
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns name, code, queue, status
+    search name, code, queue, status
+    filter queue, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, queue, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page SupportAgents {
+  layout HelpdeskLayout
+  source SupportAgent
+  access Admin, SupportManager, SupportAgentRole
+
+  table {
+    columns team, name, email, level, status
+    search team, name, email, status
+    filter team, level, status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields team, name, email, level, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page ServiceLevelAgreements {
+  layout HelpdeskLayout
+  source ServiceLevelAgreement
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns name, code, firstResponseHours, resolutionHours, status
+    search name, code, status
+    filter status
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, code, firstResponseHours, resolutionHours, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Tickets {
+  layout HelpdeskLayout
+  source Ticket
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns organization, requester, assignedTeam, assignedAgent, sla, ticketNumber, subject, channel, priority, priorityScore, status, dueDate, resolution, internalNotes, satisfactionScore
+    search organization, requester, assignedTeam, assignedAgent, sla, ticketNumber, subject, channel, priority, status, resolution, internalNotes
+    filter organization, assignedTeam, assignedAgent, sla, channel, priority, status
+    sort ticketNumber asc
+    paginate 10
+  }
+
+  form {
+    fields organization, requester, assignedTeam, assignedAgent, sla, ticketNumber, subject, description, channel, priority, priorityScore, status, dueDate, resolution, internalNotes, satisfactionScore
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page TicketComments {
+  layout HelpdeskLayout
+  source TicketComment
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns ticket, authorName, message, visibility, public, status
+    search ticket, authorName, message, visibility, status
+    filter ticket, visibility, public, status
+    sort authorName asc
+    paginate 10
+  }
+
+  form {
+    fields ticket, authorName, message, visibility, public, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page KnowledgeArticles {
+  layout HelpdeskLayout
+  source KnowledgeArticle
+  access Admin, SupportManager, SupportAgentRole, CustomerSupportViewer
+
+  table {
+    columns author, title, category, status, published
+    search author, title, category, status
+    filter author, category, status, published
+    sort title asc
+    paginate 10
+  }
+
+  form {
+    fields author, title, category, body, status, published
+  }
+  actions create, edit, delete, archive, restore
+}

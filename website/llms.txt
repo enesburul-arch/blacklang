@@ -22,6 +22,7 @@ Read first:
 - `#ai-agents` for agent workflow.
 - `#crm-template` for the first reusable SalesCRM template benchmark.
 - `#inventory-template` for the InventoryControl template benchmark.
+- `#helpdesk-template` for the SupportDesk template benchmark.
 
 Agent rule:
 

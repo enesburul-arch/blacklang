@@ -53,6 +53,13 @@ The first target is web application generation:
 
 Future targets may include mobile, desktop, API-only, and automation outputs.
 
+## Templates
+
+Reusable `.black` app templates live under `examples/`.
+
+- `examples/warehouse/app.black` demonstrates the first Warehouse MVP.
+- `examples/crm/app.black` demonstrates a SalesCRM template with auth, roles, relations, workflows, components, API contracts, and validation.
+
 ## Example
 
 ```black
@@ -202,3 +209,4 @@ Implemented so far:
 - [Language Spec](SPEC.md)
 - [Agent Guide](AGENTS.md)
 - [Warehouse Benchmark v0.1](benchmarks/warehouse-v0.1.md)
+- [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)

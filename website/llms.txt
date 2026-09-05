@@ -20,6 +20,7 @@ Read first:
 - `#security` for source security rules.
 - `#cli` for machine-readable commands.
 - `#ai-agents` for agent workflow.
+- `#crm-template` for the first reusable SalesCRM template benchmark.
 
 Agent rule:
 

@@ -61,6 +61,7 @@
         <a href="#errors">Hata Çıktıları</a>
         <a href="#ai-agents">AI Agents</a>
         <a href="#examples">Örnekler</a>
+        <a href="#crm-template">CRM Template</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -665,6 +666,64 @@ black security scan --json</code></pre>
         <p>
           Uzun vadede CRM, inventory, helpdesk, invoice, appointment ve project management
           şablonları eklenerek gerçek uygulama desenleri ölçülebilir hale getirilir.
+        </p>
+      </section>
+
+      <section id="crm-template">
+        <h2>CRM Template</h2>
+        <p>
+          SalesCRM, gerçek uygulama şablonlarının ilkidir. Company, Contact, Deal ve
+          Activity kayıtlarını tek `.black` kaynakta tanımlar; auth, role/access, workflow,
+          state, component, validation ve OpenAPI contract davranışlarını birlikte gösterir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">examples/crm/app.black</div>
+          <pre><code class="language-black">app SalesCRM
+
+entity Company {
+  name text required unique label "Company Name"
+  website text optional url
+  segment text default prospect
+  annualRevenue money default 0 min 0
+}
+
+entity Deal {
+  company Company required
+  contact Contact required
+  name text required length 3..80
+  expectedRevenue money default 0 min 0
+  discount money default 0 min 0
+  probability number default 25 min 0 max 100
+  status text default lead
+  validate discount &lt;= expectedRevenue message "Discount cannot exceed expected revenue"
+}
+
+workflow DealPipeline {
+  source Deal
+  states lead, qualified, proposal, negotiation, won, lost
+}</code></pre>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <strong>264</strong>
+            <span>BlackLang source lines</span>
+          </div>
+          <div>
+            <strong>39</strong>
+            <span>Generated files</span>
+          </div>
+          <div>
+            <strong>7480</strong>
+            <span>Generated lines</span>
+          </div>
+          <div>
+            <strong>Build passed</strong>
+            <span>TypeScript and Vite production build</span>
+          </div>
+        </div>
+        <p>
+          Bu şablon yeni syntax eklemeden bugünkü compiler kapasitesini kullanır. Template
+          benchmark raporu `benchmarks/crm-v0.2.md` altında tutulur.
         </p>
       </section>
 

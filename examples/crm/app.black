@@ -1,0 +1,264 @@
+app SalesCRM
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+database {
+  url env DATABASE_URL
+}
+
+entity Company {
+  name text required unique label "Company Name" placeholder "Enter company name" help "Primary account name used across the CRM"
+  industry text optional label "Industry" placeholder "Enter industry" help "Market or vertical for segmentation"
+  website text optional url label "Website" placeholder "https://example.com" help "Company website used for research"
+  segment text default prospect label "Segment" placeholder "prospect" help "Lifecycle segment such as prospect or customer"
+  annualRevenue money default 0 min 0 label "Annual Revenue" placeholder "Enter annual revenue" help "Estimated yearly revenue for account scoring"
+}
+
+entity Contact {
+  company Company required label "Company" placeholder "Select a company" help "Account connected to this contact"
+  firstName text required label "First Name" placeholder "Enter first name" help "Given name"
+  lastName text required label "Last Name" placeholder "Enter last name" help "Family name"
+  email email required unique label "Email Address" placeholder "name@example.com" help "Primary contact email"
+  phone text optional label "Phone Number" placeholder "Enter phone number" help "Optional direct contact number"
+  title text optional label "Job Title" placeholder "Enter job title" help "Role inside the company"
+  status text default active label "Contact Status" placeholder "active" help "Contact state such as active or inactive"
+}
+
+entity Deal {
+  company Company required label "Company" placeholder "Select a company" help "Account this deal belongs to"
+  contact Contact required label "Primary Contact" placeholder "Select a contact" help "Main person responsible for the deal"
+  name text required length 3..80 label "Deal Name" placeholder "Enter deal name" help "Short opportunity title"
+  expectedRevenue money default 0 min 0 label "Expected Revenue" placeholder "Enter expected revenue" help "Forecast value for this opportunity"
+  discount money default 0 min 0 label "Discount" placeholder "Enter discount" help "Discount cannot exceed expected revenue"
+  probability number default 25 min 0 max 100 label "Probability" placeholder "Enter probability" help "Win probability from 0 to 100"
+  closeDate date optional label "Close Date" placeholder "Select close date" help "Expected close date"
+  status text default lead label "Deal Status" placeholder "lead" help "Pipeline status"
+  validate discount <= expectedRevenue message "Discount cannot exceed expected revenue"
+}
+
+entity Activity {
+  deal Deal required label "Deal" placeholder "Select a deal" help "Deal connected to this activity"
+  contact Contact required label "Contact" placeholder "Select a contact" help "Person contacted"
+  type text default call label "Activity Type" placeholder "call" help "Call, email, meeting, or note"
+  summary text required length 3..160 label "Summary" placeholder "Enter activity summary" help "Short activity note"
+  dueDate date optional label "Due Date" placeholder "Select due date" help "Follow-up due date"
+  completed boolean default false label "Completed" help "Marks whether the activity is done"
+  status text default open label "Activity Status" placeholder "open" help "Activity workflow status"
+}
+
+role Admin {
+  allow all
+}
+
+role SalesManager {
+  allow read Company
+  allow create Company
+  allow update Company
+  allow read Contact
+  allow create Contact
+  allow update Contact
+  allow read Deal
+  allow create Deal
+  allow update Deal
+  allow read Activity
+  allow create Activity
+  allow update Activity
+}
+
+role SalesRep {
+  allow read Company
+  allow read Contact
+  allow create Contact
+  allow update Contact phone
+  allow read Deal
+  allow create Deal
+  allow update Deal status probability closeDate
+  deny read Deal discount
+  allow read Activity
+  allow create Activity
+  allow update Activity completed status
+}
+
+api SalesForecast {
+  method GET
+  path "/api/reports/sales-forecast/{quarter}"
+  param quarter text
+  query owner text
+  private
+}
+
+api LeadWebhook {
+  method POST
+  path "/api/webhooks/leads"
+  webhook
+  public
+}
+
+workflow DealPipeline {
+  source Deal
+  states lead, qualified, proposal, negotiation, won, lost
+
+  transition qualify {
+    from lead
+    to qualified
+    allow Admin, SalesManager, SalesRep
+  }
+
+  transition propose {
+    from qualified
+    to proposal
+    allow Admin, SalesManager, SalesRep
+  }
+
+  transition negotiate {
+    from proposal
+    to negotiation
+    allow Admin, SalesManager, SalesRep
+  }
+
+  transition win {
+    from negotiation
+    to won
+    allow Admin, SalesManager
+  }
+
+  transition lose {
+    from negotiation
+    to lost
+    allow Admin, SalesManager, SalesRep
+  }
+}
+
+workflow ActivityFollowUp {
+  source Activity
+  states open, planned, done
+
+  transition plan {
+    from open
+    to planned
+    allow Admin, SalesManager, SalesRep
+  }
+
+  transition finish {
+    from planned
+    to done
+    allow Admin, SalesManager, SalesRep
+  }
+}
+
+state DealsPageState {
+  selectedDeals Deal[]
+  activeStage text
+  modal createDeal closed
+}
+
+state ActivitiesPageState {
+  selectedActivities Activity[]
+  activeFilter text
+  modal createActivity closed
+}
+
+component ProbabilityBadge {
+  input probability number
+  variant low when probability < 50
+  variant high when probability >= 50
+}
+
+component CompletedBadge {
+  input completed boolean
+  variant done when completed == true
+  variant open when completed == false
+}
+
+layout CRMLayout {
+  sidebar {
+    item Companies
+    item Contacts
+    item Deals
+    item Activities
+  }
+}
+
+page Companies {
+  layout CRMLayout
+  source Company
+  access Admin, SalesManager, SalesRep
+
+  table {
+    columns name, industry, segment, annualRevenue, website
+    search name, industry, segment
+    filter segment, industry
+    sort name asc
+    paginate 10
+  }
+
+  form {
+    fields name, industry, website, segment, annualRevenue
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Contacts {
+  layout CRMLayout
+  source Contact
+  access Admin, SalesManager, SalesRep
+
+  table {
+    columns company, firstName, lastName, email, phone, title, status
+    search company, firstName, lastName, email, status
+    filter company, status
+    sort lastName asc
+    paginate 10
+  }
+
+  form {
+    fields company, firstName, lastName, email, phone, title, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Deals {
+  layout CRMLayout
+  source Deal
+  access Admin, SalesManager, SalesRep
+
+  table {
+    columns company, contact, name, expectedRevenue, discount, probability, closeDate, status
+    search company, contact, name, status
+    filter company, status
+    sort closeDate asc
+    paginate 10
+  }
+
+  form {
+    fields company, contact, name, expectedRevenue, discount, probability, closeDate, status
+  }
+  actions create, edit, delete, archive, restore
+}
+
+page Activities {
+  layout CRMLayout
+  source Activity
+  access Admin, SalesManager, SalesRep
+
+  table {
+    columns deal, contact, type, summary, dueDate, completed, status
+    search deal, contact, type, summary, status
+    filter type, status
+    sort dueDate asc
+    paginate 10
+  }
+
+  form {
+    fields deal, contact, type, summary, dueDate, completed, status
+  }
+  actions create, edit, delete, archive, restore
+}

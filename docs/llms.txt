@@ -23,6 +23,7 @@ Core local files in this repository:
 - AGENTS.md
 - ROADMAP.md
 - examples/warehouse/app.black
+- examples/crm/app.black
 - blacklang.toml
 
 Important principle:

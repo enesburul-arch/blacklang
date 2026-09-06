@@ -25,6 +25,7 @@ Read these pages first:
 - /reference/inline-ui
 - /reference/view
 - /reference/computed
+- /reference/query
 - /reference/i18n
 - /reference/security-cors
 - /reference/deployment
@@ -44,6 +45,7 @@ Core local files in this repository:
 - docs/inline-ui.md
 - docs/view.md
 - docs/computed.md
+- docs/query.md
 - docs/i18n.md
 - docs/security-cors.md
 - docs/deployment.md
@@ -89,6 +91,8 @@ Use `view { order form, table, detail }` inside a page to move generated table, 
 
 Use `computed name money = stock * price` inside an entity for read-only table/detail display values derived from stored number-like fields.
 
+Use top-level `query Name { source Entity ... }` with typed stored-field `where`, optional `sort field asc|desc`, and `limit 1..1000`; bind it with `query Name` inside a page with the same source. Multiple conditions use AND; default order is id asc and default limit is 100. Read `docs/query.md` or `black docs query --json` first.
+
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
 Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
@@ -97,6 +101,6 @@ Use `security { cors { origins env CORS_ORIGINS } }` for browser API origin poli
 
 Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
 
-Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, pages, roles, workflows, states, components, APIs, target, security, deploy, auth, database, or app metadata.
+Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, queries, pages, roles, workflows, states, components, APIs, target, security, deploy, auth, database, or app metadata.
 
 Use `docs/diagnostics.md` and `black docs diagnostics --json` when interpreting diagnostic codes.

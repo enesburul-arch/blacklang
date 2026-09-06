@@ -33,7 +33,7 @@
 
       <label class="nav-search">
         <span>Menüde ara</span>
-        <input type="search" id="navSearch" placeholder="entity, i18n, security..." />
+        <input type="search" id="navSearch" placeholder="entity, query, security..." />
       </label>
 
       <nav aria-label="BlackLang dokümantasyon menüsü">
@@ -46,6 +46,7 @@
         <a href="#target">target</a>
         <a href="#entity">entity</a>
         <a href="#computed">computed</a>
+        <a href="#query">query</a>
         <a href="#fields">Field Tipleri</a>
         <a href="#page">page</a>
         <a href="#view">view</a>
@@ -336,6 +337,94 @@ page Products {
         </p>
       </section>
 
+      <section id="query">
+        <h2>query</h2>
+        <p>
+          `query`, düşük stok gibi özel listeleri saklanan entity field'ları üzerinden
+          tanımlar. Filtre, sıralama ve kayıt sınırı server tarafında uygulanır; aynı
+          sorgu birden fazla generated sayfaya bağlanabilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Warehouse: düşük stok listesi</div>
+          <pre><code class="language-black">query LowStockProducts {
+  source Product
+  where stock &lt; 10
+  sort stock asc
+  limit 50
+}
+
+page LowStock {
+  source Product
+  query LowStockProducts
+
+  table {
+    columns sku, name, stock, price, inventoryValue
+    search sku, name
+    paginate 10
+  }
+}</code></pre>
+        </div>
+        <p>
+          Bu örnek, yukarıdaki Product modelinden stok adedi 10'dan küçük olan en fazla
+          50 ürünü seçer. Stok artan sıradadır; eşit stok değerlerinde `id asc` kullanılır.
+          Form ve actions olmadığı için LowStock sayfası salt okunurdur. Computed
+          `inventoryValue` tabloda gösterilebilir; query koşulunda veya sort alanında kullanılamaz.
+        </p>
+        <p>
+          Query top-level tanımlanır ve tek `source Entity` kullanır. Sayfa kendi `source`
+          satırını korur, `query Name` ile sorguya bağlanır; iki source aynı olmalıdır.
+          Birden fazla `where` satırı AND ile birleşir. Tek bir opsiyonel `sort field asc|desc`
+          kullanılabilir. Sort yoksa varsayılan `id asc`; limit yoksa varsayılan 100'dür.
+          `limit`, 1 ile 1000 arasında tam sayı olmalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Field tipine göre literal örnekleri</div>
+          <pre><code class="language-black">where status == "draft"
+where stock &lt; 10
+where price &gt;= 12.50
+where active == true
+where dueDate &lt; "2026-09-06"
+where scheduledAt &gt;= "2026-09-06T12:00:00Z"</code></pre>
+        </div>
+        <p>
+          Her koşul query source entity'sinde bulunan, örnekteki tipe uygun bir field
+          gerektirir. Text/email/date/datetime değerleri tırnaklı, numeric ve boolean
+          değerler tırnaksızdır. `number` ve `integer` 32-bit tam sayı; `decimal` ve `money`
+          sonlu ondalık literal kabul eder. `==` ve `!=` tüm desteklenen stored primitive
+          tiplerde; `&lt;`, `&lt;=`, `&gt;`, `&gt;=` numeric/date/datetime tiplerinde geçerlidir.
+          Relation, computed ve generated system field'ları, parametreler, OR, join,
+          aggregate ve raw SQL bu MVP'nin dışındadır.
+        </p>
+        <p>
+          Generated LowStock sayfası `GET /api/lowstock/query` üzerinden yüklenir.
+          Mevcut entity listesi ve CRUD route'ları kendi davranışını sürdürür; relation
+          seçenekleri normal entity listesinden gelir. Sayfaya bağlanmamış query bağımsız
+          endpoint oluşturmaz. Table search/filter/pagination ve opsiyonel table sort,
+          server'ın döndürdüğü sınırlı liste üzerinde çalışır. Bağlı sayfadaki başarılı
+          mutation sonrası query yeniden yüklenir.
+        </p>
+        <p>
+          Auth, page access, entity read ve response field hiding kuralları korunur.
+          Koşul veya sort alanı mevcut role için okunabilir değilse query endpoint'i 403
+          döndürür. Query filtreleri ownership/tenant/row authorization kuralı oluşturmaz;
+          mevcut detail ve mutation endpoint'lerini daraltmaz.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs query --json
+black explain query --json
+black inspect --affected LowStockProducts --json
+black inspect --affected Product.stock --json
+black validate --json
+black build --json</code></pre>
+        </div>
+        <p>
+          Tam kurallar <a href="/query.md">query referansında</a>, stabil hata kodları
+          <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Query tanımı ve
+          page bağlantısı JSON, BlackIR, inspect/affected ve generated OpenAPI çıktısında görünür.
+        </p>
+      </section>
+
       <section id="fields">
         <h2>Field Tipleri</h2>
         <p>
@@ -391,7 +480,8 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
         </div>
         <p>
           `source`, var olan bir entity'yi göstermelidir. Table ve form alanları source
-          entity içinde yoksa validator stabil hata kodu üretir.
+          entity içinde yoksa validator stabil hata kodu üretir. İsteğe bağlı `query Name`
+          satırı, listeyi aynı source entity'yi kullanan <a href="#query">özel sorguya</a> bağlar.
         </p>
       </section>
 
@@ -446,7 +536,9 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
         </div>
         <p>
           Generator table tanımından React liste görünümü, search state, filtre kontrolleri,
-          pagination ve field bazlı görünürlük kontrollerini üretebilir.
+          pagination ve field bazlı görünürlük kontrollerini üretebilir. Query'ye bağlı
+          sayfalarda bu araçlar query'nin döndürdüğü sınırlı liste üzerinde çalışır;
+          table sort belirtilmezse query sırası korunur.
         </p>
       </section>
 
@@ -994,6 +1086,9 @@ black inspect examples/project-management/app.black --affected ProjectTask.statu
 black theme inspect --json
 black docs ui --json
 black docs ui-modes --json
+black docs query --json
+black explain query --json
+black inspect --affected LowStockProducts --json
 black docs --all --json
 black explain entity --json
 black security scan --json</code></pre>
@@ -1002,7 +1097,7 @@ black security scan --json</code></pre>
           `agent startup`, AI ajanına proje girişinde okunacak dosyaları, source/out yollarını,
           generated dosya sınırlarını ve doğrulama komutlarını tek JSON çıktıda verir.
           `lint` format, parse, validate ve source-security bulgularını tek raporda toplar.
-          `inspect --affected`, bir entity, field, page, role, workflow, state, component
+          `inspect --affected`, bir entity, field, query, page, role, workflow, state, component
           veya api değiştiğinde hangi kaynak parçalarının ve generated dosyaların etkileneceğini
           JSON olarak döner. `explain`, tek keyword için amaç, syntax, örnek, agent notu ve
           hata kodlarını döner.
@@ -1135,8 +1230,9 @@ black build</code></pre>
         <h2>Örnekler</h2>
         <p>
           İlk örnek Warehouse uygulamasıdır. Bu örnek auth, role, relation, workflow, state,
-          component, table, form, computed display, validation ve API contract özelliklerini
-          aynı kaynakta gösterir.
+          component, table, form, computed display, custom query, validation ve API contract
+          özelliklerini aynı kaynakta gösterir. Salt okunur LowStock sayfası, özel sorguyla
+          düşük stoklu ürünleri listeler.
         </p>
         <div class="code-panel">
           <div class="code-title">Relation ve validation örneği</div>
@@ -1615,15 +1711,15 @@ Build time                      TBD         TBD</code></pre>
         <p>
           v0.1 web MVP tamamlandı: parser, validator, generator, CRUD, relation, auth,
           role/access, workflow, state, component, validation, OpenAPI ve source security
-          temelleri var. v0.2 içinde ilk data logic adımı olarak computed display fields
-          eklendi.
+          temelleri var. v0.2 data logic kapsamında computed display fields ve stored-field
+          custom query MVP tamamlandı. Sonraki adım custom mutation/action tanımlarıdır.
         </p>
         <div class="code-panel">
           <div class="code-title">v0.2 odakları</div>
           <pre><code>Phase 18: Release and install path
 Phase 19: Developer and AI ergonomics, including agent contract and inspect --affected
 Phase 20: UI and theme language
-Phase 21: Query, actions, and data logic, computed fields started
+Phase 21: Computed fields and custom queries complete; custom actions next
 Phase 22: Tests, benchmarks, and evals
 Phase 23: Protected source mode
 Phase 24: Documentation site

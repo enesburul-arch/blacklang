@@ -64,6 +64,7 @@ The computed field is also shown in the generated detail view.
 - Computed fields can be listed in table `columns`.
 - Computed fields cannot be used in form `fields`.
 - Computed field `search`, `filter`, and `sort` support is planned for a later data logic phase.
+- Custom query `where` and `sort` only accept stored primitive fields; computed display fields may still appear in the bound page's table columns.
 - If a computed field reads a source field hidden by field-level permissions, the computed value is hidden too.
 
 ## Agent Notes

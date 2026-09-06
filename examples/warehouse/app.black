@@ -88,6 +88,13 @@ entity Order {
   validate trackingNumber required when status == shipped message "Tracking number is required when shipped"
 }
 
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+
 role Admin {
   allow all
 }
@@ -148,6 +155,7 @@ component StockBadge {
 layout AdminLayout {
   sidebar {
     item Products
+    item LowStock
     item Customers
     item Orders
   }
@@ -186,6 +194,19 @@ page Products {
   action delete id DeleteProductButton
   action delete class dangerAction
   action delete ui button danger white 6 sm solid
+}
+
+page LowStock {
+  layout AdminLayout
+  source Product
+  query LowStockProducts
+  access Admin, Worker
+
+  table {
+    columns sku, name, stock, price, inventoryValue
+    search sku, name
+    paginate 10
+  }
 }
 
 page Customers {

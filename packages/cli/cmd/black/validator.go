@@ -152,6 +152,7 @@ func (v *semanticValidator) validate() {
 	v.validateSecurity()
 	v.validateDeploy()
 	entityIndex := v.validateEntities()
+	v.validateQueries(entityIndex)
 	v.validateI18N()
 	v.validateLabelTranslations(entityIndex)
 	roleIndex := v.validateRoles(entityIndex)
@@ -897,12 +898,19 @@ func displayFieldExists(entity EntityDecl, name string) bool {
 
 func (v *semanticValidator) validatePages(entityIndex map[string]EntityDecl, layoutIndex map[string]LayoutDecl, roleIndex map[string]RoleDecl) map[string]PageDecl {
 	pageIndex := map[string]PageDecl{}
+	pageRoutes := map[string]PageDecl{}
 	for _, page := range v.program.Pages {
 		if existing, ok := pageIndex[page.Name]; ok {
 			v.addDiagnostic(page.Position, "DUPLICATE_PAGE", fmt.Sprintf("Page %s is already defined.", page.Name), fmt.Sprintf("First definition is at %s:%d.", existing.Position.File, existing.Position.Line))
 			continue
 		}
 		pageIndex[page.Name] = page
+		route := strings.ToLower(page.Name)
+		if existing, ok := pageRoutes[route]; ok {
+			v.addDiagnostic(page.Position, "DUPLICATE_PAGE_ROUTE", fmt.Sprintf("Page %s conflicts with page %s at generated route /%s.", page.Name, existing.Name, route), "Choose page names that remain distinct after lowercasing.")
+		} else {
+			pageRoutes[route] = page
+		}
 
 		if page.Layout != "" {
 			if _, ok := layoutIndex[page.Layout]; !ok {

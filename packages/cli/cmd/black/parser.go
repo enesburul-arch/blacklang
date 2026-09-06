@@ -50,6 +50,8 @@ func (p *parser) parse() {
 			index = p.parseLabelTranslation(index, parts)
 		case "entity":
 			index = p.parseEntity(index, parts)
+		case "query":
+			index = p.parseQuery(index, parts)
 		case "role":
 			index = p.parseRole(index, parts)
 		case "api":
@@ -65,7 +67,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, target, auth, database, security, deploy, i18n, label, entity, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, target, auth, database, security, deploy, i18n, label, entity, query, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -856,6 +858,17 @@ func (p *parser) parsePage(start int, parts []string) int {
 				continue
 			}
 			page.Source = sectionParts[1]
+		case "query":
+			if len(sectionParts) != 2 || len(p.lines[index].Tokens) != 2 || !queryStatementIdentifiers(p.lines[index], 0, 1) {
+				p.addError(currentLine, 1, "INVALID_PAGE_QUERY", "Page query must be `query QueryName`.", "Example: `query LowStockProducts`.")
+				continue
+			}
+			if page.Query != "" {
+				p.addError(currentLine, 1, "DUPLICATE_PAGE_QUERY", "Page query is already declared.", "Keep one query reference inside each page.")
+				continue
+			}
+			page.Query = sectionParts[1]
+			page.QueryPosition = p.position(currentLine, 1)
 		case "view":
 			var view PageViewDecl
 			view, index = p.parsePageView(index, sectionParts)
@@ -912,7 +925,7 @@ func (p *parser) parsePage(start int, parts []string) int {
 		case "access":
 			page.Access = parseList(sectionParts[1:])
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, view, table, form, actions, action, or access inside a page.")
+			p.addError(currentLine, 1, "UNEXPECTED_PAGE_TOKEN", fmt.Sprintf("Unexpected page token %q.", sectionParts[0]), "Use layout, source, query, view, table, form, actions, action, or access inside a page.")
 		}
 	}
 

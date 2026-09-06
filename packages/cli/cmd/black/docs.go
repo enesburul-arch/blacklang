@@ -57,7 +57,7 @@ black inspect examples/warehouse/app.black --ir
 black inspect examples/warehouse/app.black --affected Product.stock --json`,
 		AgentNotes: []string{
 			"Use black inspect --json or --ir at project start to learn the current app structure.",
-			"Use --affected before changing an entity, field, page, role, workflow, state, component, api, target, deploy, security, database, auth, or app symbol.",
+			"Use --affected before changing an entity, field, page, query, role, workflow, state, component, api, target, deploy, security, database, auth, or app symbol.",
 			"The affected JSON lists source symbols and generated files that should be validated after the edit.",
 			"Unknown symbols return UNKNOWN_AFFECTED_SYMBOL instead of asking the model to guess.",
 		},
@@ -433,6 +433,53 @@ label Product.name {
 		},
 		Errors: []string{"DUPLICATE_ENTITY", "DUPLICATE_FIELD", "DUPLICATE_COMPUTED_FIELD", "UNSUPPORTED_FIELD_TYPE", "UNSUPPORTED_FIELD_MODIFIER", "INVALID_COMPUTED_FIELD", "INVALID_COMPUTED_EXPRESSION", "UNSUPPORTED_COMPUTED_FIELD_TYPE", "UNSUPPORTED_COMPUTED_OPERATOR", "UNKNOWN_COMPUTED_FIELD", "INCOMPATIBLE_COMPUTED_FIELD", "UNSUPPORTED_COMPUTED_FIELD_MODIFIER", "MISSING_LABEL_VALUE", "MISSING_PLACEHOLDER_VALUE", "MISSING_HELP_VALUE", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_ENTITY_VALIDATION", "UNKNOWN_VALIDATION_FIELD", "UNSUPPORTED_VALIDATION_OPERATOR", "INCOMPATIBLE_VALIDATION_FIELDS", "MISSING_VALIDATION_CONDITION", "INVALID_VALIDATION_LITERAL"},
 	},
+	"query": {
+		Keyword: "query",
+		Purpose: "Declares a reusable, deterministic stored-record query and binds it to a page list.",
+		Syntax: `query <Name> {
+  source <Entity>
+  where <field> <operator> <literal>
+  sort <field> <asc|desc>
+  limit <1..1000>
+}
+page <Name> {
+  source <Entity>
+  query <QueryName>
+  table { columns <field...> }
+}`,
+		Example: `app Inventory
+entity Product {
+  name text required
+  stock number default 0
+}
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+page LowStock {
+  source Product
+  query LowStockProducts
+  table {
+    columns name, stock
+  }
+}`,
+		AgentNotes: []string{
+			"Declare queries only at top level. A page keeps source Entity and selects one query Name with the same source.",
+			"Use stored primitive fields only; computed, relation and generated system fields, parameters, joins, aggregates, and raw expressions are unsupported.",
+			"where is optional; repeat where lines for AND. Use == or != for all supported types; < <= > >= require numeric, date or datetime fields.",
+			"Quote text/email/date/datetime literals. Dates use YYYY-MM-DD; datetimes use RFC3339 with an explicit timezone. Numbers and true/false are unquoted; null and field-to-field comparisons are unsupported.",
+			"number and integer use signed int32 whole values; decimal and money use finite decimal literals. Exponent, hexadecimal, and non-finite number spellings are unsupported.",
+			"sort and limit are optional and may occur once. Default limit is 100; explicit limit is 1..1000. Default order is id asc, appended as a tie breaker to explicit sort.",
+			"GET /api/<lowercase-page>/query applies archive policy AND where filters, then sort, then limit in the database. The generated page calls it and refreshes it after mutations.",
+			"Table search/filter/sort/pagination work within the returned subset. Base CRUD list and relation selectors keep their existing behavior.",
+			"The query endpoint preserves page/auth/entity permissions and requires read permission on every filter/sort field; hidden query dependencies return 403.",
+			"Queries select lists; they are not row authorization policies and do not restrict ordinary detail or mutation endpoints. An unbound query exposes no endpoint.",
+			"Use black inspect --affected QueryName --json and --affected Entity.field --json before edits. Do not confuse this with api-block query parameters (contract metadata).",
+		},
+		Errors: []string{"INVALID_QUERY_DECLARATION", "INVALID_QUERY_NAME", "DUPLICATE_QUERY", "QUERY_NAME_COLLISION", "MISSING_QUERY_SOURCE", "INVALID_QUERY_SOURCE", "DUPLICATE_QUERY_SOURCE", "UNKNOWN_QUERY_SOURCE", "INVALID_QUERY_WHERE", "DUPLICATE_QUERY_WHERE", "INVALID_QUERY_LITERAL", "QUERY_LITERAL_TYPE_MISMATCH", "INVALID_QUERY_FIELD", "UNKNOWN_QUERY_FIELD", "UNSUPPORTED_QUERY_FIELD", "UNSUPPORTED_QUERY_OPERATOR", "INVALID_QUERY_SORT", "DUPLICATE_QUERY_SORT", "UNSUPPORTED_QUERY_SORT_DIRECTION", "INVALID_QUERY_LIMIT", "DUPLICATE_QUERY_LIMIT", "UNEXPECTED_QUERY_TOKEN", "UNCLOSED_QUERY", "INVALID_PAGE_QUERY", "DUPLICATE_PAGE_QUERY", "UNKNOWN_PAGE_QUERY", "PAGE_QUERY_SOURCE_MISMATCH"},
+	},
 	"computed": {
 		Keyword: "computed",
 		Purpose: "Declares a read-only display field calculated from stored number-like entity fields.",
@@ -463,7 +510,7 @@ page Products {
 	"page": {
 		Keyword: "page",
 		Purpose: "Declares a generated web screen bound to one source entity.",
-		Syntax:  "page <PascalCaseName> { layout <LayoutName>; source <EntityName>; view {...}; table {...}; form {...}; actions ... }",
+		Syntax:  "page <PascalCaseName> { layout <LayoutName>; source <EntityName>; query <QueryName>; view {...}; table {...}; form {...}; actions ... }",
 		Example: `page Products {
   layout AdminLayout
   source Product

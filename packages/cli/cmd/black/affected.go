@@ -12,7 +12,7 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 		return analysis, []Diagnostic{{
 			Code:       "MISSING_AFFECTED_SYMBOL",
 			Message:    "`--affected` requires a symbol.",
-			Suggestion: "Use an entity, field, page, role, workflow, state, component, api, target, deploy, or app symbol such as `Product`, `Product.stock`, `Products`, or `target`.",
+			Suggestion: "Use an entity, field, page, query, role, workflow, state, component, api, target, deploy, or app symbol such as `Product`, `Product.stock`, `Products`, or `target`.",
 		}}
 	}
 
@@ -55,6 +55,13 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 		analysis.Kind = "page"
 		analysis.Found = true
 		populatePageAffected(&analysis, program, page)
+		return analysis, nil
+	}
+	if query, ok := findQuery(program, symbol); ok {
+		analysis.Kind = "query"
+		analysis.Found = true
+		analysis.Entity = query.Source
+		populateQueryAffected(&analysis, program, query)
 		return analysis, nil
 	}
 	if role, ok := affectedFindRole(program, symbol); ok {
@@ -127,7 +134,7 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 	return analysis, []Diagnostic{{
 		Code:       "UNKNOWN_AFFECTED_SYMBOL",
 		Message:    fmt.Sprintf("Affected symbol %q was not found.", symbol),
-		Suggestion: "Use an existing entity, field, page, role, workflow, state, component, api, auth, database, security, deploy, target, or app symbol.",
+		Suggestion: "Use an existing entity, field, page, query, role, workflow, state, component, api, auth, database, security, deploy, target, or app symbol.",
 	}}
 }
 
@@ -137,6 +144,7 @@ func newAffectedAnalysis(symbol string) AffectedAnalysis {
 		Kind:           "unknown",
 		Entities:       []AffectedItem{},
 		Pages:          []AffectedItem{},
+		Queries:        []AffectedItem{},
 		Roles:          []AffectedItem{},
 		Workflows:      []AffectedItem{},
 		States:         []AffectedItem{},
@@ -164,6 +172,16 @@ func populateEntityAffected(analysis *AffectedAnalysis, program Program, entity 
 	analysis.addGeneratedFile("prisma/schema.prisma", "Database schema is generated from entity fields and relations.")
 	analysis.addGeneratedFile("src/setup-db.ts", "SQLite setup mirrors generated entity columns and relation IDs.")
 	analysis.addGeneratedFile("openapi.json", "Generated REST schemas include entity fields and page actions.")
+	for _, query := range program.Queries {
+		if query.Source != entity.Name {
+			continue
+		}
+		reason := "Query returns stored records from " + entity.Name + "."
+		if field != nil && containsString(queryFieldNames(query), fieldName) {
+			reason = "Query filters or sorts by " + entity.Name + "." + fieldName + "."
+		}
+		analysis.addQuery(query.Name, reason)
+	}
 
 	if field != nil && validationUsesField(entity.Validations, fieldName) {
 		analysis.addEntity(entity.Name, "Entity-level validation references "+fieldName+".")
@@ -180,7 +198,7 @@ func populateEntityAffected(analysis *AffectedAnalysis, program Program, entity 
 				reason = "Page table, form, search, filter, or sort references " + fieldName + "."
 			}
 			analysis.addPage(page.Name, reason)
-			addGeneratedPageFiles(analysis, page, entity.Name, "Generated page/API route depends on "+entity.Name+".")
+			addGeneratedPageFiles(analysis, program, page, entity.Name, "Generated page/API route depends on "+entity.Name+".")
 			continue
 		}
 		if pageHasRelationTo(pageEntity, entity.Name) {
@@ -219,7 +237,7 @@ func populateEntityAffected(analysis *AffectedAnalysis, program Program, entity 
 			analysis.addWorkflow(workflow.Name, "Workflow source is "+entity.Name+" and generated transitions mutate status.")
 			for _, page := range program.Pages {
 				if page.Source == entity.Name {
-					addGeneratedPageFiles(analysis, page, entity.Name, "Workflow controls and routes are generated for "+workflow.Name+".")
+					addGeneratedPageFiles(analysis, program, page, entity.Name, "Workflow controls and routes are generated for "+workflow.Name+".")
 				}
 			}
 		}
@@ -258,16 +276,37 @@ func populateEntityAffected(analysis *AffectedAnalysis, program Program, entity 
 
 func populatePageAffected(analysis *AffectedAnalysis, program Program, page PageDecl) {
 	analysis.addPage(page.Name, "The symbol is this page.")
+	if page.Query != "" {
+		analysis.addQuery(page.Query, "Page list is bound to this query.")
+	}
 	if entity, ok := affectedFindEntity(program, page.Source); ok {
 		analysis.Entity = entity.Name
 		analysis.addEntity(entity.Name, "Page source is "+entity.Name+".")
-		addGeneratedPageFiles(analysis, page, entity.Name, "Generated page/API files are tied to this page.")
+		addGeneratedPageFiles(analysis, program, page, entity.Name, "Generated page/API files are tied to this page.")
 	}
 	if page.Layout != "" {
 		analysis.addGeneratedFile("src/App.tsx", "Application shell uses page layout and navigation.")
 	}
 	for _, roleName := range page.Access {
 		analysis.addRole(roleName, "Page access references this role.")
+	}
+	// Adding/removing a query binding can change which page owns the canonical
+	// entity client used by sibling pages and relation selectors.
+	for _, sibling := range program.Pages {
+		if sibling.Name == page.Name || sibling.Source != page.Source {
+			continue
+		}
+		analysis.addPage(sibling.Name, "Page query binding can change canonical entity API module selection.")
+		addGeneratedPageFiles(analysis, program, sibling, sibling.Source, "Sibling page shares canonical entity client selection.")
+		if sibling.Query != "" {
+			analysis.addQuery(sibling.Query, "Sibling query uses the same entity API module selection.")
+		}
+	}
+	for _, consumer := range program.Pages {
+		if entity, ok := affectedFindEntity(program, consumer.Source); ok && pageHasRelationTo(entity, page.Source) {
+			analysis.addPage(consumer.Name, "Relation selectors use the canonical page for "+page.Source+".")
+			analysis.addGeneratedFile("src/pages/"+consumer.Name+"Page.tsx", "Relation client/navigation depends on canonical page selection.")
+		}
 	}
 }
 
@@ -285,17 +324,56 @@ func populateComputedFieldAffected(analysis *AffectedAnalysis, program Program, 
 	}
 }
 
+func populateQueryAffected(analysis *AffectedAnalysis, program Program, query QueryDecl) {
+	analysis.addQuery(query.Name, "The symbol is this query declaration.")
+	analysis.addEntity(query.Source, "Query reads stored records from this entity.")
+	for _, page := range program.Pages {
+		if page.Query != query.Name {
+			continue
+		}
+		analysis.addPage(page.Name, "Page list uses query "+query.Name+".")
+		module := (&webGenerator{program: program}).pageModuleName(page)
+		analysis.addGeneratedFile("src/pages/"+page.Name+"Page.tsx", "Page loads and refreshes this query result.")
+		analysis.addGeneratedFile("src/api/"+module+".ts", "Page API client exposes the bound query list.")
+		analysis.addGeneratedFile("src/routes/"+module+".ts", "Query filtering, ordering, limit, and read guards execute here.")
+		analysis.addGeneratedFile("openapi.json", "Bound query endpoint describes this query.")
+		for _, role := range page.Access {
+			analysis.addRole(role, "Bound query endpoint uses this page's access policy.")
+		}
+	}
+	for _, role := range program.Roles {
+		for _, permission := range role.Permissions {
+			if permission.Action == "all" || (permission.Resource == query.Source && (permission.Action == "read" || permission.Action == "manage")) {
+				analysis.addRole(role.Name, "Query checks entity and filter/sort field read permissions.")
+			}
+		}
+	}
+	analysis.AgentNotes = append(analysis.AgentNotes, "Query changes affect bound lists; they do not change database columns, mutation rules, or row authorization. Unbound queries expose no endpoint.")
+}
+
 func populateRoleAffected(analysis *AffectedAnalysis, program Program, role RoleDecl) {
 	analysis.addRole(role.Name, "The symbol is this role.")
 	analysis.addGeneratedFile("src/auth/UsersPage.tsx", "Generated role management uses declared roles.")
 	analysis.addGeneratedFile("src/auth/AuditPage.tsx", "Generated audit UI is role-aware.")
 	analysis.addGeneratedFile("src/routes/auth.ts", "Auth routes store and update user roles.")
+	for _, query := range program.Queries {
+		for _, permission := range role.Permissions {
+			if permission.Action == "all" || (permission.Resource == query.Source && (permission.Action == "read" || permission.Action == "manage")) {
+				analysis.addQuery(query.Name, "Query execution checks entity and filter/sort field read permissions.")
+			}
+		}
+		for _, page := range program.Pages {
+			if page.Query == query.Name && containsString(page.Access, role.Name) {
+				analysis.addQuery(query.Name, "Bound page access includes this role.")
+			}
+		}
+	}
 
 	for _, permission := range role.Permissions {
 		if permission.Resource == "" || permission.Action == "all" {
 			for _, page := range program.Pages {
 				analysis.addPage(page.Name, "Role has global permissions that can affect page actions.")
-				addGeneratedPageFiles(analysis, page, page.Source, "Role guards affect generated page/API behavior.")
+				addGeneratedPageFiles(analysis, program, page, page.Source, "Role guards affect generated page/API behavior.")
 			}
 			continue
 		}
@@ -303,14 +381,14 @@ func populateRoleAffected(analysis *AffectedAnalysis, program Program, role Role
 		for _, page := range program.Pages {
 			if page.Source == permission.Resource {
 				analysis.addPage(page.Name, "Page source matches role permission resource.")
-				addGeneratedPageFiles(analysis, page, page.Source, "Role permission guards affect generated page/API behavior.")
+				addGeneratedPageFiles(analysis, program, page, page.Source, "Role permission guards affect generated page/API behavior.")
 			}
 		}
 	}
 	for _, page := range program.Pages {
 		if containsString(page.Access, role.Name) {
 			analysis.addPage(page.Name, "Page access list includes "+role.Name+".")
-			addGeneratedPageFiles(analysis, page, page.Source, "Page-level role guard includes "+role.Name+".")
+			addGeneratedPageFiles(analysis, program, page, page.Source, "Page-level role guard includes "+role.Name+".")
 		}
 	}
 }
@@ -322,7 +400,7 @@ func populateWorkflowAffected(analysis *AffectedAnalysis, program Program, workf
 	for _, page := range program.Pages {
 		if page.Source == workflow.Source {
 			analysis.addPage(page.Name, "Generated page can render workflow transition controls.")
-			addGeneratedPageFiles(analysis, page, workflow.Source, "Workflow routes, clients, and buttons are generated for this source.")
+			addGeneratedPageFiles(analysis, program, page, workflow.Source, "Workflow routes, clients, and buttons are generated for this source.")
 		}
 	}
 	for _, transition := range workflow.Transitions {
@@ -384,6 +462,9 @@ func populateAuthAffected(analysis *AffectedAnalysis, program Program) {
 	analysis.addGeneratedFile("src/server.ts", "Generated server mounts auth routes and protects CRUD routes.")
 	for _, page := range program.Pages {
 		analysis.addPage(page.Name, "Auth affects generated access checks for pages.")
+		if page.Query != "" {
+			analysis.addQuery(page.Query, "Bound query endpoint uses the page's authentication checks.")
+		}
 	}
 }
 
@@ -432,13 +513,13 @@ func populateAppAffected(analysis *AffectedAnalysis, program Program) {
 	}
 }
 
-func addGeneratedPageFiles(analysis *AffectedAnalysis, page PageDecl, entityName string, reason string) {
+func addGeneratedPageFiles(analysis *AffectedAnalysis, program Program, page PageDecl, entityName string, reason string) {
 	analysis.addGeneratedFile("src/pages/"+page.Name+"Page.tsx", reason)
 	if entityName != "" {
-		fileName := strings.ToLower(entityName)
+		fileName := (&webGenerator{program: program}).pageModuleName(page)
 		analysis.addGeneratedFile("src/api/"+fileName+".ts", reason)
 		analysis.addGeneratedFile("src/routes/"+fileName+".ts", reason)
-		analysis.addGeneratedFile("src/validation/"+fileName+".ts", reason)
+		analysis.addGeneratedFile("src/validation/"+strings.ToLower(entityName)+".ts", reason)
 	}
 	analysis.addGeneratedFile("src/App.tsx", "Generated navigation and route registration include pages.")
 	analysis.addGeneratedFile("src/server.ts", "Generated server mounts API routes for pages.")
@@ -583,6 +664,10 @@ func (analysis *AffectedAnalysis) addEntity(name string, reason string) {
 
 func (analysis *AffectedAnalysis) addPage(name string, reason string) {
 	analysis.Pages = addAffectedItem(analysis.Pages, name, reason)
+}
+
+func (analysis *AffectedAnalysis) addQuery(name string, reason string) {
+	analysis.Queries = addAffectedItem(analysis.Queries, name, reason)
 }
 
 func (analysis *AffectedAnalysis) addRole(name string, reason string) {

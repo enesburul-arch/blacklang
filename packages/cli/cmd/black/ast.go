@@ -149,6 +149,7 @@ type AffectedAnalysis struct {
 	Entity         string         `json:"entity,omitempty"`
 	Field          string         `json:"field,omitempty"`
 	Entities       []AffectedItem `json:"entities"`
+	Queries        []AffectedItem `json:"queries"`
 	Pages          []AffectedItem `json:"pages"`
 	Roles          []AffectedItem `json:"roles"`
 	Workflows      []AffectedItem `json:"workflows"`
@@ -333,6 +334,7 @@ type Program struct {
 	I18N       *I18NDecl              `json:"i18n,omitempty"`
 	Labels     []LabelTranslationDecl `json:"labels,omitempty"`
 	Entities   []EntityDecl           `json:"entities"`
+	Queries    []QueryDecl            `json:"queries,omitempty"`
 	Roles      []RoleDecl             `json:"roles,omitempty"`
 	APIs       []APIDecl              `json:"apis,omitempty"`
 	Layouts    []LayoutDecl           `json:"layouts,omitempty"`
@@ -510,16 +512,18 @@ type Modifier struct {
 }
 
 type PageDecl struct {
-	Name     string           `json:"name"`
-	Layout   string           `json:"layout,omitempty"`
-	Source   string           `json:"source"`
-	View     *PageViewDecl    `json:"view,omitempty"`
-	Table    TableDecl        `json:"table"`
-	Form     FormDecl         `json:"form"`
-	Actions  []string         `json:"actions"`
-	ActionUI []ActionUIIntent `json:"actionUI,omitempty"`
-	Access   []string         `json:"access,omitempty"`
-	Position Position         `json:"position"`
+	Name          string           `json:"name"`
+	Layout        string           `json:"layout,omitempty"`
+	Source        string           `json:"source"`
+	Query         string           `json:"query,omitempty"`
+	QueryPosition Position         `json:"queryPosition,omitempty"`
+	View          *PageViewDecl    `json:"view,omitempty"`
+	Table         TableDecl        `json:"table"`
+	Form          FormDecl         `json:"form"`
+	Actions       []string         `json:"actions"`
+	ActionUI      []ActionUIIntent `json:"actionUI,omitempty"`
+	Access        []string         `json:"access,omitempty"`
+	Position      Position         `json:"position"`
 }
 
 type PageViewDecl struct {

@@ -743,7 +743,7 @@ func runDocs(args []string) {
 		result.Errors = []Diagnostic{{
 			Code:       "UNKNOWN_DOC_KEYWORD",
 			Message:    fmt.Sprintf("No docs entry exists for %q.", keyword),
-			Suggestion: "Use syntax, version, docs, explain, agent, agent-contract, diagnostics, format, lint, app, target, auth, role, access, entity, computed, layout, page, view, table, form, actions, ui, ui-profile, ui-modes, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, cors, deploy, audit, or csrf.",
+			Suggestion: "Use syntax, version, docs, explain, agent, agent-contract, diagnostics, format, lint, app, target, auth, role, access, entity, computed, query, layout, page, view, table, form, actions, ui, ui-profile, ui-modes, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, cors, deploy, audit, or csrf.",
 		}}
 	}
 
@@ -1127,6 +1127,7 @@ func printAffectedResult(result InspectAffectedResult) {
 	fmt.Printf("affected %s (%s)\n", affected.Symbol, affected.Kind)
 	printAffectedItems("entities", affected.Entities)
 	printAffectedItems("pages", affected.Pages)
+	printAffectedItems("queries", affected.Queries)
 	printAffectedItems("roles", affected.Roles)
 	printAffectedItems("workflows", affected.Workflows)
 	printAffectedItems("states", affected.States)

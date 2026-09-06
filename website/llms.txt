@@ -17,6 +17,7 @@ Read first:
 - `#page` for generated web screens.
 - `#view` for generated page section order.
 - `#computed` for read-only entity display calculations.
+- `#query` for bounded server-side stored-field queries and page bindings.
 - `#table` for list rendering.
 - `#form` for data input.
 - `#auth` for email/password cookie sessions.
@@ -42,6 +43,7 @@ Read first:
 - `/inline-ui.md` for inline UI intent placement rules.
 - `/view.md` for page view order rules.
 - `/computed.md` for read-only computed display field rules.
+- `/query.md` for custom query syntax, literals, limits, permissions, and generated behavior.
 - `/i18n.md` for locale and field label translation rules.
 - `/security-cors.md` for CORS policy syntax and generated server behavior.
 - `/deployment.md` for Docker deployment and environment wiring.
@@ -76,3 +78,6 @@ Agent rule:
 19. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
 20. Keep secrets out of `.black` files. Use `env DATABASE_URL`, `origins env CORS_ORIGINS`, and `deploy env NAME required|optional` style references.
 21. Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
+22. Use `black docs query --json` and `black explain query --json` before declaring a top-level `query Name { source Entity ... }`; bind a page with `query Name` and the same source.
+23. Query `where` accepts typed stored-field literals; repeated conditions use AND. One optional sort adds id asc for ties; default order is id asc, limit is 1..1000 (default 100). Relations/computed/system fields, parameters, joins, aggregates, and arbitrary code are unsupported.
+24. Query routes keep auth/access/entity read and field read checks; unreadable where/sort fields return 403. Query selection is not row authorization. Table tools apply to the returned subset; ordinary entity lists and relation options remain unchanged.

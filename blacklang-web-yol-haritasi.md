@@ -109,7 +109,7 @@ Core içine her şeyi doldurmak dili ağırlaştırır. Ama her şeyi plugin'e b
 | App structure | Proje, target, generated sınırı, config, paketleme | Kısmen var |
 | Data model | Entity, relation, index, constraint, migration, seed | Kısmen var |
 | CRUD | Create, read, update, delete, archive, restore, bulk actions | Kısmen var |
-| Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var |
+| Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var: stored-field custom query MVP |
 | UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Başlangıç var |
 | Styling/theme | Token, theme profile, responsive rule, state style, animation | Kısmen var |
 | Forms | Inputs, validation, wizard, dynamic field, file field, dependent select | Kısmen var |
@@ -1869,27 +1869,55 @@ entity Order {
 
 Gerçek uygulamalarda basit CRUD dışında özel sorgular gerekir.
 
-### Eklenecekler
+### Mevcut Durum: Custom Query MVP
 
-- Query
-- Filter
-- Sort
-- Aggregate
-- Count
-- Sum
-- Group by
-- Include relation
-- Computed field
-
-### Örnek
+Bu aşama, düşük stok gibi özel listeleri `.black` kaynağında tanımlayıp generated sayfaya bağlamayı sağlar. Filtre, sıralama ve kayıt sınırı server tarafında uygulanır.
 
 ```black
 query LowStockProducts {
-  from Product
+  source Product
   where stock < 10
   sort stock asc
+  limit 50
+}
+
+page LowStock {
+  source Product
+  query LowStockProducts
+
+  table {
+    columns sku, name, stock
+    search sku, name
+    paginate 10
+  }
 }
 ```
+
+İlk kapsam:
+
+- Top-level `query Name` tek bir `source Entity` bildirir; page aynı source ile `query Name` kullanır.
+- `where` yalnızca saklanan primitive field'ları ve tipe uygun literal değerleri kabul eder; birden fazla satır AND ile birleşir.
+- Text/email/date/datetime literal'ları tırnaklıdır. Numeric ve boolean değerler tırnaksızdır.
+- `==` ve `!=` tüm desteklenen tiplerde; `<`, `<=`, `>`, `>=` numeric/date/datetime tiplerinde kullanılabilir.
+- Opsiyonel `sort field asc|desc` tek field alır; eşit değerler `id asc` ile sıralanır. Sort yoksa varsayılan `id asc` olur.
+- `limit` 1..1000 arası tam sayıdır; varsayılan 100'dür.
+- Page için `GET /api/lowstock/query` ve `queryList` client metodu üretilir. Sayfaya bağlanmamış query bağımsız endpoint üretmez.
+- Mevcut entity listesi ve CRUD davranışı korunur; relation seçenekleri normal entity listesinden yüklenir.
+- Table search/filter/sort/pagination, query'nin döndürdüğü sınırlı liste üzerinde çalışır. Bağlı sayfadaki mutation sonrası liste yeniden sorgulanır.
+- Auth, page access, entity read ve response field hiding kuralları uygulanır. Koşul veya sort alanında read izni yoksa query endpoint'i 403 döndürür.
+- Query bir liste seçim kuralıdır; ownership/tenant/row authorization getirmez ve mevcut detail/mutation endpoint'lerini daraltmaz.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs query --json`, `explain query --json` ve generated OpenAPI desteği vardır.
+
+Warehouse örneğindeki ayrı, salt okunur LowStock sayfası `stock < 10` olan en fazla 50 ürünü gösterir. Ayrıntılı referans `docs/query.md` içindedir.
+
+### Sonraki Genişleme
+
+- Query parametreleri ve OR ifadeleri
+- Aggregate, count, sum ve group by
+- Join ve relation koşulları
+- Computed field filtreleme/sıralama
+- Server pagination ve total count
+- Cache ve realtime refresh
 
 ## Aşama 18: Dashboard ve Raporlama
 

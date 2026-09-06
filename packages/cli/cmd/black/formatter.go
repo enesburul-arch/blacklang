@@ -82,7 +82,7 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 			continue
 		}
 
-		if len(codeTokens) > 0 && codeTokens[0].Value == "}" {
+		if len(codeTokens) > 0 && codeTokens[0].Kind == tokenSymbol && codeTokens[0].Value == "}" {
 			indent--
 			if indent < 0 {
 				indent = 0
@@ -106,7 +106,7 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 		}
 		lines = append(lines, line)
 
-		if len(codeTokens) > 0 && codeTokens[len(codeTokens)-1].Value == "{" {
+		if len(codeTokens) > 0 && codeTokens[len(codeTokens)-1].Kind == tokenSymbol && codeTokens[len(codeTokens)-1].Value == "{" {
 			indent++
 		}
 	}
@@ -141,10 +141,10 @@ func shouldInsertFormatBlankLine(lines []string, indent int, codeTokens []source
 	if strings.HasSuffix(previous, "{") {
 		return false
 	}
-	if indent == 0 && codeTokens[0].Value != "}" {
+	if indent == 0 && (codeTokens[0].Kind != tokenSymbol || codeTokens[0].Value != "}") {
 		return true
 	}
-	if indent == 1 && codeTokens[len(codeTokens)-1].Value == "{" {
+	if indent == 1 && codeTokens[len(codeTokens)-1].Kind == tokenSymbol && codeTokens[len(codeTokens)-1].Value == "{" {
 		return true
 	}
 	return false
@@ -153,7 +153,7 @@ func shouldInsertFormatBlankLine(lines []string, indent int, codeTokens []source
 func formatCodeTokens(tokens []sourceToken) string {
 	parts := []string{}
 	for _, token := range tokens {
-		if token.Value == "," {
+		if token.Kind == tokenSymbol && token.Value == "," {
 			if len(parts) > 0 {
 				parts[len(parts)-1] += ","
 			}

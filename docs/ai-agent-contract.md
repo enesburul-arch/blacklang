@@ -49,6 +49,8 @@ workflow
 state
 component variants
 validation
+computed display fields
+custom queries bound to pages
 i18n field labels
 inline UI intent
 OpenAPI output
@@ -126,7 +128,7 @@ For repository work, prefer the second option when the user is developing BlackL
 Safe current claim:
 
 ```text
-BlackLang v0.2 can describe and generate useful CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
+BlackLang v0.2 can describe and generate useful CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, custom queries, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
 ```
 
 Unsafe current claim:

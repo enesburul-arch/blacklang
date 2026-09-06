@@ -31,7 +31,7 @@ type sourceStatement struct {
 func (statement sourceStatement) Parts() []string {
 	parts := []string{}
 	for _, token := range statement.Tokens {
-		if token.Value == "," {
+		if token.Kind == tokenSymbol && token.Value == "," {
 			continue
 		}
 		parts = append(parts, token.Value)
@@ -205,7 +205,7 @@ func tokensToStatements(tokens []sourceToken) []sourceStatement {
 		}
 		hasMeaningfulToken := false
 		for _, token := range current {
-			if token.Value != "," {
+			if token.Kind != tokenSymbol || token.Value != "," {
 				hasMeaningfulToken = true
 				break
 			}
@@ -228,7 +228,7 @@ func tokensToStatements(tokens []sourceToken) []sourceStatement {
 			flush()
 			continue
 		}
-		if token.Value == "}" {
+		if token.Kind == tokenSymbol && token.Value == "}" {
 			flush()
 			current = append(current, token)
 			if index+1 < len(tokens) && tokens[index+1].Kind == tokenComment && tokens[index+1].Position.Line == token.Position.Line {
@@ -239,7 +239,7 @@ func tokensToStatements(tokens []sourceToken) []sourceStatement {
 			continue
 		}
 		current = append(current, token)
-		if token.Value == "{" {
+		if token.Kind == tokenSymbol && token.Value == "{" {
 			if index+1 < len(tokens) && tokens[index+1].Kind == tokenComment && tokens[index+1].Position.Line == token.Position.Line {
 				index++
 				current = append(current, tokens[index])

@@ -71,15 +71,19 @@ func BuildWebWithTheme(program Program, outDir string, theme *ThemeDecl) ([]Gene
 		generator.write(filepath.Join("src", "components", component.Name+".tsx"), "react-component", generator.componentTSX(component))
 	}
 
+	writtenValidation := map[string]bool{}
 	for _, page := range program.Pages {
 		entity, ok := generator.findEntity(page.Source)
 		if !ok {
 			continue
 		}
-		name := strings.ToLower(page.Source)
+		name := generator.pageModuleName(page)
 		generator.write(filepath.Join("src", "api", name+".ts"), "api-client", generator.apiClient(page, entity))
 		generator.write(filepath.Join("src", "routes", name+".ts"), "api-route", generator.route(page, entity))
-		generator.write(filepath.Join("src", "validation", name+".ts"), "validation", generator.validation(entity))
+		if !writtenValidation[entity.Name] {
+			generator.write(filepath.Join("src", "validation", strings.ToLower(entity.Name)+".ts"), "validation", generator.validation(entity))
+			writtenValidation[entity.Name] = true
+		}
 		generator.write(filepath.Join("src", "pages", page.Name+"Page.tsx"), "react-page", generator.page(page, entity))
 	}
 
@@ -1083,9 +1087,9 @@ func (g *webGenerator) serverTS() string {
 		builder.WriteString("import { authRouter, requireAuth, requireCsrf } from \"./routes/auth\";\n")
 	}
 	for _, page := range g.program.Pages {
-		fileName := strings.ToLower(page.Source)
+		fileName := g.pageModuleName(page)
 		identifier := lowerCamelCase(page.Source)
-		builder.WriteString(fmt.Sprintf("import { %sRouter } from \"./routes/%s\";\n", identifier, fileName))
+		builder.WriteString(fmt.Sprintf("import { %sRouter as %s } from \"./routes/%s\";\n", identifier, g.pageRouterName(page), fileName))
 	}
 	builder.WriteString("\n")
 	builder.WriteString("const app = express();\n")
@@ -1153,8 +1157,7 @@ func (g *webGenerator) serverTS() string {
 		builder.WriteString("app.use(\"/api\", requireCsrf);\n")
 	}
 	for _, page := range g.program.Pages {
-		identifier := lowerCamelCase(page.Source)
-		builder.WriteString(fmt.Sprintf("app.use(\"/api\", %sRouter);\n", identifier))
+		builder.WriteString(fmt.Sprintf("app.use(\"/api\", %s);\n", g.pageRouterName(page)))
 	}
 	builder.WriteString("\n")
 	builder.WriteString("app.use((req, res, next) => {\n")
@@ -2764,6 +2767,9 @@ func (g *webGenerator) openapiPaths() map[string]any {
 			continue
 		}
 		pathName := "/api/" + strings.ToLower(page.Name)
+		if query, ok := findQuery(g.program, page.Query); ok {
+			paths[pathName+"/query"] = map[string]any{"get": g.openapiQueryOperation(page, entity, query)}
+		}
 		entityRef := "#/components/schemas/" + entity.Name
 		inputRef := "#/components/schemas/" + entity.Name + "Input"
 		collectionOperations := map[string]any{
@@ -3165,12 +3171,14 @@ func (g *webGenerator) route(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("import { prisma } from \"../db\";\n")
 	if g.hasRuntimePermissions() {
 		builder.WriteString("import { canAccessField, filterWritableFields, requirePageAccess, requirePermission, writeAuditLog } from \"./auth\";\n")
+	} else if g.program.Auth != nil && len(page.Access) > 0 {
+		builder.WriteString("import { requirePageAccess } from \"./auth\";\n")
 	}
 	builder.WriteString(fmt.Sprintf("import { validate%sInput } from \"../validation/%s\";\n\n", entity.Name, fileName))
 	builder.WriteString(fmt.Sprintf("export const %sRouter = express.Router();\n\n", identifier))
 	builder.WriteString(fmt.Sprintf("const %sModel = prisma.%s;\n\n", identifier, identifier))
 	if g.program.Auth != nil && len(page.Access) > 0 {
-		builder.WriteString(fmt.Sprintf("%sRouter.use(requirePageAccess(%s));\n\n", identifier, tsStringArrayLiteral(page.Access)))
+		builder.WriteString(fmt.Sprintf("%sRouter.use(\"/%s\", requirePageAccess(%s));\n\n", identifier, path, tsStringArrayLiteral(page.Access)))
 	}
 	if g.hasRuntimePermissions() {
 		builder.WriteString(fmt.Sprintf("function sanitize%s(item: any, role: string) {\n", entity.Name))
@@ -3191,6 +3199,7 @@ func (g *webGenerator) route(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("  return currentUser(req)?.role ?? \"\";\n")
 		builder.WriteString("}\n\n")
 	}
+	builder.WriteString(g.queryRoute(page, entity))
 	builder.WriteString(fmt.Sprintf("%sRouter.get(\"/%s\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("read", entity.Name)))
 	builder.WriteString("  const includeArchived = req.query.archived === \"all\";\n")
 	builder.WriteString(fmt.Sprintf("  const items = await %sModel.findMany({\n", identifier))
@@ -3226,77 +3235,81 @@ func (g *webGenerator) route(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("  res.json(item);\n")
 	}
 	builder.WriteString("});\n\n")
-	builder.WriteString(fmt.Sprintf("%sRouter.post(\"/%s\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("create", entity.Name)))
-	builder.WriteString(fmt.Sprintf("  const validation = validate%sInput(req.body);\n", entity.Name))
-	builder.WriteString("  if (!validation.valid) {\n")
-	builder.WriteString("    res.status(400).json({ error: validation.errors });\n")
-	builder.WriteString("    return;\n")
-	builder.WriteString("  }\n\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("  const writableValue = filterWritableFields(currentRole(req), \"create\", %q, validation.value as Record<string, unknown>);\n", entity.Name))
-		builder.WriteString("  if (Object.keys(writableValue).length === 0) {\n")
-		builder.WriteString("    res.status(403).json({ error: \"Forbidden\" });\n")
+	if hasAction(page, "create") {
+		builder.WriteString(fmt.Sprintf("%sRouter.post(\"/%s\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("create", entity.Name)))
+		builder.WriteString(fmt.Sprintf("  const validation = validate%sInput(req.body);\n", entity.Name))
+		builder.WriteString("  if (!validation.valid) {\n")
+		builder.WriteString("    res.status(400).json({ error: validation.errors });\n")
 		builder.WriteString("    return;\n")
 		builder.WriteString("  }\n\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("  const writableValue = filterWritableFields(currentRole(req), \"create\", %q, validation.value as Record<string, unknown>);\n", entity.Name))
+			builder.WriteString("  if (Object.keys(writableValue).length === 0) {\n")
+			builder.WriteString("    res.status(403).json({ error: \"Forbidden\" });\n")
+			builder.WriteString("    return;\n")
+			builder.WriteString("  }\n\n")
+		}
+		builder.WriteString(fmt.Sprintf("  const item = await %sModel.create({\n", identifier))
+		if g.hasRuntimePermissions() {
+			builder.WriteString("    data: writableValue as any")
+		} else {
+			builder.WriteString("    data: validation.value as any")
+		}
+		if g.hasRelationFields(entity) {
+			builder.WriteString(",\n")
+			builder.WriteString(g.prismaIncludeLine(entity, "    ", false))
+		} else {
+			builder.WriteString("\n")
+		}
+		builder.WriteString("  });\n\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("  writeAuditLog(currentUser(req), \"create\", %q, item.id, %q);\n", entity.Name, entity.Name+" record created"))
+			builder.WriteString(fmt.Sprintf("  res.status(201).json(sanitize%s(item, currentRole(req)));\n", entity.Name))
+		} else {
+			builder.WriteString("  res.status(201).json(item);\n")
+		}
+		builder.WriteString("});\n\n")
 	}
-	builder.WriteString(fmt.Sprintf("  const item = await %sModel.create({\n", identifier))
-	if g.hasRuntimePermissions() {
-		builder.WriteString("    data: writableValue as any")
-	} else {
-		builder.WriteString("    data: validation.value as any")
-	}
-	if g.hasRelationFields(entity) {
-		builder.WriteString(",\n")
-		builder.WriteString(g.prismaIncludeLine(entity, "    ", false))
-	} else {
-		builder.WriteString("\n")
-	}
-	builder.WriteString("  });\n\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("  writeAuditLog(currentUser(req), \"create\", %q, item.id, %q);\n", entity.Name, entity.Name+" record created"))
-		builder.WriteString(fmt.Sprintf("  res.status(201).json(sanitize%s(item, currentRole(req)));\n", entity.Name))
-	} else {
-		builder.WriteString("  res.status(201).json(item);\n")
-	}
-	builder.WriteString("});\n\n")
-	builder.WriteString(fmt.Sprintf("%sRouter.put(\"/%s/:id\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("update", entity.Name)))
-	builder.WriteString(fmt.Sprintf("  const validation = validate%sInput(req.body);\n", entity.Name))
-	builder.WriteString("  if (!validation.valid) {\n")
-	builder.WriteString("    res.status(400).json({ error: validation.errors });\n")
-	builder.WriteString("    return;\n")
-	builder.WriteString("  }\n\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("  const writableValue = filterWritableFields(currentRole(req), \"update\", %q, validation.value as Record<string, unknown>);\n", entity.Name))
-		builder.WriteString("  if (Object.keys(writableValue).length === 0) {\n")
-		builder.WriteString("    res.status(403).json({ error: \"Forbidden\" });\n")
+	if hasAction(page, "edit") {
+		builder.WriteString(fmt.Sprintf("%sRouter.put(\"/%s/:id\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("update", entity.Name)))
+		builder.WriteString(fmt.Sprintf("  const validation = validate%sInput(req.body);\n", entity.Name))
+		builder.WriteString("  if (!validation.valid) {\n")
+		builder.WriteString("    res.status(400).json({ error: validation.errors });\n")
 		builder.WriteString("    return;\n")
 		builder.WriteString("  }\n\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("  const writableValue = filterWritableFields(currentRole(req), \"update\", %q, validation.value as Record<string, unknown>);\n", entity.Name))
+			builder.WriteString("  if (Object.keys(writableValue).length === 0) {\n")
+			builder.WriteString("    res.status(403).json({ error: \"Forbidden\" });\n")
+			builder.WriteString("    return;\n")
+			builder.WriteString("  }\n\n")
+		}
+		builder.WriteString("  try {\n")
+		builder.WriteString(fmt.Sprintf("    const item = await %sModel.update({\n", identifier))
+		builder.WriteString("      where: { id: String(req.params.id) },\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString("      data: writableValue as any")
+		} else {
+			builder.WriteString("      data: validation.value as any")
+		}
+		if g.hasRelationFields(entity) {
+			builder.WriteString(",\n")
+			builder.WriteString(g.prismaIncludeLine(entity, "      ", false))
+		} else {
+			builder.WriteString("\n")
+		}
+		builder.WriteString("    });\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("    writeAuditLog(currentUser(req), \"update\", %q, item.id, %q);\n", entity.Name, entity.Name+" record updated"))
+			builder.WriteString(fmt.Sprintf("    res.json(sanitize%s(item, currentRole(req)));\n", entity.Name))
+		} else {
+			builder.WriteString("    res.json(item);\n")
+		}
+		builder.WriteString("  } catch {\n")
+		builder.WriteString(fmt.Sprintf("    res.status(404).json({ error: \"%s not found\" });\n", entity.Name))
+		builder.WriteString("  }\n")
+		builder.WriteString("});\n\n")
 	}
-	builder.WriteString("  try {\n")
-	builder.WriteString(fmt.Sprintf("    const item = await %sModel.update({\n", identifier))
-	builder.WriteString("      where: { id: String(req.params.id) },\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString("      data: writableValue as any")
-	} else {
-		builder.WriteString("      data: validation.value as any")
-	}
-	if g.hasRelationFields(entity) {
-		builder.WriteString(",\n")
-		builder.WriteString(g.prismaIncludeLine(entity, "      ", false))
-	} else {
-		builder.WriteString("\n")
-	}
-	builder.WriteString("    });\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("    writeAuditLog(currentUser(req), \"update\", %q, item.id, %q);\n", entity.Name, entity.Name+" record updated"))
-		builder.WriteString(fmt.Sprintf("    res.json(sanitize%s(item, currentRole(req)));\n", entity.Name))
-	} else {
-		builder.WriteString("    res.json(item);\n")
-	}
-	builder.WriteString("  } catch {\n")
-	builder.WriteString(fmt.Sprintf("    res.status(404).json({ error: \"%s not found\" });\n", entity.Name))
-	builder.WriteString("  }\n")
-	builder.WriteString("});\n\n")
 	if hasAction(page, "archive") {
 		builder.WriteString(fmt.Sprintf("%sRouter.patch(\"/%s/:id/archive\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("update", entity.Name)))
 		builder.WriteString("  try {\n")
@@ -3346,37 +3359,39 @@ func (g *webGenerator) route(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("});\n\n")
 	}
 	builder.WriteString(g.workflowTransitionRoutes(page, entity))
-	builder.WriteString(fmt.Sprintf("%sRouter.delete(\"/%s\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("delete", entity.Name)))
-	builder.WriteString("  const ids = Array.isArray(req.body?.ids)\n")
-	builder.WriteString("    ? req.body.ids.filter((id: unknown) => typeof id === \"string\")\n")
-	builder.WriteString("    : [];\n\n")
-	builder.WriteString("  if (ids.length === 0) {\n")
-	builder.WriteString("    res.status(400).json({ error: \"ids are required\" });\n")
-	builder.WriteString("    return;\n")
-	builder.WriteString("  }\n\n")
-	builder.WriteString(fmt.Sprintf("  const result = await %sModel.deleteMany({\n", identifier))
-	builder.WriteString("    where: {\n")
-	builder.WriteString("      id: { in: ids }\n")
-	builder.WriteString("    }\n")
-	builder.WriteString("  });\n\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("  writeAuditLog(currentUser(req), \"bulkDelete\", %q, ids.join(\",\"), String(result.count) + \" %s records deleted\");\n", entity.Name, strings.ToLower(entity.Name)))
+	if hasAction(page, "delete") {
+		builder.WriteString(fmt.Sprintf("%sRouter.delete(\"/%s\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("delete", entity.Name)))
+		builder.WriteString("  const ids = Array.isArray(req.body?.ids)\n")
+		builder.WriteString("    ? req.body.ids.filter((id: unknown) => typeof id === \"string\")\n")
+		builder.WriteString("    : [];\n\n")
+		builder.WriteString("  if (ids.length === 0) {\n")
+		builder.WriteString("    res.status(400).json({ error: \"ids are required\" });\n")
+		builder.WriteString("    return;\n")
+		builder.WriteString("  }\n\n")
+		builder.WriteString(fmt.Sprintf("  const result = await %sModel.deleteMany({\n", identifier))
+		builder.WriteString("    where: {\n")
+		builder.WriteString("      id: { in: ids }\n")
+		builder.WriteString("    }\n")
+		builder.WriteString("  });\n\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("  writeAuditLog(currentUser(req), \"bulkDelete\", %q, ids.join(\",\"), String(result.count) + \" %s records deleted\");\n", entity.Name, strings.ToLower(entity.Name)))
+		}
+		builder.WriteString("  res.json({ deleted: result.count });\n")
+		builder.WriteString("});\n\n")
+		builder.WriteString(fmt.Sprintf("%sRouter.delete(\"/%s/:id\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("delete", entity.Name)))
+		builder.WriteString("  try {\n")
+		builder.WriteString(fmt.Sprintf("    await %sModel.delete({\n", identifier))
+		builder.WriteString("      where: { id: String(req.params.id) }\n")
+		builder.WriteString("    });\n")
+		if g.hasRuntimePermissions() {
+			builder.WriteString(fmt.Sprintf("    writeAuditLog(currentUser(req), \"delete\", %q, String(req.params.id), %q);\n", entity.Name, entity.Name+" record deleted"))
+		}
+		builder.WriteString("    res.status(204).send();\n")
+		builder.WriteString("  } catch {\n")
+		builder.WriteString(fmt.Sprintf("    res.status(404).json({ error: \"%s not found\" });\n", entity.Name))
+		builder.WriteString("  }\n")
+		builder.WriteString("});\n")
 	}
-	builder.WriteString("  res.json({ deleted: result.count });\n")
-	builder.WriteString("});\n\n")
-	builder.WriteString(fmt.Sprintf("%sRouter.delete(\"/%s/:id\", %sasync (req, res) => {\n", identifier, path, g.permissionMiddleware("delete", entity.Name)))
-	builder.WriteString("  try {\n")
-	builder.WriteString(fmt.Sprintf("    await %sModel.delete({\n", identifier))
-	builder.WriteString("      where: { id: String(req.params.id) }\n")
-	builder.WriteString("    });\n")
-	if g.hasRuntimePermissions() {
-		builder.WriteString(fmt.Sprintf("    writeAuditLog(currentUser(req), \"delete\", %q, String(req.params.id), %q);\n", entity.Name, entity.Name+" record deleted"))
-	}
-	builder.WriteString("    res.status(204).send();\n")
-	builder.WriteString("  } catch {\n")
-	builder.WriteString(fmt.Sprintf("    res.status(404).json({ error: \"%s not found\" });\n", entity.Name))
-	builder.WriteString("  }\n")
-	builder.WriteString("});\n")
 	return builder.String()
 }
 
@@ -3418,6 +3433,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const %sApi = {
+%s
   list: (includeArchived = false) =>
     request<%s[]>(includeArchived ? endpoint + "?archived=all" : endpoint),
   get: (id: string) => request<%s>(endpoint + "/" + id),
@@ -3449,7 +3465,7 @@ export const %sApi = {
       method: "DELETE"
     })%s
 };
-`, entity.Name, entity.Name, entity.Name, path, identifier, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, g.workflowClientMethods(entity))
+`, entity.Name, entity.Name, entity.Name, path, identifier, g.queryClientMethod(page, entity), entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, entity.Name, g.workflowClientMethods(entity))
 }
 
 func (g *webGenerator) workflowTransitionRoutes(page PageDecl, entity EntityDecl) string {
@@ -3533,7 +3549,7 @@ func (g *webGenerator) workflowsForEntity(entityName string) []WorkflowDecl {
 	return workflows
 }
 
-func (g *webGenerator) workflowPageActionFunctions(entity EntityDecl) string {
+func (g *webGenerator) workflowPageActionFunctions(page PageDecl, entity EntityDecl) string {
 	workflows := g.workflowsForEntity(entity.Name)
 	if len(workflows) == 0 {
 		return ""
@@ -3550,7 +3566,7 @@ func (g *webGenerator) workflowPageActionFunctions(entity EntityDecl) string {
 			builder.WriteString("    setError(null);\n")
 			builder.WriteString("    try {\n")
 			builder.WriteString(fmt.Sprintf("      const updated = await %sApi.transition%s(item.id);\n", identifier, title(transition.Name)))
-			builder.WriteString("      setItems((current) => current.map((existing) => existing.id === item.id ? updated : existing));\n")
+			builder.WriteString(queryPageMutation(page, "      setItems((current) => current.map((existing) => existing.id === item.id ? updated : existing));\n"))
 			builder.WriteString("      setSelectedItem((current) => current?.id === item.id ? updated : current);\n")
 			builder.WriteString("    } catch (reason: unknown) {\n")
 			builder.WriteString(fmt.Sprintf("      setError(reason instanceof Error ? reason.message : %q);\n", "Unable to run transition "+transition.Name))
@@ -3623,11 +3639,20 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	var builder strings.Builder
 	entityAPI := lowerCamelCase(entity.Name)
 	builder.WriteString("// Generated by BlackLang. Do not edit manually.\n\n")
-	builder.WriteString("import { useEffect, useMemo, useState } from \"react\";\n")
+	if page.Query != "" {
+		builder.WriteString("import { useEffect, useMemo, useRef, useState } from \"react\";\n")
+	} else {
+		builder.WriteString("import { useEffect, useMemo, useState } from \"react\";\n")
+	}
 	builder.WriteString("import type { FormEvent } from \"react\";\n")
-	builder.WriteString(fmt.Sprintf("import { %sApi } from \"../api/%s\";\n", entityAPI, strings.ToLower(entity.Name)))
+	builder.WriteString(fmt.Sprintf("import { %sApi } from \"../api/%s\";\n", entityAPI, g.pageModuleName(page)))
+	importedRelationAPIs := map[string]bool{}
 	for _, field := range g.relationFields(entity) {
+		if importedRelationAPIs[field.Type] || field.Type == entity.Name {
+			continue
+		}
 		builder.WriteString(fmt.Sprintf("import { %sApi } from \"../api/%s\";\n", lowerCamelCase(field.Type), strings.ToLower(field.Type)))
+		importedRelationAPIs[field.Type] = true
 	}
 	for _, component := range g.componentsForPage(page, entity) {
 		builder.WriteString(fmt.Sprintf("import { %s } from \"../components/%s\";\n", component.Name, component.Name))
@@ -3660,6 +3685,10 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString(fmt.Sprintf("  const [filters, setFilters] = useState<Record<string, string>>(%s);\n", tableFiltersLiteral(page.Table.Filters)))
 	}
 	builder.WriteString("  const [showArchived, setShowArchived] = useState(false);\n")
+	if page.Query != "" {
+		builder.WriteString("  const [queryRevision, setQueryRevision] = useState(0);\n")
+		builder.WriteString("  const queryRequestVersion = useRef(0);\n")
+	}
 	builder.WriteString(fmt.Sprintf("  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(%s);\n", columnVisibilityLiteral(page.Table.Columns)))
 	if page.Table.Paginate > 0 {
 		builder.WriteString("  const [currentPage, setCurrentPage] = useState(1);\n")
@@ -3683,22 +3712,44 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("  const [error, setError] = useState<string | null>(null);\n\n")
 	builder.WriteString("  useEffect(() => {\n")
 	builder.WriteString("    let active = true;\n")
+	activeRequest := "active"
+	if page.Query != "" {
+		builder.WriteString("    const requestVersion = ++queryRequestVersion.current;\n")
+		builder.WriteString("    setItems([]);\n")
+		builder.WriteString("    setSelectedIds([]);\n")
+		activeRequest = "active && requestVersion === queryRequestVersion.current"
+	}
 	builder.WriteString("    setLoading(true);\n")
 	builder.WriteString("    setError(null);\n")
-	builder.WriteString(fmt.Sprintf("    %sApi.list(showArchived)\n", entityAPI))
+	listMethod := "list"
+	if page.Query != "" {
+		listMethod = "queryList"
+	}
+	builder.WriteString(fmt.Sprintf("    %sApi.%s(showArchived)\n", entityAPI, listMethod))
 	builder.WriteString("      .then((records) => {\n")
-	builder.WriteString("        if (active) setItems(records);\n")
+	builder.WriteString(fmt.Sprintf("        if (%s) setItems(records);\n", activeRequest))
 	builder.WriteString("      })\n")
 	builder.WriteString("      .catch((reason: unknown) => {\n")
-	builder.WriteString("        if (active) setError(reason instanceof Error ? reason.message : \"Unable to load records\");\n")
+	builder.WriteString(fmt.Sprintf("        if (%s) setError(reason instanceof Error ? reason.message : \"Unable to load records\");\n", activeRequest))
 	builder.WriteString("      })\n")
 	builder.WriteString("      .finally(() => {\n")
-	builder.WriteString("        if (active) setLoading(false);\n")
+	builder.WriteString(fmt.Sprintf("        if (%s) setLoading(false);\n", activeRequest))
 	builder.WriteString("      });\n\n")
 	builder.WriteString("    return () => {\n")
 	builder.WriteString("      active = false;\n")
 	builder.WriteString("    };\n")
-	builder.WriteString("  }, [showArchived]);\n\n")
+	if page.Query != "" {
+		builder.WriteString("  }, [showArchived, queryRevision]);\n\n")
+		builder.WriteString("  function refreshQuery() {\n")
+		builder.WriteString("    queryRequestVersion.current += 1;\n")
+		builder.WriteString("    setLoading(true);\n")
+		builder.WriteString("    setItems([]);\n")
+		builder.WriteString("    setSelectedIds([]);\n")
+		builder.WriteString("    setQueryRevision((current) => current + 1);\n")
+		builder.WriteString("  }\n\n")
+	} else {
+		builder.WriteString("  }, [showArchived]);\n\n")
+	}
 	for _, field := range g.relationFields(entity) {
 		builder.WriteString("  useEffect(() => {\n")
 		builder.WriteString("    let active = true;\n")
@@ -3830,11 +3881,11 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    try {\n")
 		builder.WriteString("      if (editingId) {\n")
 		builder.WriteString(fmt.Sprintf("        const saved = await %sApi.update(editingId, input);\n", entityAPI))
-		builder.WriteString("        setItems((current) => current.map((existing) => existing.id === editingId ? saved : existing));\n")
+		builder.WriteString(queryPageMutation(page, "        setItems((current) => current.map((existing) => existing.id === editingId ? saved : existing));\n"))
 		builder.WriteString("        setSelectedItem((current) => current?.id === saved.id ? saved : current);\n")
 		builder.WriteString("      } else {\n")
 		builder.WriteString(fmt.Sprintf("        const saved = await %sApi.create(input);\n", entityAPI))
-		builder.WriteString("        setItems((current) => [...current, saved]);\n")
+		builder.WriteString(queryPageMutation(page, "        setItems((current) => [...current, saved]);\n"))
 		builder.WriteString("      }\n")
 		builder.WriteString("      resetForm();\n")
 		builder.WriteString("    } catch (reason: unknown) {\n")
@@ -3874,7 +3925,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    setError(null);\n")
 		builder.WriteString("    try {\n")
 		builder.WriteString(fmt.Sprintf("      await %sApi.delete(id);\n", entityAPI))
-		builder.WriteString("      setItems((current) => current.filter((item) => item.id !== id));\n")
+		builder.WriteString(queryPageMutation(page, "      setItems((current) => current.filter((item) => item.id !== id));\n"))
 		builder.WriteString("      setSelectedIds((current) => current.filter((value) => value !== id));\n")
 		builder.WriteString("      setSelectedItem((current) => current?.id === id ? null : current);\n")
 		builder.WriteString("      if (editingId === id) resetForm();\n")
@@ -3892,7 +3943,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    setError(null);\n")
 		builder.WriteString("    try {\n")
 		builder.WriteString(fmt.Sprintf("      await %sApi.bulkDelete(ids);\n", entityAPI))
-		builder.WriteString("      setItems((current) => current.filter((item) => !ids.includes(item.id)));\n")
+		builder.WriteString(queryPageMutation(page, "      setItems((current) => current.filter((item) => !ids.includes(item.id)));\n"))
 		builder.WriteString("      setSelectedIds((current) => current.filter((id) => !ids.includes(id)));\n")
 		builder.WriteString("      setSelectedItem((current) => current && ids.includes(current.id) ? null : current);\n")
 		builder.WriteString("      if (editingId && ids.includes(editingId)) resetForm();\n")
@@ -3910,11 +3961,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    setError(null);\n")
 		builder.WriteString("    try {\n")
 		builder.WriteString(fmt.Sprintf("      const archived = await %sApi.archive(item.id);\n", entityAPI))
-		builder.WriteString("      if (showArchived) {\n")
-		builder.WriteString("        setItems((current) => current.map((existing) => existing.id === item.id ? archived : existing));\n")
-		builder.WriteString("      } else {\n")
-		builder.WriteString("        setItems((current) => current.filter((existing) => existing.id !== item.id));\n")
-		builder.WriteString("      }\n")
+		builder.WriteString(queryPageMutation(page, "      if (showArchived) {\n        setItems((current) => current.map((existing) => existing.id === item.id ? archived : existing));\n      } else {\n        setItems((current) => current.filter((existing) => existing.id !== item.id));\n      }\n"))
 		builder.WriteString("      setSelectedIds((current) => current.filter((id) => id !== item.id));\n")
 		builder.WriteString("      setSelectedItem((current) => current?.id === item.id ? archived : current);\n")
 		builder.WriteString("      if (editingId === item.id) resetForm();\n")
@@ -3932,7 +3979,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    setError(null);\n")
 		builder.WriteString("    try {\n")
 		builder.WriteString(fmt.Sprintf("      const restored = await %sApi.restore(item.id);\n", entityAPI))
-		builder.WriteString("      setItems((current) => current.map((existing) => existing.id === item.id ? restored : existing));\n")
+		builder.WriteString(queryPageMutation(page, "      setItems((current) => current.map((existing) => existing.id === item.id ? restored : existing));\n"))
 		builder.WriteString("      setSelectedItem((current) => current?.id === item.id ? restored : current);\n")
 		builder.WriteString("    } catch (reason: unknown) {\n")
 		builder.WriteString("      setError(reason instanceof Error ? reason.message : \"Unable to restore record\");\n")
@@ -3941,7 +3988,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 		builder.WriteString("    }\n")
 		builder.WriteString("  }\n\n")
 	}
-	builder.WriteString(g.workflowPageActionFunctions(entity))
+	builder.WriteString(g.workflowPageActionFunctions(page, entity))
 	builder.WriteString("  return (\n")
 	builder.WriteString(fmt.Sprintf("    <main className=\"page-view page-view-%s\">\n", kebabCase(page.Name)))
 	builder.WriteString("      <header>\n")
@@ -4730,6 +4777,11 @@ func (g *webGenerator) relationNavigationButtons(page PageDecl, entity EntityDec
 }
 
 func (g *webGenerator) pageForEntity(entityName string) (PageDecl, bool) {
+	for _, page := range g.program.Pages {
+		if page.Source == entityName && page.Query == "" {
+			return page, true
+		}
+	}
 	for _, page := range g.program.Pages {
 		if page.Source == entityName {
 			return page, true

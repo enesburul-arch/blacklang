@@ -58,7 +58,7 @@ This phase starts the BlackLang-native UI layer instead of forcing users or AI a
 This phase moves beyond CRUD screens into richer application behavior.
 
 - [x] Add computed fields
-- [ ] Add custom query declarations bound to entities
+- [x] Add custom query declarations bound to entities and pages: typed stored-field filters, deterministic sort/limit, generated query lists, permission guards, and AI tooling
 - [ ] Add custom mutation/action declarations
 - [ ] Add generated API routes for custom data actions
 - [ ] Add generated UI controls for custom actions

@@ -45,6 +45,10 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://black.muenspeak.com/query.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://black.muenspeak.com/i18n.md</loc>
     <priority>0.7</priority>
   </url>

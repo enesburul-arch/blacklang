@@ -57,7 +57,7 @@ Future targets may include mobile, desktop, API-only, and automation outputs.
 
 Reusable `.black` app templates live under `examples/`.
 
-- `examples/warehouse/app.black` demonstrates the first Warehouse MVP.
+- `examples/warehouse/app.black` demonstrates Warehouse CRUD and a read-only LowStock page backed by a custom query.
 - `examples/crm/app.black` demonstrates a SalesCRM template with auth, roles, relations, workflows, components, API contracts, and validation.
 - `examples/inventory/app.black` demonstrates an InventoryControl template with warehouses, suppliers, stock items, purchase orders, movement workflows, field-level access, and API contracts.
 - `examples/helpdesk/app.black` demonstrates a SupportDesk template with customers, teams, SLAs, tickets, comments, knowledge articles, workflows, field-level access, and API contracts.
@@ -122,6 +122,9 @@ black docs ui --json
 black docs ui-modes --json
 black docs entity --ir
 black docs computed --json
+black docs query --json
+black explain query --json
+black inspect --affected LowStockProducts --json
 black docs diagnostics --json
 black docs --all --json
 black explain entity --json
@@ -147,6 +150,7 @@ Implemented so far:
 - Generated CSS classes from inline UI intent
 - `.blackthm` `ui <mode> = <slot...>;` generator reading order
 - Computed display fields such as `computed inventoryValue money = stock * price`
+- Custom queries with typed stored-field filters, deterministic sorting and limits, page binding, permission checks, and JSON/BlackIR tooling; see [docs/query.md](docs/query.md)
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`

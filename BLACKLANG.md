@@ -30,7 +30,7 @@ They should not invent browser runtime syntax such as:
 
 unless an official BlackLang browser runtime exists.
 
-Current BlackLang is not a full JavaScript, Python, game, or calculator runtime. It is currently strongest for generated CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
+Current BlackLang is not a full JavaScript, Python, game, or calculator runtime. It is currently strongest for generated CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, custom queries, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
 
 Full rules live in:
 
@@ -166,6 +166,8 @@ black docs ui-profile --json
 black docs ui-modes --json
 black docs view --json
 black docs computed --json
+black docs query --json
+black explain query --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json
@@ -213,7 +215,7 @@ Draft v0.2 supports focused impact analysis:
 black inspect app.black --affected Product.stock --json
 ```
 
-The affected output tells AI agents which entities, pages, roles, workflows, states, components, APIs, and generated files may change when a symbol is edited.
+The affected output tells AI agents which entities, queries, pages, roles, workflows, states, components, APIs, and generated files may change when a symbol is edited.
 
 Use it before renaming or changing important fields such as `status`, relation fields, workflow source entities, or role-scoped fields.
 
@@ -535,6 +537,34 @@ Generated React lists apply the sort after search filtering. Relation fields sor
 Generated tables also include column visibility controls derived from the `columns` list, so users can hide or show table columns without adding extra BlackLang syntax.
 
 `filter stock` generates a field-level filter input. Relation filters use the readable relation label when available.
+
+## Current Custom Queries
+
+Use a top-level query and bind it to a page with the same source:
+
+```black
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+
+page LowStock {
+  source Product
+  query LowStockProducts
+
+  table {
+    columns name, stock
+  }
+}
+```
+
+Conditions use stored primitive fields and typed literals; repeated `where` lines use AND. Text/email/date/datetime literals are quoted. `==` and `!=` work for supported stored fields; ordering comparisons also work for numeric/date/datetime fields. `sort` is optional, uses one stored field, and adds `id asc` for ties; the default order is `id asc`. `limit` is 1..1000, default 100.
+
+The generated page reads `/api/<page>/query` and refetches after its mutations. Existing lists and relation options remain available. Table search/filter/sort/pagination apply to the returned subset. Query routes enforce existing auth/access/read permissions and reject unreadable condition/sort fields with 403. Query filters do not add row authorization or constrain existing detail/mutation routes. Relations, computed/system fields, parameters, joins, aggregates, and arbitrary code are outside the MVP.
+
+Read `docs/query.md` or `black docs query --json`; use `black explain query --json` and `black inspect --affected LowStockProducts --json` for focused edits.
 
 ## Current Generated App Shell
 

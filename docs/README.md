@@ -24,6 +24,7 @@ It should explain:
 - How inline UI intent is written near fields, forms, tables, and action buttons
 - How page view order moves generated form, table, and detail sections
 - How computed display fields are declared from stored numeric data
+- How custom queries select bounded, ordered records for pages
 - How locked UI profiles enforce append-only slot changes
 - How i18n locale and field label translations work
 - How security CORS policy is declared without hardcoding deployment origins
@@ -48,6 +49,7 @@ docs/
 ├── inline-ui.md
 ├── view.md
 ├── computed.md
+├── query.md
 ├── ai-agent-contract.md
 ├── deployment.md
 ├── security-cors.md
@@ -75,6 +77,7 @@ docs/
 - Reference: form
 - Reference: view
 - Reference: computed
+- Reference: query
 - CLI: parse
 - CLI: format
 - CLI: lint

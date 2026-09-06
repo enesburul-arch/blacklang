@@ -31,6 +31,7 @@ var relatedDocsByKeyword = map[string][]string{
 	"openapi":        {"api", "page"},
 	"page":           {"entity", "table", "form", "actions", "layout", "view", "access"},
 	"paginate":       {"table", "filter", "search"},
+	"query":          {"entity", "page", "table", "filter", "access", "inspect"},
 	"role":           {"auth", "access", "audit"},
 	"search":         {"table", "filter"},
 	"security":       {"database", "lint", "csrf", "cors", "auth", "deploy"},
@@ -90,6 +91,13 @@ func explainAgentSteps(doc DocEntry) []string {
 	}
 	if len(doc.Errors) > 0 {
 		steps = append(steps, "If lint or validate reports one of the listed errorCodes, fix the source and rerun black lint --json.")
+	}
+	if doc.Keyword == "query" {
+		steps = append(steps,
+			"Inspect the source entity and its stored field types, then declare one top-level query using typed literal where clauses.",
+			"Bind the query with query Name inside a page whose source matches; inspect --affected Name and the filter/sort fields before changing it.",
+			"Build and verify the page query endpoint: filters AND archive policy, deterministic sort, then limit; check permitted and denied roles.",
+		)
 	}
 	steps = append(steps, "After source edits, run black format --check --json, black lint --json, and black validate --json.")
 	return steps

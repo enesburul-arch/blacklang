@@ -746,7 +746,7 @@ page Orders {
 		`writeAuditLog(currentUser(req), "restore", "Product", item.id, "Product record restored");`,
 		`writeAuditLog(currentUser(req), "bulkDelete", "Product", ids.join(","), String(result.count) + " product records deleted");`,
 		`writeAuditLog(currentUser(req), "delete", "Product", String(req.params.id), "Product record deleted");`,
-		`productRouter.use(requirePageAccess(["Admin"]));`,
+		`productRouter.use("/products", requirePageAccess(["Admin"]));`,
 		`function sanitizeProduct(item: any, role: string) {`,
 		`if (!canAccessField(role, "read", "Product", "price")) delete output.price;`,
 		`const writableValue = filterWritableFields(currentRole(req), "update", "Product", validation.value as Record<string, unknown>);`,
@@ -1171,10 +1171,10 @@ page PurchaseOrders {
 	}
 
 	serverText := string(server)
-	if !strings.Contains(serverText, `import { purchaseOrderRouter } from "./routes/purchaseorder";`) {
+	if !strings.Contains(serverText, `import { purchaseOrderRouter as page0Router } from "./routes/purchaseorder";`) {
 		t.Fatalf("expected server to import lower-camel router, got:\n%s", serverText)
 	}
-	if !strings.Contains(serverText, `app.use("/api", purchaseOrderRouter);`) {
+	if !strings.Contains(serverText, `app.use("/api", page0Router);`) {
 		t.Fatalf("expected server to register lower-camel router, got:\n%s", serverText)
 	}
 	routeText := string(route)

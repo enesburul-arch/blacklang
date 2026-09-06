@@ -146,6 +146,23 @@ func FormatBlackIR(program Program) string {
 		}
 	}
 
+	for _, query := range program.Queries {
+		builder.WriteString(fmt.Sprintf("\nquery %s source %s\n", query.Name, query.Source))
+		for _, filter := range query.Where {
+			value := filter.Value.Value
+			if filter.Value.Kind == "string" {
+				value = quoteBlackString(value)
+			}
+			builder.WriteString(fmt.Sprintf("  where %s %s %s\n", filter.Field, filter.Operator, value))
+		}
+		if query.Sort.Field != "" {
+			builder.WriteString(fmt.Sprintf("  sort %s %s\n", query.Sort.Field, query.Sort.Direction))
+		}
+		if query.Limit > 0 {
+			builder.WriteString(fmt.Sprintf("  limit %d\n", query.Limit))
+		}
+	}
+
 	for _, role := range program.Roles {
 		builder.WriteString(fmt.Sprintf("\nrole %s\n", role.Name))
 		for _, permission := range role.Permissions {
@@ -195,6 +212,9 @@ func FormatBlackIR(program Program) string {
 			builder.WriteString(fmt.Sprintf(" layout %s", page.Layout))
 		}
 		builder.WriteString(fmt.Sprintf(" source %s\n", page.Source))
+		if page.Query != "" {
+			builder.WriteString(fmt.Sprintf("  query %s\n", page.Query))
+		}
 		if page.View != nil && len(page.View.Order) > 0 {
 			builder.WriteString("  view-order ")
 			builder.WriteString(strings.Join(page.View.Order, " "))
@@ -403,6 +423,15 @@ func FormatInspectIR(result InspectResult) string {
 	builder.WriteString(fmt.Sprintf("pages %d\n", result.Summary.Pages))
 	for _, page := range result.Program.Pages {
 		builder.WriteString(fmt.Sprintf("  page %s source %s actions %s\n", page.Name, page.Source, strings.Join(page.Actions, " ")))
+		if page.Query != "" {
+			builder.WriteString(fmt.Sprintf("    query %s\n", page.Query))
+		}
+	}
+	if len(result.Program.Queries) > 0 {
+		builder.WriteString(fmt.Sprintf("queries %d\n", len(result.Program.Queries)))
+		for _, query := range result.Program.Queries {
+			builder.WriteString(fmt.Sprintf("  query %s source %s filters %d\n", query.Name, query.Source, len(query.Where)))
+		}
 	}
 	if len(result.Program.APIs) > 0 {
 		builder.WriteString(fmt.Sprintf("apis %d\n", len(result.Program.APIs)))
@@ -445,6 +474,7 @@ func FormatAffectedIR(result InspectAffectedResult) string {
 	}
 	writeAffectedIRItems(&builder, "entities", result.Affected.Entities)
 	writeAffectedIRItems(&builder, "pages", result.Affected.Pages)
+	writeAffectedIRItems(&builder, "queries", result.Affected.Queries)
 	writeAffectedIRItems(&builder, "roles", result.Affected.Roles)
 	writeAffectedIRItems(&builder, "workflows", result.Affected.Workflows)
 	writeAffectedIRItems(&builder, "states", result.Affected.States)

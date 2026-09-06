@@ -139,7 +139,7 @@ JSON shape:
   "summary": {
     "app": "Warehouse",
     "entities": 3,
-    "pages": 3
+    "pages": 4
   },
   "checks": [
     {
@@ -170,7 +170,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 45,
+  "count": 46,
   "docs": [
     {
       "keyword": "entity",
@@ -211,6 +211,67 @@ Current expression support is limited to:
 
 If a computed field references a source field hidden by field-level permissions, generated UI hides the computed value too.
 
+## Current Custom Queries
+
+Draft v0.2 supports top-level custom queries bound to stored entities and consumed by pages:
+
+```black
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+
+page LowStock {
+  source Product
+  query LowStockProducts
+
+  table {
+    columns sku, name, stock
+    search sku, name
+    paginate 10
+  }
+}
+```
+
+Grammar:
+
+```text
+query <Name> {
+  source <Entity>
+  where <storedField> <operator> <typedLiteral>
+  sort <storedField> <asc|desc>
+  limit <integer>
+}
+```
+
+Query names use PascalCase letters and digits and must remain unique after lowercasing, including against other top-level symbols. The `source` line is required exactly once. `where` may be omitted or repeated; multiple distinct conditions use AND and identical repeats are rejected. `sort` and `limit` are optional and may each occur at most once. The only source keyword is `source`. Page binding is one `query <Name>` line; the query must exist and its source must equal the page source. Multiple pages may reuse the same query.
+
+Allowed fields are stored `text`, `email`, `number`, `integer`, `decimal`, `money`, `boolean`, `date`, and `datetime` fields on the source entity. Relation, computed, and generated system fields cannot be used in conditions or declared sort. Conditions compare a field with a literal, never another field.
+
+Literal and operator rules:
+
+- Text and email use quoted strings. Dates use quoted valid `YYYY-MM-DD` calendar dates; datetimes use quoted RFC3339 timestamps such as `"2026-09-06T12:00:00Z"`.
+- Numeric literals use finite, unquoted decimal notation without exponent or hexadecimal syntax. `number` and `integer` require signed 32-bit whole-number literals, matching the current stored integer runtime; `decimal` and `money` also allow decimal fractions. Boolean literals are unquoted `true` or `false`.
+- `==` and `!=` are supported for every allowed field type.
+- `<`, `<=`, `>`, and `>=` require numeric, date, or datetime fields.
+- Null literals, parameters, OR, relation paths, joins, aggregates, and arbitrary SQL or code are unsupported.
+
+Runtime rules:
+
+- Query filters execute in the server before ordering and limiting; repeated conditions form an AND expression.
+- A query may sort by one allowed field, ascending or descending. Generated `id asc` is the stable tie breaker. Without a sort declaration, order is `id asc`.
+- The limit range is 1..1000 inclusive; the default is 100.
+- Existing archived-record visibility applies. String comparison and null ordering follow the current SQLite runtime.
+- Bound pages use a generated `GET /api/<lowercase-page-name>/query` route and `queryList` client method. Unused queries create no standalone endpoint.
+- Existing entity list and CRUD routes retain their behavior. Relation selectors use the baseline entity list.
+- Page search, table filters, optional `table.sort`, and pagination run on the returned subset. Without `table.sort`, query order is preserved. Successful mutations on the bound page trigger a query refetch.
+- Query routes retain authentication, page access, and entity read checks. Every condition/sort field must also be readable by the current role; otherwise the route returns 403. Response field hiding still applies.
+- Query predicates select lists; they do not create row authorization rules or constrain existing detail and mutation endpoints.
+
+Queries and page bindings appear in JSON, BlackIR, inspect, affected analysis, and generated OpenAPI output. Use `black docs query --json`, `black explain query --json`, and `black inspect --affected LowStockProducts --json` for focused agent context. The detailed reference is `docs/query.md`.
+
 ## Current Agent Startup Command
 
 Draft v0.2 supports a deterministic project entry checklist:
@@ -240,7 +301,7 @@ JSON shape:
   "summary": {
     "app": "Warehouse",
     "entities": 3,
-    "pages": 3
+    "pages": 4
   },
   "readFirst": [
     {
@@ -575,6 +636,7 @@ Draft v0.2 supports focused affected graph output:
 black inspect app.black --affected Product.stock --json
 black inspect app.black --affected Products --json
 black inspect app.black --affected OrderLifecycle --json
+black inspect app.black --affected LowStockProducts --json
 ```
 
 JSON shape:
@@ -591,6 +653,7 @@ JSON shape:
     "entity": "Product",
     "field": "stock",
     "entities": [],
+    "queries": [],
     "pages": [],
     "roles": [],
     "workflows": [],
@@ -604,7 +667,7 @@ JSON shape:
 }
 ```
 
-Supported symbols include entities, entity fields such as `Product.stock`, pages, roles, workflows, states, components, APIs, `target`, `auth`, `database`, `security`, `deploy`, and `app`.
+Supported symbols include entities, entity fields such as `Product.stock`, queries, pages, roles, workflows, states, components, APIs, `target`, `auth`, `database`, `security`, `deploy`, and `app`.
 
 Unknown symbols return `UNKNOWN_AFFECTED_SYMBOL`. Missing `--affected` values return `MISSING_AFFECTED_SYMBOL`.
 
@@ -1148,6 +1211,8 @@ black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
 black docs view --json
+black docs query --json
+black explain query --json
 black inspect app.black --affected Product.stock --json
 ```
 
@@ -1229,6 +1294,7 @@ Draft v0.1 supports:
 - `entity`
 - `layout`
 - `page`
+- `query` (v0.2)
 - `role`
 - `api`
 - `workflow`
@@ -1521,6 +1587,8 @@ A `page` describes a generated web screen.
 Rules:
 
 - `source` must reference an existing entity.
+- Optional `query QueryName` binds the page list to a query with the same entity source.
+- Page names must remain distinct after lowercasing to avoid generated route/module collisions (`DUPLICATE_PAGE_ROUTE`).
 - `view.order` may list `table`, `detail`, and `form` to control generated section order.
 - `table.columns` must reference fields on the source entity.
 - `table.search` must reference searchable fields on the source entity. Draft v0.1 supports `text`, `email`, and entity reference search fields.
@@ -1575,6 +1643,9 @@ Draft v0.1 validates:
 - Numeric constraints on non-numeric fields
 - Length constraints on non-text fields
 - Unknown page source entity
+- Duplicate/missing query declarations and unknown query source entities
+- Invalid query field, operator, typed literal, sort direction, or limit
+- Unknown page queries and page/query source mismatches
 - Unknown table columns
 - Unknown form fields
 - Unknown search fields

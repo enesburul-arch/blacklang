@@ -13,28 +13,55 @@ toggle?.addEventListener("click", () => {
 navLinks.forEach((link) => {
   link.addEventListener("click", () => {
     document.body.classList.remove("sidebar-open");
+    setActiveNav(link.getAttribute("href"));
   });
 });
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    const visible = entries
-      .filter((entry) => entry.isIntersecting)
-      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+function setActiveNav(href) {
+  navLinks.forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("href") === href);
+  });
+}
 
-    if (!visible) return;
+function updateActiveSection() {
+  let active = sections[0];
+  const marker = Math.max(24, window.innerHeight * 0.2);
 
-    navLinks.forEach((link) => {
-      link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`);
-    });
-  },
-  {
-    rootMargin: "-20% 0px -65% 0px",
-    threshold: [0.1, 0.25, 0.5],
-  },
-);
+  for (const section of sections) {
+    if (section.getBoundingClientRect().top > marker) break;
+    active = section;
+  }
 
-sections.forEach((section) => observer.observe(section));
+  if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
+    active = sections[sections.length - 1];
+  }
+
+  if (active) setActiveNav(`#${active.id}`);
+}
+
+function updateActiveHash() {
+  if (navLinks.some((link) => link.getAttribute("href") === window.location.hash)) {
+    setActiveNav(window.location.hash);
+  } else {
+    updateActiveSection();
+  }
+}
+
+let scrollUpdatePending = false;
+function scheduleActiveSection() {
+  if (scrollUpdatePending) return;
+  scrollUpdatePending = true;
+  window.requestAnimationFrame(() => {
+    scrollUpdatePending = false;
+    updateActiveSection();
+  });
+}
+
+window.addEventListener("scroll", scheduleActiveSection, { passive: true });
+window.addEventListener("resize", scheduleActiveSection);
+window.addEventListener("hashchange", updateActiveHash);
+window.addEventListener("load", scheduleActiveSection);
+updateActiveHash();
 
 search?.addEventListener("input", (event) => {
   const term = event.target.value.trim().toLowerCase();

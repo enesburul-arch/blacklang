@@ -2563,6 +2563,37 @@ func (g *webGenerator) itemRenderExpression(itemName string, field FieldDecl) st
 	return fmt.Sprintf("<%s %s={%s} />", component.Name, input.Name, componentPropExpression(itemName, input))
 }
 
+func (g *webGenerator) computedFieldHelpers(entity EntityDecl) string {
+	var builder strings.Builder
+	for _, field := range entity.ComputedFields {
+		builder.WriteString(fmt.Sprintf("function %s(item: %s) {\n", computedFieldFunctionName(field), entity.Name))
+		builder.WriteString(fmt.Sprintf("  const value = %s;\n", computedFieldExpression("item", field)))
+		builder.WriteString("  return Number.isFinite(value) ? value : null;\n")
+		builder.WriteString("}\n\n")
+	}
+	builder.WriteString("function formatComputedValue(value: number | null) {\n")
+	builder.WriteString("  return value === null ? \"\" : String(value);\n")
+	builder.WriteString("}\n\n")
+	return builder.String()
+}
+
+func computedFieldFunctionName(field ComputedFieldDecl) string {
+	return "compute" + title(field.Name)
+}
+
+func computedFieldExpression(itemName string, field ComputedFieldDecl) string {
+	left := computedFieldOperandExpression(itemName, field.Expression.Left)
+	right := computedFieldOperandExpression(itemName, field.Expression.Right)
+	return fmt.Sprintf("%s %s %s", left, field.Expression.Operator, right)
+}
+
+func computedFieldOperandExpression(itemName string, operand string) string {
+	if isNumericLiteral(operand) {
+		return operand
+	}
+	return fmt.Sprintf("Number(%s.%s ?? 0)", itemName, operand)
+}
+
 func (g *webGenerator) formComponentPreview(field FieldDecl) string {
 	component, ok := g.componentForField(field)
 	if !ok {
@@ -3619,6 +3650,9 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("};\n\n")
 	builder.WriteString(fmt.Sprintf("const emptyForm: FormState = %s;\n\n", formStateLiteral(page.Form.Fields, entity)))
 	builder.WriteString(g.formValidationFunction(page, entity))
+	if len(entity.ComputedFields) > 0 {
+		builder.WriteString(g.computedFieldHelpers(entity))
+	}
 	builder.WriteString(fmt.Sprintf("export function %sPage({ onNavigate, permissions = defaultPermissions }: PageProps) {\n", page.Name))
 	builder.WriteString(fmt.Sprintf("  const [items, setItems] = useState<%s[]>([]);\n", entity.Name))
 	builder.WriteString("  const [search, setSearch] = useState(\"\");\n\n")
@@ -3714,7 +3748,7 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	}
 	builder.WriteString("  const visibleItemIds = useMemo(() => paginatedItems.map((item) => item.id), [paginatedItems]);\n")
 	builder.WriteString("  const allVisibleSelected = visibleItemIds.length > 0 && visibleItemIds.every((id) => selectedIds.includes(id));\n\n")
-	builder.WriteString("  const visibleColumnCount = Object.entries(visibleColumns).filter(([column, visible]) => visible && permissions.fields[column] !== false).length;\n")
+	builder.WriteString(fmt.Sprintf("  const visibleColumnCount = %s;\n", g.visibleColumnCountExpression(page, entity)))
 	builder.WriteString(fmt.Sprintf("  const tableColspan = visibleColumnCount + %d;\n\n", g.staticTableExtraColumns(page, entity)))
 	builder.WriteString("  const canCreate = permissions.create;\n")
 	builder.WriteString("  const canUpdate = permissions.update;\n")
@@ -3947,10 +3981,14 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("          <span className=\"muted\">Columns</span>\n")
 	for _, column := range page.Table.Columns {
 		field, ok := findField(entity, column)
-		if !ok {
+		if ok {
+			builder.WriteString(fmt.Sprintf("          {permissions.fields.%s !== false && <label className=\"inline-control\"><input checked={visibleColumns.%s} type=\"checkbox\" onChange={() => toggleColumn(%q)} /> %s</label>}\n", field.Name, field.Name, field.Name, g.fieldLabel(entity, field)))
 			continue
 		}
-		builder.WriteString(fmt.Sprintf("          {permissions.fields.%s !== false && <label className=\"inline-control\"><input checked={visibleColumns.%s} type=\"checkbox\" onChange={() => toggleColumn(%q)} /> %s</label>}\n", field.Name, field.Name, field.Name, g.fieldLabel(entity, field)))
+		computed, ok := findComputedField(entity, column)
+		if ok {
+			builder.WriteString(fmt.Sprintf("          {%s && <label className=\"inline-control\"><input checked={visibleColumns.%s} type=\"checkbox\" onChange={() => toggleColumn(%q)} /> %s</label>}\n", g.computedFieldPermissionExpression(computed), computed.Name, computed.Name, g.computedFieldLabel(entity, computed)))
+		}
 	}
 	builder.WriteString("        </div>\n")
 	builder.WriteString("        {error && <div className=\"error\" role=\"alert\">{error}</div>}\n")
@@ -3964,10 +4002,14 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	}
 	for _, column := range page.Table.Columns {
 		field, ok := findField(entity, column)
-		if !ok {
+		if ok {
+			builder.WriteString(fmt.Sprintf("            {visibleColumns.%s && permissions.fields.%s !== false && <th>%s</th>}\n", field.Name, field.Name, g.fieldLabel(entity, field)))
 			continue
 		}
-		builder.WriteString(fmt.Sprintf("            {visibleColumns.%s && permissions.fields.%s !== false && <th>%s</th>}\n", field.Name, field.Name, g.fieldLabel(entity, field)))
+		computed, ok := findComputedField(entity, column)
+		if ok {
+			builder.WriteString(fmt.Sprintf("            {visibleColumns.%s && %s && <th>%s</th>}\n", computed.Name, g.computedFieldPermissionExpression(computed), g.computedFieldLabel(entity, computed)))
+		}
 	}
 	if hasAction(page, "archive") || hasAction(page, "restore") {
 		builder.WriteString("            <th>Status</th>\n")
@@ -3988,10 +4030,14 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	}
 	for _, column := range page.Table.Columns {
 		field, ok := findField(entity, column)
-		if !ok {
+		if ok {
+			builder.WriteString(fmt.Sprintf("              {visibleColumns.%s && permissions.fields.%s !== false && <td>{%s}</td>}\n", field.Name, field.Name, g.itemRenderExpression("item", field)))
 			continue
 		}
-		builder.WriteString(fmt.Sprintf("              {visibleColumns.%s && permissions.fields.%s !== false && <td>{%s}</td>}\n", field.Name, field.Name, g.itemRenderExpression("item", field)))
+		computed, ok := findComputedField(entity, column)
+		if ok {
+			builder.WriteString(fmt.Sprintf("              {visibleColumns.%s && %s && <td>{formatComputedValue(%s(item))}</td>}\n", computed.Name, g.computedFieldPermissionExpression(computed), computedFieldFunctionName(computed)))
+		}
 	}
 	if hasAction(page, "archive") || hasAction(page, "restore") {
 		builder.WriteString("              <td>{item.archivedAt ? \"Archived\" : \"Active\"}</td>\n")
@@ -4032,6 +4078,9 @@ func (g *webGenerator) page(page PageDecl, entity EntityDecl) string {
 	builder.WriteString("            <div><dt>Status</dt><dd>{selectedItem.archivedAt ? \"Archived\" : \"Active\"}</dd></div>\n")
 	for _, field := range entity.Fields {
 		builder.WriteString(fmt.Sprintf("            {permissions.fields.%s !== false && <div><dt>%s</dt><dd>{%s}</dd></div>}\n", field.Name, g.fieldLabel(entity, field), g.itemRenderExpression("selectedItem", field)))
+	}
+	for _, computed := range entity.ComputedFields {
+		builder.WriteString(fmt.Sprintf("            {%s && <div><dt>%s</dt><dd>{formatComputedValue(%s(selectedItem))}</dd></div>}\n", g.computedFieldPermissionExpression(computed), g.computedFieldLabel(entity, computed), computedFieldFunctionName(computed)))
 	}
 	builder.WriteString("          </dl>\n")
 	builder.WriteString("        )}\n")
@@ -4955,6 +5004,15 @@ func findField(entity EntityDecl, name string) (FieldDecl, bool) {
 	return FieldDecl{}, false
 }
 
+func findComputedField(entity EntityDecl, name string) (ComputedFieldDecl, bool) {
+	for _, field := range entity.ComputedFields {
+		if field.Name == name {
+			return field, true
+		}
+	}
+	return ComputedFieldDecl{}, false
+}
+
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
 		if value == expected {
@@ -5058,6 +5116,23 @@ func columnVisibilityLiteral(columns []string) string {
 	return "{ " + strings.Join(parts, ", ") + " }"
 }
 
+func (g *webGenerator) visibleColumnCountExpression(page PageDecl, entity EntityDecl) string {
+	conditions := []string{}
+	for _, column := range page.Table.Columns {
+		if field, ok := findField(entity, column); ok {
+			conditions = append(conditions, fmt.Sprintf("visibleColumns.%s && permissions.fields.%s !== false", field.Name, field.Name))
+			continue
+		}
+		if computed, ok := findComputedField(entity, column); ok {
+			conditions = append(conditions, fmt.Sprintf("visibleColumns.%s && %s", computed.Name, g.computedFieldPermissionExpression(computed)))
+		}
+	}
+	if len(conditions) == 0 {
+		return "0"
+	}
+	return "[" + strings.Join(conditions, ", ") + "].filter(Boolean).length"
+}
+
 func tableFiltersLiteral(filters []string) string {
 	if len(filters) == 0 {
 		return "{}"
@@ -5098,6 +5173,41 @@ func (g *webGenerator) fieldLabel(entity EntityDecl, field FieldDecl) string {
 		return label
 	}
 	return fieldLabel(field)
+}
+
+func (g *webGenerator) computedFieldLabel(entity EntityDecl, field ComputedFieldDecl) string {
+	if label := g.defaultFieldLabelTranslation(entity.Name, field.Name); label != "" {
+		return label
+	}
+	if label := computedModifierValue(field, "label"); label != "" {
+		return label
+	}
+	return title(field.Name)
+}
+
+func (g *webGenerator) computedFieldPermissionExpression(field ComputedFieldDecl) string {
+	references := computedFieldReferences(field)
+	if len(references) == 0 {
+		return "true"
+	}
+	conditions := []string{}
+	for _, reference := range references {
+		conditions = append(conditions, fmt.Sprintf("permissions.fields.%s !== false", reference))
+	}
+	return strings.Join(conditions, " && ")
+}
+
+func computedFieldReferences(field ComputedFieldDecl) []string {
+	references := []string{}
+	seen := map[string]bool{}
+	for _, operand := range []string{field.Expression.Left, field.Expression.Right} {
+		if operand == "" || isNumericLiteral(operand) || seen[operand] {
+			continue
+		}
+		seen[operand] = true
+		references = append(references, operand)
+	}
+	return references
 }
 
 func (g *webGenerator) defaultFieldLabelTranslation(entityName string, fieldName string) string {
@@ -5370,6 +5480,15 @@ func typedLiteral(field FieldDecl, value string) string {
 }
 
 func modifierValue(field FieldDecl, name string) string {
+	for _, modifier := range field.Modifiers {
+		if modifier.Name == name {
+			return modifier.Value
+		}
+	}
+	return ""
+}
+
+func computedModifierValue(field ComputedFieldDecl, name string) string {
 	for _, modifier := range field.Modifiers {
 		if modifier.Name == name {
 			return modifier.Value

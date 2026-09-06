@@ -30,7 +30,7 @@ They should not invent browser runtime syntax such as:
 
 unless an official BlackLang browser runtime exists.
 
-Current BlackLang is not a full JavaScript, Python, game, or calculator runtime. It is currently strongest for generated CRUD/admin-style web applications with auth, roles, relations, workflow, validation, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
+Current BlackLang is not a full JavaScript, Python, game, or calculator runtime. It is currently strongest for generated CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
 
 Full rules live in:
 
@@ -165,6 +165,7 @@ black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json
 black docs view --json
+black docs computed --json
 black docs entity --json
 black docs diagnostics --json
 black docs --all --json

@@ -75,6 +75,7 @@ entity Product {
   name text required
   stock number default 0
   price money
+  computed inventoryValue money = stock * price label "Inventory Value"
 }
 
 entity Customer {
@@ -91,7 +92,7 @@ page Products {
   source Product
 
   table {
-    columns sku, name, stock, price
+    columns sku, name, stock, price, inventoryValue
     search sku, name
   }
 
@@ -120,6 +121,7 @@ black theme inspect --json
 black docs ui --json
 black docs ui-modes --json
 black docs entity --ir
+black docs computed --json
 black docs diagnostics --json
 black docs --all --json
 black explain entity --json
@@ -144,6 +146,7 @@ Implemented so far:
 - Parsed and validated inline UI intent near fields, forms, tables, and action buttons
 - Generated CSS classes from inline UI intent
 - `.blackthm` `ui <mode> = <slot...>;` generator reading order
+- Computed display fields such as `computed inventoryValue money = stock * price`
 - `docs <keyword>` command
 - `docs --all --json` command for deterministic compact docs export
 - Stable diagnostic documentation in `docs/diagnostics.md`

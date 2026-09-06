@@ -120,6 +120,18 @@ func FormatBlackIR(program Program) string {
 			}
 			builder.WriteString("\n")
 		}
+		for _, field := range entity.ComputedFields {
+			builder.WriteString(fmt.Sprintf("  computed %s %s = %s %s %s", field.Name, field.Type, field.Expression.Left, field.Expression.Operator, field.Expression.Right))
+			for _, modifier := range field.Modifiers {
+				builder.WriteString(" ")
+				builder.WriteString(modifier.Name)
+				if modifier.Value != "" {
+					builder.WriteString(" ")
+					builder.WriteString(modifier.Value)
+				}
+			}
+			builder.WriteString("\n")
+		}
 		for _, validation := range entity.Validations {
 			if validation.Required && validation.When != nil {
 				builder.WriteString(fmt.Sprintf("  validate %s required when %s %s %s", validation.Left, validation.When.Left, validation.When.Operator, validation.When.Right))
@@ -382,7 +394,11 @@ func FormatInspectIR(result InspectResult) string {
 	}
 	builder.WriteString(fmt.Sprintf("entities %d\n", result.Summary.Entities))
 	for _, entity := range result.Program.Entities {
-		builder.WriteString(fmt.Sprintf("  entity %s fields %d\n", entity.Name, len(entity.Fields)))
+		builder.WriteString(fmt.Sprintf("  entity %s fields %d", entity.Name, len(entity.Fields)))
+		if len(entity.ComputedFields) > 0 {
+			builder.WriteString(fmt.Sprintf(" computed %d", len(entity.ComputedFields)))
+		}
+		builder.WriteString("\n")
 	}
 	builder.WriteString(fmt.Sprintf("pages %d\n", result.Summary.Pages))
 	for _, page := range result.Program.Pages {

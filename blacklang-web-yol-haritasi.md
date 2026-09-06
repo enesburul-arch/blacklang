@@ -116,7 +116,7 @@ Core içine her şeyi doldurmak dili ağırlaştırır. Ama her şeyi plugin'e b
 | Routing | Nested route, dynamic route, protected route, layout route | Başlangıç gerekli |
 | State | Page state, global state, URL state, persisted state | Kısmen var |
 | Components | Input/output, variant, slot, event, composition | Kısmen var |
-| Frontend logic | if, loop, computed display, event handler, client action | Eksik |
+| Frontend logic | if, loop, computed display, event handler, client action | Kısmen var: computed display |
 | Backend logic | service, command, transaction, domain rule, scheduled job | Eksik |
 | API | REST, OpenAPI, custom endpoint, webhook, GraphQL/gRPC adapter | Kısmen var |
 | Auth | Email/password, OAuth, 2FA, password reset, session/JWT | Kısmen var |

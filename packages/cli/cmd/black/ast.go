@@ -356,10 +356,11 @@ type TargetDecl struct {
 }
 
 type EntityDecl struct {
-	Name        string                 `json:"name"`
-	Fields      []FieldDecl            `json:"fields"`
-	Validations []EntityValidationDecl `json:"validations,omitempty"`
-	Position    Position               `json:"position"`
+	Name           string                 `json:"name"`
+	Fields         []FieldDecl            `json:"fields"`
+	ComputedFields []ComputedFieldDecl    `json:"computedFields,omitempty"`
+	Validations    []EntityValidationDecl `json:"validations,omitempty"`
+	Position       Position               `json:"position"`
 }
 
 type AuthDecl struct {
@@ -469,6 +470,21 @@ type FieldDecl struct {
 	Modifiers []Modifier `json:"modifiers"`
 	UI        []UIIntent `json:"ui,omitempty"`
 	Position  Position   `json:"position"`
+}
+
+type ComputedFieldDecl struct {
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	Expression ComputedExpressionDecl `json:"expression"`
+	Modifiers  []Modifier             `json:"modifiers,omitempty"`
+	Position   Position               `json:"position"`
+}
+
+type ComputedExpressionDecl struct {
+	Left     string   `json:"left"`
+	Operator string   `json:"operator"`
+	Right    string   `json:"right"`
+	Position Position `json:"position"`
 }
 
 type EntityValidationDecl struct {

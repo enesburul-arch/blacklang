@@ -16,6 +16,7 @@ Read first:
 - `#entity` for data models.
 - `#page` for generated web screens.
 - `#view` for generated page section order.
+- `#computed` for read-only entity display calculations.
 - `#table` for list rendering.
 - `#form` for data input.
 - `#auth` for email/password cookie sessions.
@@ -40,6 +41,7 @@ Read first:
 - `/ui-modes.md` for standard UI mode group semantics.
 - `/inline-ui.md` for inline UI intent placement rules.
 - `/view.md` for page view order rules.
+- `/computed.md` for read-only computed display field rules.
 - `/i18n.md` for locale and field label translation rules.
 - `/security-cors.md` for CORS policy syntax and generated server behavior.
 - `/deployment.md` for Docker deployment and environment wiring.
@@ -65,11 +67,12 @@ Agent rule:
 10. Use `black docs ui --json` before editing inline UI intent in `.black` files.
 11. Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
 12. Use `view { order form, table, detail }` inside a page to move generated form, table, and detail sections from `.black` source.
-13. Table/form/action UI identity can use `id Identifier` and `class ClassName...`; generated names are kebab-case.
-14. Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
-15. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
-16. Modify `.black` and `.blackthm` source files, not generated output.
-17. Run `black format --check --json`, `black lint --json`, and `black build`.
-18. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
-19. Keep secrets out of `.black` files. Use `env DATABASE_URL`, `origins env CORS_ORIGINS`, and `deploy env NAME required|optional` style references.
-20. Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
+13. Use `computed name money = stock * price` inside an entity for read-only table/detail display values derived from stored number-like fields.
+14. Table/form/action UI identity can use `id Identifier` and `class ClassName...`; generated names are kebab-case.
+15. Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
+16. Run `black inspect <file> --affected <symbol> --json` before high-impact source edits.
+17. Modify `.black` and `.blackthm` source files, not generated output.
+18. Run `black format --check --json`, `black lint --json`, and `black build`.
+19. Use `/diagnostics.md`, `docs/diagnostics.md`, or `black docs diagnostics --json` when interpreting diagnostic codes.
+20. Keep secrets out of `.black` files. Use `env DATABASE_URL`, `origins env CORS_ORIGINS`, and `deploy env NAME required|optional` style references.
+21. Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.

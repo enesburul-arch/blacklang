@@ -40,6 +40,25 @@ var searchableFieldTypes = setOf(
 	"email",
 )
 
+var supportedComputedFieldTypes = setOf(
+	"number",
+	"integer",
+	"decimal",
+	"money",
+)
+
+var supportedComputedOperators = setOf(
+	"+",
+	"-",
+	"*",
+	"/",
+)
+
+var supportedComputedFieldModifiers = setOf(
+	"label",
+	"help",
+)
+
 var supportedActions = setOf(
 	"create",
 	"edit",
@@ -281,8 +300,8 @@ func (v *semanticValidator) validateLabelTranslations(entityIndex map[string]Ent
 			v.addDiagnostic(label.Position, "INVALID_LABEL_TARGET", fmt.Sprintf("Label target %s is invalid.", label.Target), "Use `label Entity.field { ... }`.")
 		} else if entity, exists := entityIndex[entityName]; !exists {
 			v.addDiagnostic(label.Position, "UNKNOWN_LABEL_TARGET", fmt.Sprintf("Label target %s references unknown entity %s.", label.Target, entityName), "Use an existing entity and field.")
-		} else if _, exists := fieldIndex(entity)[fieldName]; !exists {
-			v.addDiagnostic(label.Position, "UNKNOWN_LABEL_TARGET", fmt.Sprintf("Label target %s references unknown field %s.%s.", label.Target, entityName, fieldName), "Use an existing entity field.")
+		} else if !displayFieldExists(entity, fieldName) {
+			v.addDiagnostic(label.Position, "UNKNOWN_LABEL_TARGET", fmt.Sprintf("Label target %s references unknown field %s.%s.", label.Target, entityName, fieldName), "Use an existing entity field or computed field.")
 		}
 
 		if len(label.Translations) == 0 {
@@ -615,7 +634,62 @@ func (v *semanticValidator) validateFields(entity EntityDecl, entityIndex map[st
 		}
 		v.validateInlineUI("field", entity.Name+"."+field.Name, field.UI, inlineUIModesForTarget("field"))
 	}
+	v.validateComputedFields(entity, fieldIndex)
 	v.validateEntityValidations(entity, fieldIndex)
+}
+
+func (v *semanticValidator) validateComputedFields(entity EntityDecl, fieldIndex map[string]FieldDecl) {
+	computedIndex := map[string]ComputedFieldDecl{}
+	for _, computed := range entity.ComputedFields {
+		if existing, ok := fieldIndex[computed.Name]; ok {
+			v.addDiagnostic(computed.Position, "DUPLICATE_FIELD", fmt.Sprintf("Computed field %s.%s conflicts with stored field %s.%s.", entity.Name, computed.Name, entity.Name, existing.Name), fmt.Sprintf("First definition is at %s:%d.", existing.Position.File, existing.Position.Line))
+			continue
+		}
+		if existing, ok := computedIndex[computed.Name]; ok {
+			v.addDiagnostic(computed.Position, "DUPLICATE_COMPUTED_FIELD", fmt.Sprintf("Computed field %s.%s is already defined.", entity.Name, computed.Name), fmt.Sprintf("First definition is at %s:%d.", existing.Position.File, existing.Position.Line))
+			continue
+		}
+		computedIndex[computed.Name] = computed
+
+		if !supportedComputedFieldTypes[computed.Type] {
+			v.addDiagnostic(computed.Position, "UNSUPPORTED_COMPUTED_FIELD_TYPE", fmt.Sprintf("Computed field %s.%s uses unsupported type %q.", entity.Name, computed.Name, computed.Type), "Use number, integer, decimal, or money for computed fields in v0.2.")
+		}
+		if !supportedComputedOperators[computed.Expression.Operator] {
+			v.addDiagnostic(computed.Expression.Position, "UNSUPPORTED_COMPUTED_OPERATOR", fmt.Sprintf("Computed field %s.%s uses unsupported operator %q.", entity.Name, computed.Name, computed.Expression.Operator), "Use +, -, *, or /.")
+		}
+		v.validateComputedOperand(entity, computed, computed.Expression.Left, fieldIndex)
+		v.validateComputedOperand(entity, computed, computed.Expression.Right, fieldIndex)
+
+		for _, modifier := range computed.Modifiers {
+			if !supportedComputedFieldModifiers[modifier.Name] {
+				v.addDiagnostic(computed.Position, "UNSUPPORTED_COMPUTED_FIELD_MODIFIER", fmt.Sprintf("Computed field %s.%s uses unsupported modifier %q.", entity.Name, computed.Name, modifier.Name), "Use label or help on computed fields in v0.2.")
+			}
+			if modifier.Name == "label" && modifier.Value == "" {
+				v.addDiagnostic(computed.Position, "MISSING_LABEL_VALUE", fmt.Sprintf("Computed field %s.%s has label without a value.", entity.Name, computed.Name), "Write label followed by text, such as `label \"Inventory Value\"`.")
+			}
+			if modifier.Name == "help" && modifier.Value == "" {
+				v.addDiagnostic(computed.Position, "MISSING_HELP_VALUE", fmt.Sprintf("Computed field %s.%s has help without a value.", entity.Name, computed.Name), "Write help followed by text, such as `help \"Calculated from stock and price\"`.")
+			}
+		}
+	}
+}
+
+func (v *semanticValidator) validateComputedOperand(entity EntityDecl, computed ComputedFieldDecl, operand string, fieldIndex map[string]FieldDecl) {
+	if operand == "" {
+		v.addDiagnostic(computed.Expression.Position, "INVALID_COMPUTED_EXPRESSION", fmt.Sprintf("Computed field %s.%s has an empty expression operand.", entity.Name, computed.Name), "Use `computed name type = left operator right`.")
+		return
+	}
+	if isNumericLiteral(operand) {
+		return
+	}
+	field, ok := fieldIndex[operand]
+	if !ok {
+		v.addDiagnostic(computed.Expression.Position, "UNKNOWN_COMPUTED_FIELD", fmt.Sprintf("Computed field %s.%s references unknown field %s.", entity.Name, computed.Name, operand), "Use stored number-like fields defined on the same entity, or a numeric literal.")
+		return
+	}
+	if !numberLikeField(field) {
+		v.addDiagnostic(computed.Expression.Position, "INCOMPATIBLE_COMPUTED_FIELD", fmt.Sprintf("Computed field %s.%s references non-numeric field %s.%s.", entity.Name, computed.Name, entity.Name, operand), "Use number, integer, decimal, or money operands for computed fields in v0.2.")
+	}
 }
 
 func (v *semanticValidator) validateEntityValidations(entity EntityDecl, fieldIndex map[string]FieldDecl) {
@@ -803,6 +877,24 @@ func fieldIndex(entity EntityDecl) map[string]FieldDecl {
 	return fields
 }
 
+func computedFieldIndex(entity EntityDecl) map[string]ComputedFieldDecl {
+	fields := map[string]ComputedFieldDecl{}
+	for _, field := range entity.ComputedFields {
+		fields[field.Name] = field
+	}
+	return fields
+}
+
+func displayFieldExists(entity EntityDecl, name string) bool {
+	if _, ok := fieldIndex(entity)[name]; ok {
+		return true
+	}
+	if _, ok := computedFieldIndex(entity)[name]; ok {
+		return true
+	}
+	return false
+}
+
 func (v *semanticValidator) validatePages(entityIndex map[string]EntityDecl, layoutIndex map[string]LayoutDecl, roleIndex map[string]RoleDecl) map[string]PageDecl {
 	pageIndex := map[string]PageDecl{}
 	for _, page := range v.program.Pages {
@@ -892,24 +984,35 @@ func (v *semanticValidator) validateLayoutReferences(layoutIndex map[string]Layo
 }
 
 func (v *semanticValidator) validatePageFields(page PageDecl, source EntityDecl) {
-	fields := map[string]FieldDecl{}
-	for _, field := range source.Fields {
-		fields[field.Name] = field
-	}
+	fields := fieldIndex(source)
+	computedFields := computedFieldIndex(source)
 
 	for _, column := range page.Table.Columns {
-		if _, ok := fields[column]; !ok {
-			v.addDiagnostic(page.Position, "UNKNOWN_TABLE_COLUMN", fmt.Sprintf("Page %s table uses unknown field %s.%s.", page.Name, source.Name, column), "Add the field to the source entity or remove it from columns.")
+		if _, ok := fields[column]; ok {
+			continue
 		}
+		if _, ok := computedFields[column]; ok {
+			continue
+		}
+		v.addDiagnostic(page.Position, "UNKNOWN_TABLE_COLUMN", fmt.Sprintf("Page %s table uses unknown field %s.%s.", page.Name, source.Name, column), "Add the field to the source entity or remove it from columns.")
 	}
 
 	for _, fieldName := range page.Form.Fields {
-		if _, ok := fields[fieldName]; !ok {
-			v.addDiagnostic(page.Position, "UNKNOWN_FORM_FIELD", fmt.Sprintf("Page %s form uses unknown field %s.%s.", page.Name, source.Name, fieldName), "Add the field to the source entity or remove it from fields.")
+		if _, ok := fields[fieldName]; ok {
+			continue
 		}
+		if _, ok := computedFields[fieldName]; ok {
+			v.addDiagnostic(page.Position, "UNSUPPORTED_COMPUTED_FORM_FIELD", fmt.Sprintf("Page %s form uses computed field %s.%s as an input.", page.Name, source.Name, fieldName), "Computed fields are read-only display values; remove them from form fields.")
+			continue
+		}
+		v.addDiagnostic(page.Position, "UNKNOWN_FORM_FIELD", fmt.Sprintf("Page %s form uses unknown field %s.%s.", page.Name, source.Name, fieldName), "Add the field to the source entity or remove it from fields.")
 	}
 
 	for _, fieldName := range page.Table.Search {
+		if _, ok := computedFields[fieldName]; ok {
+			v.addDiagnostic(page.Position, "UNSUPPORTED_COMPUTED_SEARCH_FIELD", fmt.Sprintf("Page %s search uses computed field %s.%s.", page.Name, source.Name, fieldName), "Search computed display values in a later data logic phase; use stored text, email, or entity reference fields for now.")
+			continue
+		}
 		field, ok := fields[fieldName]
 		if !ok {
 			v.addDiagnostic(page.Position, "UNKNOWN_SEARCH_FIELD", fmt.Sprintf("Page %s search uses unknown field %s.%s.", page.Name, source.Name, fieldName), "Add the field to the source entity or remove it from search.")
@@ -923,13 +1026,19 @@ func (v *semanticValidator) validatePageFields(page PageDecl, source EntityDecl)
 	}
 
 	for _, fieldName := range page.Table.Filters {
+		if _, ok := computedFields[fieldName]; ok {
+			v.addDiagnostic(page.Position, "UNSUPPORTED_COMPUTED_FILTER_FIELD", fmt.Sprintf("Page %s filter uses computed field %s.%s.", page.Name, source.Name, fieldName), "Filter computed display values in a later data logic phase; use stored fields for now.")
+			continue
+		}
 		if _, ok := fields[fieldName]; !ok {
 			v.addDiagnostic(page.Position, "UNKNOWN_FILTER_FIELD", fmt.Sprintf("Page %s filter uses unknown field %s.%s.", page.Name, source.Name, fieldName), "Add the field to the source entity or remove it from filter.")
 		}
 	}
 
 	if page.Table.Sort.Field != "" {
-		if _, ok := fields[page.Table.Sort.Field]; !ok {
+		if _, ok := computedFields[page.Table.Sort.Field]; ok {
+			v.addDiagnostic(page.Position, "UNSUPPORTED_COMPUTED_SORT_FIELD", fmt.Sprintf("Page %s sort uses computed field %s.%s.", page.Name, source.Name, page.Table.Sort.Field), "Sort computed display values in a later data logic phase; use stored fields for now.")
+		} else if _, ok := fields[page.Table.Sort.Field]; !ok {
 			v.addDiagnostic(page.Position, "UNKNOWN_SORT_FIELD", fmt.Sprintf("Page %s table sorts by unknown field %s.%s.", page.Name, source.Name, page.Table.Sort.Field), "Add the field to the source entity or change the sort field.")
 		}
 		if page.Table.Sort.Direction != "asc" && page.Table.Sort.Direction != "desc" {

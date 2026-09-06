@@ -59,11 +59,17 @@ label Product.price {
   en "Unit Price"
 }
 
+label Product.inventoryValue {
+  tr "Envanter Değeri"
+  en "Inventory Value"
+}
+
 entity Product {
   sku text required unique length 3..40
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders" ui text text 14 semibold left
   stock number default 0 min 0 label "Stock Count" placeholder "Enter stock count" help "Current available quantity"
   price money min 0 label "Unit Price" placeholder "Enter unit price" help "Selling price for one unit"
+  computed inventoryValue money = stock * price label "Inventory Value"
 }
 
 entity Customer {
@@ -159,7 +165,7 @@ page Products {
   table {
     id ProductsTable
     class inventoryTable
-    columns sku, name, stock, price
+    columns sku, name, stock, price, inventoryValue
     search sku, name
     filter stock
     sort stock desc

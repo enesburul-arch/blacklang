@@ -28,11 +28,19 @@ func AnalyzeAffected(program Program, symbol string) (AffectedAnalysis, []Diagno
 				populateEntityAffected(&analysis, program, entity, &field)
 				return analysis, nil
 			}
+			if field, fieldOK := findComputedField(entity, fieldName); fieldOK {
+				analysis.Kind = "computed-field"
+				analysis.Found = true
+				analysis.Entity = entity.Name
+				analysis.Field = field.Name
+				populateComputedFieldAffected(&analysis, program, entity, field)
+				return analysis, nil
+			}
 		}
 		return analysis, []Diagnostic{{
 			Code:       "UNKNOWN_AFFECTED_SYMBOL",
 			Message:    fmt.Sprintf("Affected symbol %q was not found.", symbol),
-			Suggestion: "Use an existing entity field symbol such as `Product.stock`, or run `black inspect --json` to see available names.",
+			Suggestion: "Use an existing entity field or computed-field symbol such as `Product.stock`, or run `black inspect --json` to see available names.",
 		}}
 	}
 
@@ -260,6 +268,20 @@ func populatePageAffected(analysis *AffectedAnalysis, program Program, page Page
 	}
 	for _, roleName := range page.Access {
 		analysis.addRole(roleName, "Page access references this role.")
+	}
+}
+
+func populateComputedFieldAffected(analysis *AffectedAnalysis, program Program, entity EntityDecl, field ComputedFieldDecl) {
+	analysis.addEntity(entity.Name, "The computed field is declared on this entity.")
+	for _, page := range program.Pages {
+		if page.Source != entity.Name {
+			continue
+		}
+		analysis.addPage(page.Name, "Generated detail UI can display computed field "+field.Name+".")
+		analysis.addGeneratedFile("src/pages/"+page.Name+"Page.tsx", "Generated React page computes "+entity.Name+"."+field.Name+" from source fields.")
+	}
+	for _, reference := range computedFieldReferences(field) {
+		analysis.addEntity(entity.Name, "Computed field "+field.Name+" reads "+reference+".")
 	}
 }
 

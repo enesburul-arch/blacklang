@@ -36,6 +36,8 @@ deploy {
 entity Product {
   sku text required unique
   stock number default 0 ui text "#172026" 14 semibold left
+  price money default 0
+  computed inventoryValue money = stock * price label "Inventory Value"
   status text default draft
 }
 
@@ -118,6 +120,8 @@ page Products {
 		"entity Product",
 		"sku text required unique",
 		"stock number default 0 ui text #172026 14 semibold left",
+		"price money default 0",
+		"computed inventoryValue money = stock * price label Inventory Value",
 		"status text default draft",
 		"role Admin",
 		"allow all",

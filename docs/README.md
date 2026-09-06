@@ -23,6 +23,7 @@ It should explain:
 - How standard UI mode groups work
 - How inline UI intent is written near fields, forms, tables, and action buttons
 - How page view order moves generated form, table, and detail sections
+- How computed display fields are declared from stored numeric data
 - How locked UI profiles enforce append-only slot changes
 - How i18n locale and field label translations work
 - How security CORS policy is declared without hardcoding deployment origins
@@ -46,6 +47,7 @@ docs/
 ├── i18n.md
 ├── inline-ui.md
 ├── view.md
+├── computed.md
 ├── ai-agent-contract.md
 ├── deployment.md
 ├── security-cors.md
@@ -72,6 +74,7 @@ docs/
 - Reference: table
 - Reference: form
 - Reference: view
+- Reference: computed
 - CLI: parse
 - CLI: format
 - CLI: lint

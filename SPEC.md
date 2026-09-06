@@ -170,7 +170,7 @@ JSON shape:
   "success": true,
   "command": "docs",
   "version": "0.1.0-dev",
-  "count": 37,
+  "count": 45,
   "docs": [
     {
       "keyword": "entity",
@@ -186,6 +186,30 @@ JSON shape:
 ```
 
 The `docs` array is sorted by keyword for deterministic AI context. Agents should use `black docs --all --json` when entering an unfamiliar BlackLang project, and `black docs <keyword> --json` for focused edits.
+
+## Current Computed Fields
+
+Draft v0.2 supports read-only computed display fields inside entity blocks:
+
+```black
+entity Product {
+  stock number default 0
+  price money default 0
+  computed inventoryValue money = stock * price label "Inventory Value"
+}
+```
+
+Computed fields are generated as React display helpers for table columns and detail views.
+
+They are not database columns, not API input fields, and not generated form inputs.
+
+Current expression support is limited to:
+
+```text
+<stored number-like field or numeric literal> <+|-|*|/> <stored number-like field or numeric literal>
+```
+
+If a computed field references a source field hidden by field-level permissions, generated UI hides the computed value too.
 
 ## Current Agent Startup Command
 

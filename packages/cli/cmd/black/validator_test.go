@@ -90,6 +90,78 @@ entity Order {
 	}
 }
 
+func TestValidateComputedField(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  stock number default 0
+  price money min 0
+  computed inventoryValue money = stock * price label "Inventory Value"
+}
+
+page Products {
+  source Product
+
+  table {
+    columns stock, price, inventoryValue
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateComputedFieldErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text
+  stock number default 0
+  computed stock money = stock * missing
+  computed missingValue money = stock * missing
+  computed labelText text = stock * 2
+  computed bad money = name * 2 sparkle
+}
+
+page Products {
+  source Product
+
+  table {
+    columns bad
+    search bad
+    filter bad
+    sort bad asc
+  }
+
+  form {
+    fields bad
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"DUPLICATE_FIELD", "UNKNOWN_COMPUTED_FIELD", "UNSUPPORTED_COMPUTED_FIELD_TYPE", "INCOMPATIBLE_COMPUTED_FIELD", "UNSUPPORTED_COMPUTED_FIELD_MODIFIER", "UNSUPPORTED_COMPUTED_FORM_FIELD", "UNSUPPORTED_COMPUTED_SEARCH_FIELD", "UNSUPPORTED_COMPUTED_FILTER_FIELD", "UNSUPPORTED_COMPUTED_SORT_FIELD"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateEntityReferenceSearchField(t *testing.T) {
 	source := `app Warehouse
 

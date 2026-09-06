@@ -106,6 +106,7 @@ black docs --all --json`,
 			"Do not invent unsupported syntax or present a normal HTML/JavaScript prototype as official BlackLang output.",
 			"`script type=\"text/black\"` is not supported unless an official browser runtime exists.",
 			"Current BlackLang is strongest for CRUD/admin-style generated web applications, not arbitrary frontend calculator/game logic.",
+			"Entity computed display fields are supported, but calculator-style local expression state and click handlers are not yet supported.",
 			"If a task is outside the current boundary, state the limitation and either label a normal web prototype clearly or add the missing compiler feature first.",
 		},
 		Errors: []string{"UNKNOWN_DOC_KEYWORD"},
@@ -410,16 +411,19 @@ label Product.name {
 	},
 	"entity": {
 		Keyword: "entity",
-		Purpose: "Declares stored application data and its fields.",
-		Syntax:  "entity <PascalCaseName> { <fieldName> <fieldType> <modifiers...> }",
+		Purpose: "Declares stored application data, fields, and read-only computed display fields.",
+		Syntax:  "entity <PascalCaseName> { <fieldName> <fieldType> <modifiers...>; computed <name> <type> = <left> <operator> <right> }",
 		Example: `entity Product {
   sku text required unique
   name text required label "Product Name" placeholder "Enter product name" help "Shown under the input"
   stock number default 0
+  price money default 0
+  computed inventoryValue money = stock * price label "Inventory Value"
 }`,
 		AgentNotes: []string{
 			"Use entity for data that should be stored or shown in pages.",
 			"Fields are referenced by table, form, and search blocks.",
+			"Use computed for read-only display values derived from stored number-like fields.",
 			"Use label \"Text\" to control generated UI field labels.",
 			"Use placeholder \"Text\" to control generated input hints.",
 			"Use help \"Text\" to show persistent guidance under generated inputs.",
@@ -427,7 +431,34 @@ label Product.name {
 			"Use validate left <= right message \"Text\" inside an entity for cross-field validation.",
 			"Use validate field required when otherField == value message \"Text\" for conditional required validation.",
 		},
-		Errors: []string{"DUPLICATE_ENTITY", "DUPLICATE_FIELD", "UNSUPPORTED_FIELD_TYPE", "UNSUPPORTED_FIELD_MODIFIER", "MISSING_LABEL_VALUE", "MISSING_PLACEHOLDER_VALUE", "MISSING_HELP_VALUE", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_ENTITY_VALIDATION", "UNKNOWN_VALIDATION_FIELD", "UNSUPPORTED_VALIDATION_OPERATOR", "INCOMPATIBLE_VALIDATION_FIELDS", "MISSING_VALIDATION_CONDITION", "INVALID_VALIDATION_LITERAL"},
+		Errors: []string{"DUPLICATE_ENTITY", "DUPLICATE_FIELD", "DUPLICATE_COMPUTED_FIELD", "UNSUPPORTED_FIELD_TYPE", "UNSUPPORTED_FIELD_MODIFIER", "INVALID_COMPUTED_FIELD", "INVALID_COMPUTED_EXPRESSION", "UNSUPPORTED_COMPUTED_FIELD_TYPE", "UNSUPPORTED_COMPUTED_OPERATOR", "UNKNOWN_COMPUTED_FIELD", "INCOMPATIBLE_COMPUTED_FIELD", "UNSUPPORTED_COMPUTED_FIELD_MODIFIER", "MISSING_LABEL_VALUE", "MISSING_PLACEHOLDER_VALUE", "MISSING_HELP_VALUE", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_ENTITY_VALIDATION", "UNKNOWN_VALIDATION_FIELD", "UNSUPPORTED_VALIDATION_OPERATOR", "INCOMPATIBLE_VALIDATION_FIELDS", "MISSING_VALIDATION_CONDITION", "INVALID_VALIDATION_LITERAL"},
+	},
+	"computed": {
+		Keyword: "computed",
+		Purpose: "Declares a read-only display field calculated from stored number-like entity fields.",
+		Syntax:  "computed <name> <number|integer|decimal|money> = <field|number> <+|-|*|/> <field|number> [label \"Text\"]",
+		Example: `entity Product {
+  stock number default 0
+  price money default 0
+  computed inventoryValue money = stock * price label "Inventory Value"
+}
+
+page Products {
+  source Product
+
+  table {
+    columns stock, price, inventoryValue
+  }
+}`,
+		AgentNotes: []string{
+			"Computed fields are not database columns and are not submitted by generated forms.",
+			"Computed fields can be shown in table columns and generated detail views.",
+			"v0.2 computed fields support binary arithmetic only: left operator right.",
+			"Operands must be stored number-like fields on the same entity or numeric literals.",
+			"Computed fields are hidden when any referenced source field is hidden by field-level permissions.",
+			"Search, filter, and sort over computed fields are planned for a later data logic phase.",
+		},
+		Errors: []string{"INVALID_COMPUTED_FIELD", "INVALID_COMPUTED_EXPRESSION", "DUPLICATE_COMPUTED_FIELD", "DUPLICATE_FIELD", "UNSUPPORTED_COMPUTED_FIELD_TYPE", "UNSUPPORTED_COMPUTED_OPERATOR", "UNKNOWN_COMPUTED_FIELD", "INCOMPATIBLE_COMPUTED_FIELD", "UNSUPPORTED_COMPUTED_FIELD_MODIFIER", "UNSUPPORTED_COMPUTED_FORM_FIELD", "UNSUPPORTED_COMPUTED_SEARCH_FIELD", "UNSUPPORTED_COMPUTED_FILTER_FIELD", "UNSUPPORTED_COMPUTED_SORT_FIELD"},
 	},
 	"page": {
 		Keyword: "page",
@@ -588,7 +619,7 @@ role Worker {
 		Example: `table {
   id ProductsTable
   class inventoryTable
-  columns sku, name, stock
+  columns sku, name, stock, inventoryValue
   search sku, name
   filter stock
   sort stock desc
@@ -596,16 +627,17 @@ role Worker {
   ui table border 1 solid compact true
 }`,
 		AgentNotes: []string{
-			"Columns must exist on the page source entity.",
+			"Columns must exist on the page source entity or be computed fields on that entity.",
 			"Search fields must be searchable types in v0.1.",
 			"Filter fields must exist on the page source entity.",
 			"Sort field must exist on the page source entity.",
+			"Computed fields can be listed in columns, but search/filter/sort support comes later.",
 			"Sort direction must be asc or desc.",
 			"Paginate size must be a positive whole number.",
 			"Inline UI intent can be declared with table, box, or text modes.",
 			"Explicit id and class values are normalized to kebab-case in generated HTML.",
 		},
-		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
+		Errors: []string{"UNKNOWN_TABLE_COLUMN", "UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNKNOWN_FILTER_FIELD", "UNKNOWN_SORT_FIELD", "UNSUPPORTED_COMPUTED_SEARCH_FIELD", "UNSUPPORTED_COMPUTED_FILTER_FIELD", "UNSUPPORTED_COMPUTED_SORT_FIELD", "UNSUPPORTED_SORT_DIRECTION", "INVALID_TABLE_PAGINATION", "UNSUPPORTED_PAGE_SIZE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"filter": {
 		Keyword: "filter",
@@ -616,8 +648,9 @@ role Worker {
 			"Filter is currently defined inside table blocks.",
 			"Generated React lists apply field filters after search and before sort.",
 			"Relation filters use the readable relation label when available.",
+			"Computed field filtering is planned for a later data logic phase.",
 		},
-		Errors: []string{"UNKNOWN_FILTER_FIELD"},
+		Errors: []string{"UNKNOWN_FILTER_FIELD", "UNSUPPORTED_COMPUTED_FILTER_FIELD"},
 	},
 	"paginate": {
 		Keyword: "paginate",
@@ -652,10 +685,11 @@ role Worker {
 			"Field regex \"pattern\" modifiers generate text/email pattern validation.",
 			"Field url modifiers generate URL validation for text fields.",
 			"Field message \"Text\" modifiers override generated validation text for that field.",
+			"Computed fields are read-only display values and cannot be listed in form fields.",
 			"Inline UI intent can be declared with box, text, or button modes.",
 			"Explicit id and class values are normalized to kebab-case in generated HTML.",
 		},
-		Errors: []string{"UNKNOWN_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
+		Errors: []string{"UNKNOWN_FORM_FIELD", "UNSUPPORTED_COMPUTED_FORM_FIELD", "UNEXPECTED_FORM_TOKEN", "MISSING_CONSTRAINT_VALUE", "INVALID_NUMERIC_CONSTRAINT", "INVALID_LENGTH_CONSTRAINT", "INVALID_REGEX_CONSTRAINT", "UNSUPPORTED_URL_CONSTRAINT", "MISSING_MESSAGE_VALUE", "INVALID_UI_ID", "INVALID_UI_CLASS", "DUPLICATE_UI_ID", "DUPLICATE_UI_CLASS", "INVALID_UI_INTENT", "UNSUPPORTED_UI_MODE", "UNSUPPORTED_UI_TARGET_MODE", "DUPLICATE_UI_INTENT"},
 	},
 	"actions": {
 		Keyword: "actions",
@@ -682,8 +716,9 @@ action create ui button primary white 6 md solid`,
 		AgentNotes: []string{
 			"Search is currently defined inside table blocks.",
 			"v0.1 supports text, email, and entity reference search fields.",
+			"Computed field search is planned for a later data logic phase.",
 		},
-		Errors: []string{"UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE"},
+		Errors: []string{"UNKNOWN_SEARCH_FIELD", "UNSEARCHABLE_FIELD_TYPE", "UNSUPPORTED_COMPUTED_SEARCH_FIELD"},
 	},
 	"blackir": {
 		Keyword: "blackir",

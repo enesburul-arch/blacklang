@@ -45,6 +45,7 @@ entity Product {
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name"
   stock number default 0 min 0 label "Stock Count" placeholder "Enter stock count"
   price money min 0 label "Unit Price" placeholder "Enter unit price"
+  computed inventoryValue money = stock * price label "Inventory Value"
 }
 
 entity Customer {
@@ -124,7 +125,7 @@ page Products {
   }
 
   table {
-    columns sku, name, stock, price
+    columns sku, name, stock, price, inventoryValue
     search sku, name
     filter stock
     sort stock desc
@@ -701,6 +702,13 @@ page Orders {
 		`<main className="page-view page-view-products">`,
 		`<section className="panel bl-view-section-detail">`,
 		`import { StockBadge } from "../components/StockBadge";`,
+		`function computeInventoryValue(item: Product) {`,
+		`const value = Number(item.stock ?? 0) * Number(item.price ?? 0);`,
+		`function formatComputedValue(value: number | null) {`,
+		`{permissions.fields.stock !== false && permissions.fields.price !== false && <label className="inline-control"><input checked={visibleColumns.inventoryValue} type="checkbox" onChange={() => toggleColumn("inventoryValue")} /> Inventory Value</label>}`,
+		`{visibleColumns.inventoryValue && permissions.fields.stock !== false && permissions.fields.price !== false && <th>Inventory Value</th>}`,
+		`{visibleColumns.inventoryValue && permissions.fields.stock !== false && permissions.fields.price !== false && <td>{formatComputedValue(computeInventoryValue(item))}</td>}`,
+		`{permissions.fields.stock !== false && permissions.fields.price !== false && <div><dt>Inventory Value</dt><dd>{formatComputedValue(computeInventoryValue(selectedItem))}</dd></div>}`,
 		`{visibleColumns.stock && permissions.fields.stock !== false && <td>{<StockBadge stock={Number(item.stock ?? 0)} />}</td>}`,
 		`{permissions.fields.stock !== false && <div><dt>Stock Count</dt><dd>{<StockBadge stock={Number(selectedItem.stock ?? 0)} />}</dd></div>}`,
 		`<input type="text" required minLength={3} maxLength={40} pattern="^[A-Z0-9]+$" value={form.sku}`,

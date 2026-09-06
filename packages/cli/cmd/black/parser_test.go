@@ -30,6 +30,7 @@ entity Product {
   name text required
   stock number default 0
   price money
+  computed inventoryValue money = stock * price label "Inventory Value"
 }
 
 role Admin {
@@ -121,6 +122,13 @@ page Products {
 	}
 	if len(program.Entities[0].Fields) != 4 {
 		t.Fatalf("expected 4 fields, got %d", len(program.Entities[0].Fields))
+	}
+	if len(program.Entities[0].ComputedFields) != 1 {
+		t.Fatalf("expected 1 computed field, got %#v", program.Entities[0].ComputedFields)
+	}
+	computed := program.Entities[0].ComputedFields[0]
+	if computed.Name != "inventoryValue" || computed.Type != "money" || computed.Expression.Left != "stock" || computed.Expression.Operator != "*" || computed.Expression.Right != "price" {
+		t.Fatalf("expected inventoryValue computed field, got %#v", computed)
 	}
 	if len(program.Roles) != 1 {
 		t.Fatalf("expected 1 role, got %d", len(program.Roles))

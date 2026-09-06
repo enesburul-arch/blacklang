@@ -45,6 +45,7 @@
         <a href="#app">app</a>
         <a href="#target">target</a>
         <a href="#entity">entity</a>
+        <a href="#computed">computed</a>
         <a href="#fields">Field Tipleri</a>
         <a href="#page">page</a>
         <a href="#view">view</a>
@@ -126,13 +127,14 @@ entity Product {
   name text required
   stock number default 0
   price money
+  computed inventoryValue money = stock * price label "Inventory Value"
 }
 
 page Products {
   source Product
 
   table {
-    columns sku, name, stock, price
+    columns sku, name, stock, price, inventoryValue
     search sku, name
   }
 
@@ -282,11 +284,55 @@ page Products {
   name text required label "Product Name"
   stock number default 0 min 0
   price money min 0
+  computed inventoryValue money = stock * price label "Inventory Value"
 }</code></pre>
         </div>
         <p>
           Field adı solda, tipi yanında, kuralları ise aynı satırda yer alır. Bu sıra,
           AI'nin satırı tek seferde okuyup veri niyetini anlamasını kolaylaştırır.
+        </p>
+      </section>
+
+      <section id="computed">
+        <h2>computed</h2>
+        <p>
+          `computed`, saklanan field'lardan okuma amaçlı hesaplanan değer üretir. İlk
+          sürümde database kolonu değildir, form input'u değildir; generated table ve
+          detail UI içinde hesaplanır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Computed display field</div>
+          <pre><code class="language-black">entity Product {
+  stock number default 0
+  price money default 0
+  computed inventoryValue money = stock * price label "Inventory Value"
+}
+
+page Products {
+  source Product
+
+  table {
+    columns stock, price, inventoryValue
+  }
+}</code></pre>
+        </div>
+        <p>
+          v0.2 syntax'ı `computed name type = left operator right` şeklindedir. Desteklenen
+          tipler `number`, `integer`, `decimal`, `money`; desteklenen operatörler `+`,
+          `-`, `*`, `/`. Operand'lar aynı entity içindeki number-like field'lar veya
+          numeric literal değerler olmalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated React mantığı</div>
+          <pre><code class="language-ts">function computeInventoryValue(item: Product) {
+  const value = Number(item.stock ?? 0) * Number(item.price ?? 0);
+  return Number.isFinite(value) ? value : null;
+}</code></pre>
+        </div>
+        <p>
+          Bir computed field, kaynak aldığı field'lardan biri role/field-level permission
+          ile gizlenmişse generated UI'da kendisi de gizlenir. Search, filter ve sort
+          desteği sonraki data logic aşamasına bırakılmıştır.
         </p>
       </section>
 
@@ -1024,7 +1070,9 @@ black build</code></pre>
         <p>
           Şu an BlackLang genel amaçlı browser runtime değildir. Calculator, game,
           custom click handler veya arbitrary JavaScript replacement gibi davranışlar
-          ilerideki frontend logic/event aşamalarına aittir.
+          ilerideki frontend logic/event aşamalarına aittir. Entity tabanlı computed
+          display değerleri desteklenir; calculator tarzı lokal expression state henüz
+          desteklenmez.
         </p>
         <div class="code-panel">
           <div class="code-title">Desteklenmeyen resmi syntax</div>
@@ -1087,8 +1135,8 @@ black build</code></pre>
         <h2>Örnekler</h2>
         <p>
           İlk örnek Warehouse uygulamasıdır. Bu örnek auth, role, relation, workflow, state,
-          component, table, form, validation ve API contract özelliklerini aynı kaynakta
-          gösterir.
+          component, table, form, computed display, validation ve API contract özelliklerini
+          aynı kaynakta gösterir.
         </p>
         <div class="code-panel">
           <div class="code-title">Relation ve validation örneği</div>
@@ -1567,14 +1615,15 @@ Build time                      TBD         TBD</code></pre>
         <p>
           v0.1 web MVP tamamlandı: parser, validator, generator, CRUD, relation, auth,
           role/access, workflow, state, component, validation, OpenAPI ve source security
-          temelleri var.
+          temelleri var. v0.2 içinde ilk data logic adımı olarak computed display fields
+          eklendi.
         </p>
         <div class="code-panel">
           <div class="code-title">v0.2 odakları</div>
           <pre><code>Phase 18: Release and install path
 Phase 19: Developer and AI ergonomics, including agent contract and inspect --affected
 Phase 20: UI and theme language
-Phase 21: Query, actions, and data logic
+Phase 21: Query, actions, and data logic, computed fields started
 Phase 22: Tests, benchmarks, and evals
 Phase 23: Protected source mode
 Phase 24: Documentation site

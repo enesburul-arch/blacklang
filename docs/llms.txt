@@ -24,6 +24,7 @@ Read these pages first:
 - /reference/ui-modes
 - /reference/inline-ui
 - /reference/view
+- /reference/computed
 - /reference/i18n
 - /reference/security-cors
 - /reference/deployment
@@ -42,6 +43,7 @@ Core local files in this repository:
 - docs/ui-modes.md
 - docs/inline-ui.md
 - docs/view.md
+- docs/computed.md
 - docs/i18n.md
 - docs/security-cors.md
 - docs/deployment.md
@@ -84,6 +86,8 @@ Use `black docs ui --json` before editing compact inline UI intent in `.black` f
 Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
 
 Use `view { order form, table, detail }` inside a page to move generated table, detail, and form sections from `.black` source.
+
+Use `computed name money = stock * price` inside an entity for read-only table/detail display values derived from stored number-like fields.
 
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 

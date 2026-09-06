@@ -535,10 +535,11 @@ func (p *parser) parseEntity(start int, parts []string) int {
 	}
 
 	entity := EntityDecl{
-		Name:        parts[1],
-		Fields:      []FieldDecl{},
-		Validations: []EntityValidationDecl{},
-		Position:    p.position(lineNumber, 1),
+		Name:           parts[1],
+		Fields:         []FieldDecl{},
+		ComputedFields: []ComputedFieldDecl{},
+		Validations:    []EntityValidationDecl{},
+		Position:       p.position(lineNumber, 1),
 	}
 
 	for index := start + 1; index < len(p.lines); index++ {
@@ -553,6 +554,13 @@ func (p *parser) parseEntity(start int, parts []string) int {
 			validation, ok := p.parseEntityValidation(fieldParts, currentLine)
 			if ok {
 				entity.Validations = append(entity.Validations, validation)
+			}
+			continue
+		}
+		if fieldParts[0] == "computed" {
+			computed, ok := p.parseComputedField(fieldParts, currentLine)
+			if ok {
+				entity.ComputedFields = append(entity.ComputedFields, computed)
 			}
 			continue
 		}
@@ -574,6 +582,26 @@ func (p *parser) parseEntity(start int, parts []string) int {
 
 	p.addError(lineNumber, 1, "UNCLOSED_ENTITY", fmt.Sprintf("Entity %s is missing a closing brace.", entity.Name), "Add `}` after the entity fields.")
 	return len(p.lines) - 1
+}
+
+func (p *parser) parseComputedField(parts []string, lineNumber int) (ComputedFieldDecl, bool) {
+	if len(parts) < 7 || parts[3] != "=" {
+		p.addError(lineNumber, 1, "INVALID_COMPUTED_FIELD", "Computed field must be `computed name type = left operator right`.", "Example: `computed inventoryValue money = stock * price`.")
+		return ComputedFieldDecl{}, false
+	}
+
+	return ComputedFieldDecl{
+		Name: parts[1],
+		Type: parts[2],
+		Expression: ComputedExpressionDecl{
+			Left:     parts[4],
+			Operator: parts[5],
+			Right:    parts[6],
+			Position: p.position(lineNumber, 1),
+		},
+		Modifiers: parseModifiers(parts[7:]),
+		Position:  p.position(lineNumber, 1),
+	}, true
 }
 
 func (p *parser) parseEntityValidation(parts []string, lineNumber int) (EntityValidationDecl, bool) {

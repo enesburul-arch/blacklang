@@ -38,6 +38,7 @@ This phase helps humans and AI agents edit `.black` files with less guesswork.
 - [x] Add `black inspect --affected <symbol> --json`
 - [x] Add stable diagnostic documentation
 - [x] Add agent startup checklist output
+- [x] Add AI agent capability boundary and official workflow contract
 
 ## Phase 20: UI and Theme Language
 
@@ -101,6 +102,7 @@ This phase creates the Python/W3Schools-style learning surface discussed for Bla
 - [x] Add generated output comparison pages
 - [x] Add AI agent guide pages
 - [x] Add versioned docs strategy for future syntax changes
+- [x] Add public AI agent contract page for current capability boundaries
 
 ## Phase 25: Real App Templates
 

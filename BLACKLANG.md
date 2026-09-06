@@ -14,6 +14,30 @@ It describes what an application should do in a compact, predictable form that A
 
 AI agents should primarily edit `.black` files, then use the `black` CLI to validate and generate application code.
 
+## Current AI Agent Contract
+
+External AI agents should treat the official BlackLang path as:
+
+```text
+.black source -> black CLI -> generated web output
+```
+
+They should not invent browser runtime syntax such as:
+
+```html
+<script type="text/black">
+```
+
+unless an official BlackLang browser runtime exists.
+
+Current BlackLang is not a full JavaScript, Python, game, or calculator runtime. It is currently strongest for generated CRUD/admin-style web applications with auth, roles, relations, workflow, validation, i18n labels, inline UI intent, page view order, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
+
+Full rules live in:
+
+```text
+docs/ai-agent-contract.md
+```
+
 ## Important AI Learning Principle
 
 BlackLang is new, so an AI agent may not know it from training data.
@@ -135,6 +159,7 @@ black validate --json
 black inspect --json
 black inspect --affected Product.stock --json
 black agent startup --json
+black docs agent-contract --json
 black theme inspect --json
 black docs ui --json
 black docs ui-profile --json

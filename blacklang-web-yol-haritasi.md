@@ -2703,6 +2703,54 @@ AI bir değişikliğin etkisini tahmin etmek yerine compiler'dan öğrenir.
 }
 ```
 
+### Mevcut v0.2 Uygulaması: AI Agent Contract
+
+Bu aşama, dış AI ajanlarının BlackLang'i yanlış yorumlamasını engellemek için resmi çalışma sınırını açık hale getirir.
+
+Özellikle Cursor testinde görülen risk şudur:
+
+```text
+AI ajanı siteyi okur
+BlackLang'in henüz yapamadığı bir işi ister
+kendi uydurduğu runtime syntax ile çözüm üretir
+bunu resmi BlackLang gibi gösterebilir
+```
+
+Bu yüzden repo ve dokümantasyon sitesine şu kural eklenmiştir:
+
+```text
+official BlackLang path:
+.black source -> black CLI -> generated web output
+```
+
+Desteklenmeyen kullanım:
+
+```html
+<script type="text/black">
+```
+
+Bu kullanım, resmi browser runtime olmadığı sürece BlackLang syntax'ı sayılmaz.
+
+Yeni referans dosyası:
+
+```text
+docs/ai-agent-contract.md
+```
+
+CLI kısa öğrenme komutu:
+
+```bash
+black docs agent-contract --json
+```
+
+Bu sözleşme şunu netleştirir:
+
+- AI ajanı `.black` ve `.blackthm` kaynaklarını değiştirmelidir.
+- Generated çıktıyı normal çözüm olarak elle değiştirmemelidir.
+- Desteklenmeyen syntax uydurmamalıdır.
+- Calculator/game/custom frontend event gibi işler bugün resmi BlackLang kapsamı değildir.
+- Böyle bir istek gelirse ya normal web prototipi açıkça prototip olarak etiketlenmeli ya da önce compiler'a gerekli BlackLang özelliği eklenmelidir.
+
 ## Aşama 32: Refactor ve Kod Sağlığı
 
 ## Aşama 31.1: BlackIR Ara Temsil Formatı

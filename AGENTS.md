@@ -39,6 +39,9 @@ docs/npm-wrapper.md
 - Treat `.black` source files as high-value source assets.
 - Do not put secrets, passwords, API keys, tokens, or private keys directly in `.black` files.
 - Prefer environment references such as `env DATABASE_URL` for future secret-aware syntax.
+- Treat `docs/ai-agent-contract.md` as the current capability boundary for external AI agents.
+- Do not invent unsupported BlackLang syntax such as `<script type="text/black">` or present a normal HTML/JavaScript prototype as official BlackLang output.
+- If a request needs unsupported frontend logic, say so clearly and either label the result as a non-BlackLang prototype or add the missing compiler feature first.
 
 ## Validation Flow
 

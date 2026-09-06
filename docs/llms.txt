@@ -14,6 +14,7 @@ Read these pages first:
 - /cli/validate
 - /cli/inspect
 - /cli/agent-startup
+- /ai-agents/agent-contract
 - /cli/docs
 - /ai-agents/codex
 - /ai-agents/learning-cost
@@ -34,6 +35,7 @@ Core local files in this repository:
 - AGENTS.md
 - ROADMAP.md
 - docs/diagnostics.md
+- docs/ai-agent-contract.md
 - docs/target.md
 - docs/theme-profile.md
 - docs/ui-profile.md
@@ -60,6 +62,10 @@ BlackLang may be unknown to AI models at first. Use local docs, version-aware CL
 Use BlackIR when a compact AI-readable project summary is better than verbose JSON.
 
 Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
+
+Use `docs/ai-agent-contract.md` or `black docs agent-contract --json` to learn the current official capability boundary before inventing syntax.
+
+Do not use `<script type="text/black">` or browser-side BlackLang runtime syntax unless an official runtime exists.
 
 Use `target web { frontend react backend node database sqlite }` for the current generated web stack.
 

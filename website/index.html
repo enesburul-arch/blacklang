@@ -68,6 +68,7 @@
         <a href="#deploy">deploy</a>
         <a href="#cli">CLI</a>
         <a href="#errors">Hata Çıktıları</a>
+        <a href="#agent-contract">Agent Contract</a>
         <a href="#ai-agents">AI Agents</a>
         <a href="#examples">Örnekler</a>
         <a href="#crm-template">CRM Template</a>
@@ -1003,6 +1004,42 @@ HARDCODED_*   likely secret is stored in source</code></pre>
         </div>
       </section>
 
+      <section id="agent-contract">
+        <h2>Agent Contract</h2>
+        <p>
+          Bu bölüm dış AI ajanlarının BlackLang'i yanlış yorumlamasını engeller. Resmi
+          çalışma yolu `.black` kaynak, `.blackthm` tema profili ve `black` CLI üzerinden
+          generated web output üretmektir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Resmi akış</div>
+          <pre><code class="language-bash">black agent startup --json
+black docs agent-contract --json
+black inspect app.black --json
+black format --check --json
+black lint --json
+black validate --json
+black build</code></pre>
+        </div>
+        <p>
+          Şu an BlackLang genel amaçlı browser runtime değildir. Calculator, game,
+          custom click handler veya arbitrary JavaScript replacement gibi davranışlar
+          ilerideki frontend logic/event aşamalarına aittir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Desteklenmeyen resmi syntax</div>
+          <pre><code class="language-html">&lt;script type="text/black"&gt;
+  button 7
+&lt;/script&gt;</code></pre>
+        </div>
+        <p>
+          Bir AI ajanı desteklenmeyen bir işi normal HTML/JavaScript ile prototiplerse
+          bunu açıkça prototip olarak etiketlemelidir. Resmi BlackLang çıktısı demek,
+          desteklenen `.black` syntax'ının resmi `black` compiler tarafından üretilmesi
+          demektir.
+        </p>
+      </section>
+
       <section id="ai-agents">
         <h2>AI Agents</h2>
         <p>
@@ -1535,7 +1572,7 @@ Build time                      TBD         TBD</code></pre>
         <div class="code-panel">
           <div class="code-title">v0.2 odakları</div>
           <pre><code>Phase 18: Release and install path
-Phase 19: Developer and AI ergonomics, including inspect --affected
+Phase 19: Developer and AI ergonomics, including agent contract and inspect --affected
 Phase 20: UI and theme language
 Phase 21: Query, actions, and data logic
 Phase 22: Tests, benchmarks, and evals

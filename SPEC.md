@@ -27,6 +27,7 @@ BlackLang's compact intermediate representation uses the `.blackir` extension wh
 - Every AI-facing command should support JSON output.
 - BlackLang syntax should reuse familiar programming words where possible.
 - BlackLang must be easy for an AI agent to learn from a short local guide.
+- AI agents must not invent unsupported BlackLang syntax and present it as official behavior.
 
 ## Current Parser Model
 
@@ -56,6 +57,28 @@ JSON shape:
 ```
 
 Release scripts, npm wrappers, CI pipelines, and AI agents should prefer `black version --json` when they need structured version checks.
+
+## Current AI Agent Contract
+
+The official BlackLang path is:
+
+```text
+.black source -> black CLI -> generated web output
+```
+
+AI agents should treat `docs/ai-agent-contract.md` as the current capability boundary.
+
+Current BlackLang does not yet provide:
+
+```text
+<script type="text/black">
+browser-side BlackLang interpreter
+calculator/game expression runtime
+custom frontend event handlers
+general-purpose programming
+```
+
+When a requested task requires unsupported behavior, the agent should state the limitation and either build a clearly labeled normal web prototype or add the missing BlackLang compiler feature first.
 
 ## Current Format Command
 
@@ -1096,6 +1119,7 @@ black explain table --json
 black explain entity --json
 black agent startup --json
 black theme inspect --json
+black docs agent-contract --json
 black docs ui --json
 black docs ui-profile --json
 black docs ui-modes --json

@@ -94,6 +94,22 @@ black agent startup --ir`,
 		},
 		Errors: []string{"UNKNOWN_AGENT_COMMAND", "FILE_READ_ERROR", "FORMAT_REQUIRED", "HARDCODED_TOKEN"},
 	},
+	"agent-contract": {
+		Keyword: "agent-contract",
+		Purpose: "Documents the current capability boundary and official workflow for AI agents using BlackLang.",
+		Syntax:  "docs/ai-agent-contract.md | black docs agent-contract --json",
+		Example: `black agent startup --json
+black docs agent-contract --json
+black docs --all --json`,
+		AgentNotes: []string{
+			"Official BlackLang work uses .black source files, .blackthm theme/profile files, and the black CLI.",
+			"Do not invent unsupported syntax or present a normal HTML/JavaScript prototype as official BlackLang output.",
+			"`script type=\"text/black\"` is not supported unless an official browser runtime exists.",
+			"Current BlackLang is strongest for CRUD/admin-style generated web applications, not arbitrary frontend calculator/game logic.",
+			"If a task is outside the current boundary, state the limitation and either label a normal web prototype clearly or add the missing compiler feature first.",
+		},
+		Errors: []string{"UNKNOWN_DOC_KEYWORD"},
+	},
 	"theme": {
 		Keyword: "theme",
 		Purpose: "Inspects .blackthm UI theme/profile files used by AI agents and the CSS generator.",

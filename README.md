@@ -223,6 +223,7 @@ Implemented so far:
 - Generated table/detail rendering through matching component inputs
 - Generated live form previews through matching component inputs
 - Parsed, validated, and generated page view order for table/detail/form sections
+- Documented AI agent capability boundary to prevent unsupported syntax invention
 
 ## Documentation
 
@@ -236,6 +237,7 @@ Implemented so far:
 - [UI Modes](docs/ui-modes.md)
 - [Inline UI Intent](docs/inline-ui.md)
 - [Page View Order](docs/view.md)
+- [AI Agent Contract](docs/ai-agent-contract.md)
 - [Warehouse Benchmark v0.1](benchmarks/warehouse-v0.1.md)
 - [SalesCRM Benchmark v0.2](benchmarks/crm-v0.2.md)
 - [InventoryControl Benchmark v0.2](benchmarks/inventory-v0.2.md)

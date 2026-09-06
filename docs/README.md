@@ -29,6 +29,7 @@ It should explain:
 - How Docker deployment intent generates production runtime files
 - How BlackLang compares with common web languages without overstating current capability
 - How measured scale benchmarks differ from positioning notes
+- How AI agents should respect the current capability boundary
 - How AI agents should use the language
 
 ## Planned Structure
@@ -45,6 +46,7 @@ docs/
 ├── i18n.md
 ├── inline-ui.md
 ├── view.md
+├── ai-agent-contract.md
 ├── deployment.md
 ├── security-cors.md
 ├── release-artifacts.md
@@ -82,6 +84,7 @@ docs/
 - CLI: release artifact layout
 - CLI: npm wrapper plan
 - AI Agents: Codex guide
+- AI Agents: Capability boundary and official workflow
 - Errors: Error code reference
 - Reference: Theme profile
 - Reference: UI profile rules

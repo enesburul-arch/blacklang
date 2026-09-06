@@ -71,7 +71,7 @@ func TestAllDocsReturnsSortedEntries(t *testing.T) {
 			t.Fatalf("expected doc %q to include purpose and syntax, got %#v", doc.Keyword, doc)
 		}
 	}
-	for _, keyword := range []string{"docs", "explain", "format", "lint", "syntax", "entity", "page", "view", "ui", "target", "deploy"} {
+	for _, keyword := range []string{"agent-contract", "docs", "explain", "format", "lint", "syntax", "entity", "page", "view", "ui", "target", "deploy"} {
 		if !found[keyword] {
 			t.Fatalf("expected docs to include %q", keyword)
 		}
@@ -114,6 +114,19 @@ func TestFindAgentDoc(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(doc.Errors, ","), "UNKNOWN_AGENT_COMMAND") {
 		t.Fatalf("expected agent docs to mention UNKNOWN_AGENT_COMMAND, got %#v", doc)
+	}
+}
+
+func TestFindAgentContractDoc(t *testing.T) {
+	doc, ok := FindDoc("agent-contract")
+	if !ok {
+		t.Fatalf("expected agent-contract docs")
+	}
+	if !strings.Contains(doc.Purpose, "capability boundary") {
+		t.Fatalf("expected agent-contract docs to mention capability boundary, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.AgentNotes, " "), "text/black") {
+		t.Fatalf("expected agent-contract docs to mention unsupported text/black runtime, got %#v", doc)
 	}
 }
 

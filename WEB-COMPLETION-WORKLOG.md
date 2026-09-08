@@ -3463,3 +3463,71 @@ Notlar:
 - JSON output modları korundu.
 - Tek davranış için alternatif syntax eklenmedi.
 - Commit, push, VPS/canlı site deploy veya external publish yapılmadı.
+
+## GitHub Main Update - 2026-09-08
+
+Bu aşama ne işe yarıyor / neyi mümkün kılıyor?
+
+Release candidate değişiklik setini yerel çalışma ağacından GitHub `main` branch'ine taşır. Böylece compiler, docs, website source, registry/editor/npm metadata ve worklog tek resmi repo geçmişinde görünür hale gelir.
+
+Yapılanlar:
+
+- `git fetch origin` çalıştırıldı.
+- `main...origin/main` ahead/behind durumu kontrol edildi; sonuç `0 0`.
+- `generated/` altında tracked dosya olmadığı doğrulandı.
+- Secret pattern taraması yapıldı; sadece generator içindeki runtime değişken adları ve roadmap token hesap satırları eşleşti, gerçek secret bulunmadı.
+- Tüm release candidate değişiklikleri stage edildi.
+- `docs/api.md` ve `docs/migration.md` dosyalarındaki fazla EOF boş satırları temizlendi.
+- Tek ana commit oluşturuldu: `bd28674 Complete BlackLang web capability RC`.
+- Commit `origin/main` üzerine push edildi.
+
+Doğrulama:
+
+- `git diff --check` stage öncesi ve stage sonrası geçti; sadece line-ending uyarıları kaldı.
+- `git push origin main` geçti; `a68e1be..bd28674 main -> main`.
+
+Notlar:
+
+- Generated dosyalar commit edilmedi.
+- `.black` içine secret yazılmadı.
+- JSON output modları korundu.
+- Tek davranış için alternatif syntax eklenmedi.
+- Bu worklog kaydı commit sonrası eklendi; canlı site deploy kaydıyla beraber ayrı küçük takip commit'i olarak kaydedildi.
+
+## Live Documentation Site Deploy - 2026-09-08
+
+Bu aşama ne işe yarıyor / neyi mümkün kılıyor?
+
+GitHub'a taşınan release candidate dokümantasyon sitesini VPS üzerindeki canlı `https://black.muenspeak.com` yayınına geçirir. Böylece insanlar ve AI ajanları yeni web capability dokümanlarına, sitemap'e, `llms.txt` dosyasına ve public ecosystem index'e canlı domain üzerinden erişebilir.
+
+Yapılanlar:
+
+- Local staging paketi hazırlandı: `website/` içeriği ve `docs/*.md` public dokümanları site kökü formatında birleştirildi.
+- Staging paketi 51 root file, 43 Markdown dokümanı ve 4 asset dosyası içerdi.
+- Paket `/tmp/blacklang-site-20260908193717.tar.gz` olarak VPS'ye yüklendi.
+- Mevcut canlı site `/tmp/blacklang-site-backup-20260908193717` altında yedeklendi.
+- Yeni paket `/var/www/black.muenspeak.com` içine kopyalandı.
+- Site dosya izinleri public static serve için düzeltildi: dizinler `755`, dosyalar `644`.
+- Nginx site config'ine Markdown route'ları için `text/markdown` MIME davranışı eklendi.
+- `nginx -t` geçti ve Nginx reload edildi.
+
+Doğrulama:
+
+- Remote site root sayımı geçti: 51 root file, 43 Markdown file, 4 asset file.
+- `curl -I https://black.muenspeak.com/` 200 döndü.
+- `https://black.muenspeak.com/sitemap.xml` içinde `state.md`, `relation-load.md`, `release-trust.md` ve `secret-management.md` göründü.
+- `https://black.muenspeak.com/llms.txt` içinde aynı yeni docs route'ları göründü.
+- `curl -I https://black.muenspeak.com/state.md` 200 ve `Content-Type: text/markdown` döndü.
+- `curl -I https://black.muenspeak.com/relation-load.md` 200 ve `Content-Type: text/markdown` döndü.
+- `curl -I https://black.muenspeak.com/diagnostics.md` 200 ve `Content-Type: text/markdown` döndü.
+- `curl -I https://black.muenspeak.com/ecosystem-index.json` 200 ve `Content-Type: application/json` döndü.
+- `curl -I https://black.muenspeak.com/assets/favicon.png` 200 ve `Content-Type: image/png` döndü.
+- `https://black.muenspeak.com/no-such-doc.md` beklenen şekilde 404 döndü; Markdown route'ları artık SPA fallback'e düşmüyor.
+
+Notlar:
+
+- Canlı site static source üzerinden güncellendi; generated app output elle düzenlenmedi.
+- VPS'ye secret yazılmadı.
+- JSON output modları korundu.
+- Tek davranış için alternatif syntax eklenmedi.
+- Bu deploy kaydı ve önceki GitHub publish kaydı ayrı takip commit'i olarak kaydedildi.

@@ -1,0 +1,467 @@
+{
+  "app": "Warehouse",
+  "files": [
+    {
+      "path": "generated/.dockerignore",
+      "kind": "docker-ignore",
+      "lines": 7,
+      "bytes": 70,
+      "sha256": "4620d9e76675eaf9285538a53757b810920893d8f7906507e8d02f1f8c2b24f3"
+    },
+    {
+      "path": "generated/.env.example",
+      "kind": "environment-example",
+      "lines": 7,
+      "bytes": 155,
+      "sha256": "51d9df545d6f8ee19028c1ba802179f8dbe95c5f57c12024dcd94dcdc38c1d3e"
+    },
+    {
+      "path": "generated/Dockerfile",
+      "kind": "dockerfile",
+      "lines": 20,
+      "bytes": 579,
+      "sha256": "5cae73910ed6c062643f38e82203fa57a186662116bf966fc8955c0157c79b48"
+    },
+    {
+      "path": "generated/README.md",
+      "kind": "documentation",
+      "lines": 88,
+      "bytes": 1753,
+      "sha256": "a499c22ed03f472ee34f1034b92c0b1997f6d5c48dd416309faaf3e84c12644b"
+    },
+    {
+      "path": "generated/deploy/cloud.json",
+      "kind": "deploy-cloud",
+      "lines": 54,
+      "bytes": 1726,
+      "sha256": "63716055a069dcaa7ebd8e3425b606cacca2df7e7c4298e117399d9a3e031752"
+    },
+    {
+      "path": "generated/deploy/manifest.json",
+      "kind": "deploy-manifest",
+      "lines": 112,
+      "bytes": 3136,
+      "sha256": "06d1db4f42b12db7f60e5c8f0be0ee7cdd4767e26317a1a2aef706be346e85ed"
+    },
+    {
+      "path": "generated/deploy/rollback.json",
+      "kind": "deploy-rollback",
+      "lines": 17,
+      "bytes": 647,
+      "sha256": "c8ec5990d1fddb9a9b53acdc3e1ce825fc6a8ea5a27a961850d4f30a5ad9596f"
+    },
+    {
+      "path": "generated/docker-compose.preview.yml",
+      "kind": "docker-compose-preview",
+      "lines": 26,
+      "bytes": 914,
+      "sha256": "903e69db36c8909a922b9371acdc75f23e7deefa3396c83a56bcd80898c7b5bc"
+    },
+    {
+      "path": "generated/docker-compose.yml",
+      "kind": "docker-compose",
+      "lines": 25,
+      "bytes": 828,
+      "sha256": "bd2c32cb14122cb175a4f843c81573a86e39bf7484facbd6904c94914edcff30"
+    },
+    {
+      "path": "generated/index.html",
+      "kind": "html-entry",
+      "lines": 12,
+      "bytes": 296,
+      "sha256": "7b1a69c563b6e73a4e04516ec0407b66b350bcde1951fd36069cd9df9022bf40"
+    },
+    {
+      "path": "generated/jobs/manifest.json",
+      "kind": "job-manifest",
+      "lines": 24,
+      "bytes": 659,
+      "sha256": "8541734750f453c66eff76e286df918971aa66aa3c51a00b9328c8a243c2ec53"
+    },
+    {
+      "path": "generated/migrations/001_renamewarehouseproduct.sql",
+      "kind": "migration-sql",
+      "lines": 7,
+      "bytes": 286,
+      "sha256": "c93e4a00307ff54ec0a8b76e1aaf14c02cefb36ce05460e6d31545ded466656a"
+    },
+    {
+      "path": "generated/migrations/manifest.json",
+      "kind": "migration-manifest",
+      "lines": 34,
+      "bytes": 799,
+      "sha256": "b9f5d8dc8cf6fb4edad6a6cca43c818084158b191cf32352b1e91f2aaee1b033"
+    },
+    {
+      "path": "generated/openapi.json",
+      "kind": "api-spec",
+      "lines": 2461,
+      "bytes": 59806,
+      "sha256": "f844c09fc96855c2d1e7f899be9e8510a1d8afe509bb77280045c2594ddb9610"
+    },
+    {
+      "path": "generated/ops/observability.json",
+      "kind": "observability-manifest",
+      "lines": 31,
+      "bytes": 1094,
+      "sha256": "48583c7e8d2ff0eafd768189170237513980bb700fa0aefeb2c58dc5dce4a007"
+    },
+    {
+      "path": "generated/package.json",
+      "kind": "package",
+      "lines": 58,
+      "bytes": 2471,
+      "sha256": "346cd61b7276ce6a72ac9158a22d123516aeb7a0ab3cfd8587842adb55d7e903"
+    },
+    {
+      "path": "generated/prisma.config.ts",
+      "kind": "prisma-config",
+      "lines": 11,
+      "bytes": 262,
+      "sha256": "96ec39f84ba9ede184097dbadc5ce44ac10003f8d7e4b2857ba8c52604251b1f"
+    },
+    {
+      "path": "generated/prisma/schema.prisma",
+      "kind": "database-schema",
+      "lines": 61,
+      "bytes": 1555,
+      "sha256": "dd05c8130506b9cb75685f371f3d6922a198714f053e4bc47d98e02d3a43050d"
+    },
+    {
+      "path": "generated/scripts/cloud-exec.mjs",
+      "kind": "deploy-script",
+      "lines": 163,
+      "bytes": 5542,
+      "sha256": "046d889c027db0d6b8f88774a5184086f1470bb636ef667a209a324539ecaa8f"
+    },
+    {
+      "path": "generated/scripts/cloud-plan.mjs",
+      "kind": "deploy-script",
+      "lines": 43,
+      "bytes": 1506,
+      "sha256": "c1fba85ad208e3dd29f0bab8ef20066ebb517dcc0d30a9163fab9f0c09dcb8b9"
+    },
+    {
+      "path": "generated/scripts/rollback-plan.mjs",
+      "kind": "deploy-script",
+      "lines": 30,
+      "bytes": 929,
+      "sha256": "cd9a46f0934d0f012e21a2850b22f0d1393836e9e74dbc321a532ce4a01eaa24"
+    },
+    {
+      "path": "generated/scripts/secrets-plan.mjs",
+      "kind": "secret-script",
+      "lines": 40,
+      "bytes": 1448,
+      "sha256": "5b3b880c1c8751aa9454925b43bd04134e15b556f493a297b9295f268c5535b3"
+    },
+    {
+      "path": "generated/scripts/secrets-provider.mjs",
+      "kind": "secret-script",
+      "lines": 126,
+      "bytes": 3995,
+      "sha256": "8da284174c70252f121d614e7b3e5a54532823ce0761487fcd419f56233fbbf9"
+    },
+    {
+      "path": "generated/security/secrets.json",
+      "kind": "secret-manifest",
+      "lines": 91,
+      "bytes": 2618,
+      "sha256": "86113c782af2688798b9c8efa26af84a14fc471ccb89964a7e39947067770dc2"
+    },
+    {
+      "path": "generated/services/manifest.json",
+      "kind": "service-manifest",
+      "lines": 21,
+      "bytes": 427,
+      "sha256": "6c92ef2c5a88fcb4d03d286f869f4e5bdbeb0a0f3ee7c5e518569800e339956b"
+    },
+    {
+      "path": "generated/src/App.tsx",
+      "kind": "react-app",
+      "lines": 261,
+      "bytes": 15042,
+      "sha256": "54af94259f3e4ff075eea01b2120629275f8896e1919db8be43d70eceeb648c7"
+    },
+    {
+      "path": "generated/src/api/customer.ts",
+      "kind": "api-client",
+      "lines": 67,
+      "bytes": 1926,
+      "sha256": "11b0235d882af4d56141af38c88b270466c9b2817faf9bdb04031e45d08ac4e3"
+    },
+    {
+      "path": "generated/src/api/order.ts",
+      "kind": "api-client",
+      "lines": 75,
+      "bytes": 2163,
+      "sha256": "3f218419454d774d57e29c83f4cb42de0bfc928f17f59a74274d215453f35c30"
+    },
+    {
+      "path": "generated/src/api/product.lowstock.ts",
+      "kind": "api-client",
+      "lines": 76,
+      "bytes": 2453,
+      "sha256": "a9038008b417c639a6fbe12c3ea31ff3ccf76a2a49bba70c5a86a15b31fc3b21"
+    },
+    {
+      "path": "generated/src/api/product.ts",
+      "kind": "api-client",
+      "lines": 72,
+      "bytes": 2162,
+      "sha256": "5819fa6fdec2175fea86af82e538d16a3d07903012a3d4b7fa490649dbc858e1"
+    },
+    {
+      "path": "generated/src/auth/AuditPage.tsx",
+      "kind": "auth-audit-page",
+      "lines": 92,
+      "bytes": 2617,
+      "sha256": "02b4ff132dd93e0f9a17e859a7229f9d18133cfefd221d4f43d80c6cbc1d3e84"
+    },
+    {
+      "path": "generated/src/auth/AuthPage.tsx",
+      "kind": "auth-page",
+      "lines": 82,
+      "bytes": 3073,
+      "sha256": "f0669925399c962a03d00bba1e962c6ce296f0dca81a94f7a7202e095c90b344"
+    },
+    {
+      "path": "generated/src/auth/UsersPage.tsx",
+      "kind": "auth-users-page",
+      "lines": 191,
+      "bytes": 6725,
+      "sha256": "f9c9a618fd903c620a654636918fedc1fcffad67460123ee60f64a6cc117ade9"
+    },
+    {
+      "path": "generated/src/blacklang.api.test.ts",
+      "kind": "test",
+      "lines": 112,
+      "bytes": 5823,
+      "sha256": "06073970434b3c6352cfebce01e32c8d5e84671d4a2f3c2d5be0bf097d251916"
+    },
+    {
+      "path": "generated/src/blacklang.browser.test.tsx",
+      "kind": "test",
+      "lines": 247,
+      "bytes": 5051,
+      "sha256": "c2a0796a3457742fa71cb3018f60adfc306e003cff058a4f8576f65768dfadd0"
+    },
+    {
+      "path": "generated/src/blacklang.contract.test.ts",
+      "kind": "test",
+      "lines": 197,
+      "bytes": 13771,
+      "sha256": "c89c31787325b5f71b7383561c9db42f5815f140cfa4746056f5508de4b2bb01"
+    },
+    {
+      "path": "generated/src/blacklang.e2e.matrix.ts",
+      "kind": "test",
+      "lines": 286,
+      "bytes": 8391,
+      "sha256": "40f623383462ba35e9949c9609e763780278bab6390f0605b5c5029f3a3257b7"
+    },
+    {
+      "path": "generated/src/blacklang.e2e.test.ts",
+      "kind": "test",
+      "lines": 354,
+      "bytes": 11317,
+      "sha256": "49f5d3f9587c0d35a11043b9b8fa5fa3b75a51f6f5560921658f967e09e2e81e"
+    },
+    {
+      "path": "generated/src/blacklang.frontend.test.tsx",
+      "kind": "test",
+      "lines": 10,
+      "bytes": 480,
+      "sha256": "33b3ad9d2f60befb8dde5a0f4566e2f431485d4ef6daee1848cd21107b8b3b36"
+    },
+    {
+      "path": "generated/src/components/StockBadge.tsx",
+      "kind": "react-component",
+      "lines": 17,
+      "bytes": 504,
+      "sha256": "82f60f78a82e372da4ada074ae08423961b6118a393f06bb6bd430ff5c0052c2"
+    },
+    {
+      "path": "generated/src/db.ts",
+      "kind": "database-client",
+      "lines": 11,
+      "bytes": 354,
+      "sha256": "b8d11aa546ecce707bf1aad9e50e6d2b23f8f26e4045553a70fd39b24169b74c"
+    },
+    {
+      "path": "generated/src/main.tsx",
+      "kind": "react-entry",
+      "lines": 12,
+      "bytes": 305,
+      "sha256": "5d3c587288741ddd3307e3964dc04de3ad949ee7de04e07053fe6f63ef3befd6"
+    },
+    {
+      "path": "generated/src/migrate.ts",
+      "kind": "migration-runner",
+      "lines": 483,
+      "bytes": 15569,
+      "sha256": "8c87c361f9881c194832ad80e815452f4ae634e4ad7091d2a6ca91aa7db6b3a4"
+    },
+    {
+      "path": "generated/src/pages/CustomersPage.tsx",
+      "kind": "react-page",
+      "lines": 557,
+      "bytes": 28684,
+      "sha256": "cfeda6e8ff47c52aef0e10f4274e0c6d886b4f8701dfd7c1a1a6931144b6c42e"
+    },
+    {
+      "path": "generated/src/pages/LowStockPage.tsx",
+      "kind": "react-page",
+      "lines": 547,
+      "bytes": 29712,
+      "sha256": "1e967d2c757be9484762253aedf07fd97ffbb9f045e9a0ed972f6523432dd392"
+    },
+    {
+      "path": "generated/src/pages/OrdersPage.tsx",
+      "kind": "react-page",
+      "lines": 709,
+      "bytes": 38668,
+      "sha256": "74878b364e2bc8b0063e8acb20bfc1880e72c365b7e63013eacde2a5545724e6"
+    },
+    {
+      "path": "generated/src/pages/ProductsPage.tsx",
+      "kind": "react-page",
+      "lines": 831,
+      "bytes": 45399,
+      "sha256": "2fb45e40db1f87abec55007343a5c0e3e831254ce89c58a9e448d2305fdee6ea"
+    },
+    {
+      "path": "generated/src/routes/auth.ts",
+      "kind": "auth-route",
+      "lines": 358,
+      "bytes": 13924,
+      "sha256": "78f77232f4ca349afbe55b707abfa6b502128f5c96c5d68ebcde6a78b549d06a"
+    },
+    {
+      "path": "generated/src/routes/customer.ts",
+      "kind": "api-route",
+      "lines": 204,
+      "bytes": 7439,
+      "sha256": "e9b744d78c43326a6797d510c297b53061acd37f0f2afbb4b479370360f4b90a"
+    },
+    {
+      "path": "generated/src/routes/order.ts",
+      "kind": "api-route",
+      "lines": 310,
+      "bytes": 11658,
+      "sha256": "4fe8325f0b2b97dd60cb9eee77542acdd2fdf8f89a328f691f2ac486fd922350"
+    },
+    {
+      "path": "generated/src/routes/product.lowstock.ts",
+      "kind": "api-route",
+      "lines": 178,
+      "bytes": 6410,
+      "sha256": "921bb12320e08c7fb1347a6d2bc5035e6463280cc3ad4406c497a9b95e35100d"
+    },
+    {
+      "path": "generated/src/routes/product.ts",
+      "kind": "api-route",
+      "lines": 264,
+      "bytes": 9604,
+      "sha256": "0dc74d6f7ea10974106e330f8ab13d09360b2d9376eec4011c04822fb944a7c1"
+    },
+    {
+      "path": "generated/src/seed.ts",
+      "kind": "database-seed",
+      "lines": 159,
+      "bytes": 3198,
+      "sha256": "ee582eba46c401c0dbbe48de6d66ed460d6880ae01a0b379a29fe132abe812df"
+    },
+    {
+      "path": "generated/src/server.ts",
+      "kind": "api-server",
+      "lines": 2843,
+      "bytes": 75596,
+      "sha256": "288ad9797002743e73a488982c66ee5ee702d862397c0dbeffa26599b1e0cd65"
+    },
+    {
+      "path": "generated/src/services/inventory-integration.ts",
+      "kind": "service-module",
+      "lines": 19,
+      "bytes": 502,
+      "sha256": "dc5a6fa1549532deac10b9ebc6b4b2e4a8839568c55fd34a3a3ed69aa849ac03"
+    },
+    {
+      "path": "generated/src/setup-db.ts",
+      "kind": "database-setup",
+      "lines": 244,
+      "bytes": 7983,
+      "sha256": "2aec9177decb3a31104aa79076d19d00f77b00fb82b3b73f16307ee118e9d928"
+    },
+    {
+      "path": "generated/src/styles.css",
+      "kind": "stylesheet",
+      "lines": 794,
+      "bytes": 12194,
+      "sha256": "edded4ce417283a6130bb5fa745425cbba749eae0bf6b20f9c38bf9fbe95db2f"
+    },
+    {
+      "path": "generated/src/types.ts",
+      "kind": "types",
+      "lines": 39,
+      "bytes": 674,
+      "sha256": "c0f0d8e546fc022c871ad997e3894fb56e15b04fe1626c24ef4f2b56c091ae8a"
+    },
+    {
+      "path": "generated/src/validation/customer.ts",
+      "kind": "validation",
+      "lines": 42,
+      "bytes": 1161,
+      "sha256": "4984f47b4a99c156b612e6d035665a4e54a2a05eef2d78fcfead72f14fc3330c"
+    },
+    {
+      "path": "generated/src/validation/order.ts",
+      "kind": "validation",
+      "lines": 74,
+      "bytes": 2394,
+      "sha256": "8f1d03437c0645999aedfa24ccf0cd681bda9e5495b0d2b86f53d2a55b06685a"
+    },
+    {
+      "path": "generated/src/validation/product.ts",
+      "kind": "validation",
+      "lines": 90,
+      "bytes": 2870,
+      "sha256": "3f882bb3d9d50af737bb864133b1a277f1383cd5435eff27d691a5cf4834d8ce"
+    },
+    {
+      "path": "generated/src/vite-env.d.ts",
+      "kind": "type-declarations",
+      "lines": 1,
+      "bytes": 38,
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "path": "generated/src/worker.ts",
+      "kind": "worker",
+      "lines": 134,
+      "bytes": 3572,
+      "sha256": "0869daf8c21ebee6ef133bbd9fab6a23b070f14a4343c5b036073b978b40d72c"
+    },
+    {
+      "path": "generated/tests/browser-matrix.json",
+      "kind": "test-manifest",
+      "lines": 36,
+      "bytes": 951,
+      "sha256": "edcf8d8c4f8d9842c07a0a28891d6e27b14125246d1236fdfa99d48b75cf1294"
+    },
+    {
+      "path": "generated/tsconfig.json",
+      "kind": "typescript-config",
+      "lines": 20,
+      "bytes": 507,
+      "sha256": "15c35a34715ae9a9c5fb7c7df7c3414293e296cd46a5686e62c49e75a5f8a1f0"
+    },
+    {
+      "path": "generated/vite.config.ts",
+      "kind": "vite-config",
+      "lines": 13,
+      "bytes": 259,
+      "sha256": "d4fae826f7a23f5bfe4ac614c48d3a64b7fc3878832c826e08ba7af56e55e7bb"
+    }
+  ]
+}

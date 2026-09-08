@@ -1,0 +1,26 @@
+policy release-transparency-log
+version 0.2
+status prepared-local
+purpose "Append-only release transparency rules for public BlackLang release archives."
+
+log transparency.blackdir
+hash sha256
+append-only true
+
+entry field release
+entry field channel
+entry field artifact
+entry field sha256
+entry field signature
+entry field keyId
+entry field previousEntryHash
+entry field entryHash
+entry field publishedAt
+
+require release-manifest release.blackdir
+require checksum-file checksums.sha256
+require detached-signature-pattern "<artifact>.sig"
+require release-signature-algorithm ed25519
+require public-key-id keyId
+require entry-hash-covers "release artifact sha256 signature keyId previousEntryHash"
+require no-secret-values true

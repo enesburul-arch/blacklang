@@ -1,0 +1,18 @@
+policy adapter-marketplace-trust
+version 0.2
+status prepared-local
+purpose "Rules that must pass before provider adapter marketplace entries can mutate external infrastructure."
+
+require env-only-secrets true
+require read-only-plan-before-mutation true
+require stable-adapter-id true
+require docs-before-enable true
+require json-and-ir-discovery true
+require affected-graph-before-generated-edits true
+require generated-tests-before-runtime-provider true
+require signed-package-verification true
+require release-signature-algorithm ed25519
+require release-trust-command "node scripts/verify-release-trust.mjs artifacts/releases/<version> --json --strict"
+require release-transparency-policy packages/registry/release-transparency.blackdir
+require release-key-rotation-policy packages/registry/key-rotation-policy.blackdir
+require validation-command "node packages/registry/scripts/validate-registry.mjs"

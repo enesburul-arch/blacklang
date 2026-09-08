@@ -29,19 +29,19 @@ Explicit APIs          2
 
 ## Feature Coverage
 
-- Auth with cookie sessions
-- Secret-safe `database { url env DATABASE_URL }`
-- Warehouse, Supplier, Category, Item, PurchaseOrder, and StockMovement entities
-- Entity relation fields
-- Field labels, placeholders, help text, min/max, length, URL, regex, and cross-field validation
-- Admin, InventoryManager, StockClerk, and Viewer roles
-- Field-level read and mutation restrictions
-- Purchase order workflow
-- Stock movement workflow
-- Page state and modal declarations
-- Stock level and movement completion display components
-- Contract-first low stock report and stock adjustment webhook APIs
-- CRUD pages with search, filter, sort, pagination, archive, and restore
+  Auth with cookie sessions
+  Secret safe `database { url env DATABASE_URL }`
+  Warehouse, Supplier, Category, Item, PurchaseOrder, and StockMovement entities
+  Entity relation fields
+  Field labels, placeholders, help text, min/max, length, URL, regex, and cross field validation
+  Admin, InventoryManager, StockClerk, and Viewer roles
+  Field level read and mutation restrictions
+  Purchase order workflow
+  Stock movement workflow
+  Page state and modal declarations
+  Stock level and movement completion display components
+  Contract first low stock report and stock adjustment webhook APIs
+  CRUD pages with search, filter, sort, pagination, archive, and restore
 
 ## Notes
 
@@ -51,17 +51,17 @@ The template intentionally stays inside currently supported syntax so compiler v
 
 ## Verification
 
-Measured on 2026-09-05:
+Measured on 2026 09 05:
 
 ```bash
-black parse examples/inventory/app.black --json
-black validate examples/inventory/app.black --json
-black lint examples/inventory/app.black --json
-black build examples/inventory/app.black --out <temp> --json
+black parse examples/inventory/app.black   json
+black validate examples/inventory/app.black   json
+black lint examples/inventory/app.black   json
+black build examples/inventory/app.black   out <temp>   json
 npm install
 npm run build
 ```
 
 All parse, validate, lint, generator, TypeScript, and Vite production build checks passed.
 
-`npm install` reported 4 high-severity audit findings from generated app dependencies. They were not force-fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.
+`npm install` reported 4 high severity audit findings from generated app dependencies. They were not force fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.

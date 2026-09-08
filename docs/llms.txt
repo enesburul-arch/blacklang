@@ -20,15 +20,30 @@ Read these pages first:
 - /ai-agents/learning-cost
 - /reference/blackir
 - /reference/theme-profile
+- /reference/theme-migration
 - /reference/ui-profile
 - /reference/ui-modes
 - /reference/inline-ui
 - /reference/view
+- /reference/accessibility
 - /reference/computed
+- /reference/media
+- /reference/relation-load
+- /reference/index
+- /reference/migration
+- /cli/migrate
+- /reference/seed
 - /reference/query
+- /reference/action
+- /reference/policy
+- /reference/generated-test
+- /reference/test
+- /reference/benchmark
 - /reference/i18n
 - /reference/security-cors
+- /reference/protected-source
 - /reference/deployment
+- /reference/ops
 
 Core local files in this repository:
 
@@ -39,16 +54,45 @@ Core local files in this repository:
 - docs/diagnostics.md
 - docs/ai-agent-contract.md
 - docs/target.md
+- docs/install.md
+- docs/github-publish.md
 - docs/theme-profile.md
+- docs/theme-migration.md
 - docs/ui-profile.md
 - docs/ui-modes.md
 - docs/inline-ui.md
 - docs/view.md
 - docs/computed.md
+- docs/media.md
+- docs/relation-load.md
+- docs/index.md
+- docs/migration.md
+- docs/seed.md
 - docs/query.md
+- docs/job.md
+- docs/action.md
+- docs/transaction.md
+- docs/service.md
+- docs/api.md
+- docs/policy.md
+- docs/generated-test.md
+- docs/test.md
+- docs/accessibility.md
+- docs/benchmark.md
+- docs/ide.md
+- docs/editor-marketplace.md
+- docs/ecosystem.md
+- docs/package-registry.md
+- docs/adapter-marketplace.md
+- docs/release-trust.md
+- docs/release-artifacts.md
+- docs/npm-wrapper.md
 - docs/i18n.md
 - docs/security-cors.md
+- docs/protected-source.md
+- docs/secret-management.md
 - docs/deployment.md
+- docs/ops.md
 - examples/warehouse/app.black
 - examples/warehouse/theme.blackthm
 - examples/crm/app.black
@@ -67,11 +111,21 @@ Use BlackIR when a compact AI-readable project summary is better than verbose JS
 
 Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
 
+Use `black ide --json` when an editor, LSP bridge, or AI agent needs compiler-owned completions, snippets, file extensions, and diagnostic code metadata. Use `black ide diagnostics <file> --json` for zero-based editor diagnostics without rewriting source. The packageable editor bridge lives in `editors/vscode-blacklang`; registry metadata prepares VS Code, Open VSX, and Cursor-compatible package channels from the same bridge.
+
+Use `black ecosystem --json` before package, release, registry, editor extension, deploy adapter, provider adapter, marketplace, or hosted index work. It reports local packageable sources such as `packages/npm`, `vscode:blacklang-vscode`, `openvsx:blacklang-vscode`, and `cursor:blacklang-vscode`, prepared registry manifests in `packages/registry`, built-in adapter metadata, prepared provider marketplace manifests in `adapters/marketplace`, the `publicIndex` source at `website/ecosystem-index.json`, release trust metadata, release transparency log policy, key rotation policy, and extension trust policy.
+
+Use `black docs query --json` and `black explain query --json` before editing custom queries. Query aggregates support `count` and stored numeric `sum`, `avg`, `min`, `max`; generated pages expose `/query/summary`, `querySummary`, and summary cards when aggregates are declared.
+
+Use `black docs job --json` and `black explain job --json` before editing background query jobs. Jobs use top-level `job Name { schedule every <integer> minutes|hours|days; run query QueryName }`, generate `jobs/manifest.json`, `src/worker.ts`, `jobs:run`, `jobs:loop`, and OpenAPI `x-blacklang-jobs`, and stay read-only query workers in the MVP.
+
+Use `black docs action --json`, `black docs transaction --json`, `black docs service --json`, `black explain action --json`, `black explain transaction --json`, and `black explain service --json` before editing custom actions, transaction boundaries, or API service grouping. Custom action logic may use ordered `value name = expression` statements and indentation-based `if condition` / `else` branches; conditions may join comparisons with `and`, `or`, `not`, and parentheses, and branch bodies support `value`, `set`, and nested `if`. Use a top-level transaction block with one `action ActionName` or `api ApiName` target per line when generated lookup, update, and auth audit logging must run inside one Prisma transaction. Use a top-level service block with one `api APIName` target per line to group explicit APIs into generated service metadata.
+
 Use `docs/ai-agent-contract.md` or `black docs agent-contract --json` to learn the current official capability boundary before inventing syntax.
 
 Do not use `<script type="text/black">` or browser-side BlackLang runtime syntax unless an official runtime exists.
 
-Use `target web { frontend react backend node database sqlite }` for the current generated web stack.
+Use `target web { frontend react backend node database sqlite }` for the default generated React web stack, or `database postgres` / `database mysql` for generated SQL provider runtime output. Use `target api { backend node database sqlite }`, `database postgres`, or `database mysql` when the generated output should be Express/Prisma/OpenAPI without React, Vite, frontend smoke tests, browser-check tests, browser e2e files, or browser matrix files. Generated rename migration runtime is limited to SQLite and PostgreSQL.
 
 Use `black theme inspect --json` to inspect `.blackthm` UI token and profile metadata.
 
@@ -81,26 +135,80 @@ Use `.blackthm` `ui <mode> = <slot...>;` lines as the generator reading order fo
 
 When a theme has `locked true`, use `profile.baselines` to verify existing mode slots stay immutable and new slots are appended only at the end.
 
+Use `black theme migrate old.blackthm new.blackthm --json` before replacing a theme used by existing source. Proceed only when `success` and `safe` are both true. Existing mode slots must remain the exact prefix of new mode slots; otherwise the command reports `UI_SLOT_MIGRATION_BREAK`.
+
 Use `black docs ui-modes --json` or `profile.modeGroups` to understand the standard box, text, table, and button groups.
 
 Use `black docs ui --json` before editing compact inline UI intent in `.black` files.
 
 Web builds generate stable `.bl-ui-*` classes from supported inline UI intent.
 
-Use `view { order form, table, detail }` inside a page to move generated table, detail, and form sections from `.black` source.
+Generated `target web` projects include `src/blacklang.contract.test.ts`, `src/blacklang.api.test.ts`, and `src/blacklang.frontend.test.tsx`; when source test declarations exist they also include `src/blacklang.browser.test.tsx`, `src/blacklang.e2e.test.ts`, `src/blacklang.e2e.matrix.ts`, and `tests/browser-matrix.json`. Generated `target api` projects run `npm run db:generate` and then only contract/API tests; they omit React/browser files. Run `npm test` inside the generated app after `black build` to smoke test OpenAPI paths, schemas, validation, bound queries, background query job metadata, bound custom actions, explicit API runtime routes, service metadata, declared ops endpoints, migration runner metadata, browser matrix metadata, and basic API server behavior; target web also checks React render and declared browser-check expectations. Run `npm run jobs:run` when jobs exist. Run `npm run test:e2e` for one target web browser declaration, `npm run test:e2e:plan` for read-only matrix availability, and `npm run test:e2e:matrix` for every available Chrome/Edge/Chromium target. When seeds exist, run `npm run db:setup` to apply schema setup and deterministic fixture rows.
 
-Use `computed name money = stock * price` inside an entity for read-only table/detail display values derived from stored number-like fields.
+Use `black benchmark --json` for deterministic source/generated line, byte, ratio, and generated kind measurements.
+
+Use `black benchmark tasks --json` for deterministic AI task benchmark scenarios and token estimate reports. Token estimates are planning signals, not billed-token measurements.
+
+Use `black benchmark eval --json` for the long-running AI eval corpus: repeat counts, case prompts, expected evidence, required commands, scoring criteria, and deterministic token estimates. It is read-only metadata and does not call an AI model.
+Use `black benchmark eval-history --json` for evidence-backed eval result history from `benchmarks/eval-history.blackdir`; local validation entries are not billed model benchmark scores.
+
+Use `black benchmark coverage --json` for the weighted web coverage matrix, tracked issue status IDs, and percentage milestones before making broad web-completion claims. Use `black benchmark issues --json` when only compact issue totals and current open issue follow-up are needed.
+
+Warehouse generated output has a compact golden manifest test for path, kind, line, byte, and SHA-256 drift.
+
+Use `black security encrypted-source --json` to inspect protected source policy.
+
+Use `black security encrypt app.black --out app.black.enc --json` to create encrypted source from an environment-provided key such as `BLACKLANG_SOURCE_KEY`.
+
+Use `black security decrypt app.black.enc --stdout` only inside a trusted workspace when plaintext inspection is explicitly needed.
+
+Parse, lint, validate, inspect, benchmark, security scan, and build can read `.black.enc` source in memory when the header-declared key environment variable is set. `black format` rejects `.black.enc`; format plaintext and re-encrypt.
+
+Use `view { order table, StockSummary, StockCards, detail, form; compose grid columns 2 gap md stackAt md; section table span 2; section StockSummary component StockBadge bind selected span 1 title "Stock Summary"; section StockCards component StockBadge bind each span 1 title "Stock Cards"; section detail display drawer side right title "Details"; section form display modal title "Form"; trigger detail on rowSelect; trigger form on createStart; trigger form on editStart; trigger detail on saveSuccess; trigger table on close }` inside a page to order, compose, overlay, and trigger generated table, detail, form, and reusable component sections from `.black` source. Generated JSX/DOM follows the effective order; CSS order rules remain stable metadata and a layout backstop. Use `section Name component ComponentName bind selected|first|each` only when scalar component inputs match stored or computed fields on the page source entity; `bind each` renders once per loaded list/query row. Use `group Record sections detail, StockSummary compose stack gap md span 1 title "Record"` for contiguous inline nested section groups. `stackAt sm|md|lg|none` is the canonical grid responsive breakpoint syntax and emits generated media queries. Use `compose tabs gap md` with `tab List sections table` and `tab Record sections detail, StockSummary, StockCards, form` for generated tab controls; keep modal/drawer section display and groups on stack/grid pages in this MVP.
+
+Run `black audit accessibility --json` after changing view composition, overlays, groups, forms, or page actions. Current policy findings include `ACCESSIBILITY_MISSING_OVERLAY_TITLE` and `ACCESSIBILITY_MISSING_GROUP_TITLE`.
+
+Use `computed name money = stock * (price + tax)` inside an entity for read-only table/detail display values derived from stored number-like fields, numeric literals, parentheses, and deterministic arithmetic precedence.
+
+Use `photo image optional accept "image/*"` or `manual file optional accept "application/pdf"` inside an entity for local media fields. Generated forms read selected files as data URLs, generated APIs validate data URL/http(s) strings, generated UI renders images as thumbnails and files as links, and OpenAPI emits `x-blacklang-media` with `x-blacklang-encoding: data-url`. Keep storage providers, buckets, tokens, and private endpoints outside `.black`.
+
+Use `customer Customer required load detail query` on entity relation fields when generated API responses should attach the related object only in selected contexts. Supported scopes are `list`, `detail`, `query`, `mutation`, and `none`; omitted `load` keeps the default of all response contexts. Generated list/query routes batch relation IDs into one target lookup per relation field, permission-aware builds sanitize attached target records, and OpenAPI operations expose `x-blacklang-relation-load`. Use `black docs relation-load --json` before editing this behavior.
+
+Use `index field` or `index fieldA, fieldB` inside an entity for deterministic stored-field database indexes. Relation fields map to generated relation ID columns; computed display fields cannot be indexed. Use `black inspect <file> --affected Entity.index --json` before editing indexes.
+
+Use `black docs migrate --json`, `black docs migration --json`, or `black explain migration --json` before migration planning. Use `black migrate plan old.black new.black --json` before deploying entity field, relation, uniqueness, default, required, index, or rename changes to an existing database. The command is read-only. Declare renames in the new/current source with `migration Name { rename entity Old to New; rename field Entity.old to new }`; generated `db:migrate:plan` is read-only against the target database, `db:migrate` applies only declared renames, and `db:setup` runs the normal generated setup and seed path after apply.
+
+Use `black docs seed --json` and `black explain seed --json` before editing deterministic fixture rows. Declare `seed Name { source Entity; row RowKey { field literal; relationField ref OtherRowKey } }`; row keys become stable ids and generated `db:setup` runs `db:seed` after schema setup. Seed only stored fields, use relation refs for relations, and keep secrets out of seed literals.
+
+Use `black docs test --json` and `black explain test --json` before editing browser test declarations. Declare `test Name { page PageName; expect text "Generated text"; expect page OtherPage; expect action actionName }`; generated target web output appends `src/blacklang.browser.test.tsx` to `npm test` and adds `src/blacklang.e2e.test.ts`, `src/blacklang.e2e.matrix.ts`, `tests/browser-matrix.json`, `npm run test:e2e`, `npm run test:e2e:plan`, and `npm run test:e2e:matrix`. Browser e2e is generated and bounded to auth, setup/seed, navigation, text, page, and action checks. Do not put top-level `test` blocks in target api sources; validation reports `UNSUPPORTED_API_TARGET_TEST`.
 
 Use top-level `query Name { source Entity ... }` with typed stored-field `where`, optional `sort field asc|desc`, and `limit 1..1000`; bind it with `query Name` inside a page with the same source. Multiple conditions use AND; default order is id asc and default limit is 100. Read `docs/query.md` or `black docs query --json` first.
 
+Use top-level `job Name { schedule every 15 minutes; run query LowStockProducts }` for deterministic read-only query workers. Schedule units are `minutes`, `hours`, and `days`; generated output includes `jobs/manifest.json`, `src/worker.ts`, `jobs:run`, `jobs:loop`, and OpenAPI `x-blacklang-jobs`. Queue providers, retries, delayed queues, mutating jobs, external calls, and provider schedulers are outside core job syntax. Use `black inspect <file> --affected JobName --json` and `black inspect <file> --affected QueryName --json` before changing a job or its query, then run `black build` and generated `npm run jobs:run` for runtime proof.
+
+Use top-level `action Name { source Entity ... }` for deterministic row-level mutations; bind it by PascalCase name inside a page `actions` list with the same source. Inputs use primitive types, ordered `value` declarations name local expressions, indentation-based `if`/`else` branches choose deterministic statements, `if` conditions may join comparisons with `and`, `or`, `not`, and parentheses, `set` writes stored primitive fields except policy fields, and generated routes enforce page/access/update/field permissions. Use a top-level `transaction Name { ... }` block with one `action ActionName` or `api ApiName` target per line for atomic generated route boundaries. Read `docs/action.md`, `docs/transaction.md`, or `black docs transaction --json` first.
+
+Use top-level `state PageNameState { field type; modal name open|closed }` or `state PageNamePageState { ... }` for generated page UI state. State fields may use primitive types, existing entity names, or `Entity[]`; modal declarations generate open/close helpers and can control generated create form visibility. State is not a general browser expression runtime; calculator-style local expression state and arbitrary click handlers are still outside the current capability boundary. Read `docs/state.md` or `black docs state --json` first.
+
+Use `policy owner ownerId` and `policy tenant tenantId` inside an entity after declaring stored `text required` fields for that scope. Policies require auth, keep policy fields out of generated forms/API input/action sets, scope generated list/query/detail/mutation/archive/delete/workflow/action routes, and enable tenantId editing in the generated Users page. Read `docs/policy.md` or `black docs policy --json` first.
+
 Use `black docs <keyword> --ir` to retrieve compact local documentation for one language keyword.
 
-Use `i18n { default tr locales tr, en }` and `label Entity.field { tr "Text" }` for default-locale generated field labels.
+Use `i18n { default tr locales tr, en }` with `label Entity.field`, `placeholder Entity.field`, `help Entity.field`, and `message Entity.field` blocks for runtime generated field text when more than one locale is declared. Use `label Entity.computedField` for computed display labels. Use supported `label app.*`, `label page.*`, `label action.*`, `label table.*`, and `label status.*` targets for generated app chrome/action/table/status copy; placeholder/help/message translations target stored form fields only.
 
 Use `security { cors { origins env CORS_ORIGINS } }` for browser API origin policy without hardcoding deployment domains.
 
 Use `deploy { target docker }` only for the Docker target until more deploy targets are implemented.
+Inside deploy, `preview local` generates an isolated `docker-compose.preview.yml` plus preview scripts, `rollback keep N` generates read-only deploy manifest, rollback metadata, and rollback plan script output, and `cloud fly|render|railway app env NAME [region env NAME]` generates cloud adapter manifest, read-only cloud plan/preflight output, and explicit provider CLI apply runner output.
 
-Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, queries, pages, roles, workflows, states, components, APIs, target, security, deploy, auth, database, or app metadata.
+Use a top-level `ops` block with `health path "/healthz"`, `readiness path "/readyz"`, `metrics path "/metrics"`, `logging requests`, and optional `observe webhook|otlp endpoint env NAME` for public generated runtime probes, structured request logs, request-event hooks, or OTLP HTTP JSON trace export. Ops paths are root-level public paths, appear in OpenAPI with `x-blacklang-ops`, observability appears with `x-blacklang-observability`, `ops/observability.json` records provider/exporter metadata, generated API smoke tests probe the behavior locally, and Docker healthchecks use `ops.health` when `deploy { target docker }` is present.
+
+Use a top-level `api Name { method POST; path "/api/name"; body sku text required; update Entity where sku == body.sku set stock = body.stock; respond accepted; public|private; webhook }` block for generated explicit API declared-runtime routes and bounded update handlers. Use block form `update Entity where sku == body.sku { value incoming = body.stock; if incoming >= 0 and tenantId == body.tenantId ... }` when handler logic needs ordered local values or indentation-based `if`/`else` branches; `if` conditions may join comparisons with `and`, `or`, `not`, and parentheses. Read `docs/api.md` or `black docs api --json` first. Use `transaction Name { api ApiName }` to wrap API update handlers atomically. Use `service Name { api APIName }` to group explicit APIs into `services/manifest.json`, `src/services/<service>.ts`, OpenAPI tags, and `x-blacklang-service` metadata. Paths must stay under safe `/api/...`, cannot use `/api/auth`, and cannot collide with generated page/auth/query/action/workflow routes. Generated routes validate declared params, query values, and typed body fields, return `runtime: "declared"`, protect private routes when auth exists, and return 202 for webhook routes.
+
+Use `black inspect <file> --affected <symbol> --json` before changing entities, fields, indexes, queries, jobs, actions, seeds, tests, pages, roles, workflows, states, components, APIs, target, security, deploy, ops, i18n, auth, database, or app metadata.
+
+Generated apps write `security/secrets.json`, `scripts/secrets-plan.mjs`, and `scripts/secrets-provider.mjs`; run `npm run security:secrets:plan` and `npm run security:secrets:preflight` before deployment to verify required environment references and provider CLI readiness without printing values. Do not put secret values in `.black` source.
+
+Use `black docs release-trust --json`, `black ecosystem --json`, `node packages/registry/scripts/validate-registry.mjs`, and `node scripts/verify-release-trust.mjs <release-dir> --json --strict` before trusting GitHub Release, npm, editor, or provider adapter public install paths. Release trust uses detached Ed25519 `<artifact>.sig` files and a public key from `BLACKLANG_RELEASE_PUBLIC_KEY` or `BLACKLANG_RELEASE_PUBLIC_KEY_FILE`; ecosystem metadata also exposes release transparency and key rotation policy requirements, and private signing keys stay outside `.black`, generated output, manifests, and package metadata.
 
 Use `docs/diagnostics.md` and `black docs diagnostics --json` when interpreting diagnostic codes.

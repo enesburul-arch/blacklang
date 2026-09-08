@@ -1,0 +1,6 @@
+revocations release-keys
+version 0.2
+status prepared-local
+purpose "Append-only list of revoked BlackLang release public key ids."
+
+# No revoked release keys are declared in the prepared local policy.

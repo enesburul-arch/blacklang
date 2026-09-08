@@ -53,6 +53,13 @@ Generate checksums and release metadata:
 .\scripts\write-release-checksums.ps1
 ```
 
+Verify checksums and detached release signatures before trusting a public install path:
+
+```bash
+node packages/registry/scripts/validate-registry.mjs
+node scripts/verify-release-trust.mjs artifacts/releases/<version> --json --strict
+```
+
 Current local dev artifact example:
 
 ```text
@@ -61,26 +68,34 @@ artifacts/releases/v0.1.0-dev/checksums.sha256
 artifacts/releases/v0.1.0-dev/release.blackdir
 ```
 
+Before a release is trusted for public install, every archive also needs a sibling detached signature:
+
+```text
+artifacts/releases/v0.1.0-dev/blacklang-v0.1.0-dev-windows-amd64.zip.sig
+```
+
+Public-ready release directories should also include `transparency.blackdir` entries that follow `packages/registry/release-transparency.blackdir`.
+
 ## Planned GitHub Releases Install
 
 After public releases begin, the canonical release page should be:
 
 ```text
-https://github.com/blacklang/blacklang/releases
+https://github.com/enesburul-arch/blacklang/releases
 ```
 
 Artifact URL shape:
 
 ```text
-https://github.com/blacklang/blacklang/releases/download/<version>/<artifact>
+https://github.com/enesburul-arch/blacklang/releases/download/<version>/<artifact>
 ```
 
 Examples:
 
 ```text
-https://github.com/blacklang/blacklang/releases/download/v0.2.0/blacklang-v0.2.0-windows-amd64.zip
-https://github.com/blacklang/blacklang/releases/download/v0.2.0/checksums.sha256
-https://github.com/blacklang/blacklang/releases/download/v0.2.0/release.blackdir
+https://github.com/enesburul-arch/blacklang/releases/download/v0.2.0/blacklang-v0.2.0-windows-amd64.zip
+https://github.com/enesburul-arch/blacklang/releases/download/v0.2.0/checksums.sha256
+https://github.com/enesburul-arch/blacklang/releases/download/v0.2.0/release.blackdir
 ```
 
 ## Windows Manual Install
@@ -89,12 +104,13 @@ Planned manual install flow:
 
 1. Download `blacklang-<version>-windows-amd64.zip`.
 2. Download `checksums.sha256`.
-3. Verify the archive SHA-256 hash.
-4. Extract the archive.
-5. Put the extracted folder on `PATH`, or copy `black.exe` into a folder already on `PATH`.
-6. Run `black version`.
-7. Run `black version --json`.
-8. Run `black --help`.
+3. Download `release.blackdir` and the matching `<artifact>.sig`.
+4. Verify the archive SHA-256 hash and detached Ed25519 signature.
+5. Extract the archive.
+6. Put the extracted folder on `PATH`, or copy `black.exe` into a folder already on `PATH`.
+7. Run `black version`.
+8. Run `black version --json`.
+9. Run `black --help`.
 
 PowerShell verification example:
 
@@ -104,6 +120,13 @@ $file = "blacklang-$version-windows-amd64.zip"
 $expected = (Select-String -Path checksums.sha256 -Pattern $file).Line.Split(" ")[0]
 $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actual -ne $expected) { throw "checksum mismatch" }
+```
+
+Signed verification uses the repository verifier:
+
+```powershell
+$env:BLACKLANG_RELEASE_PUBLIC_KEY_FILE = ".\blacklang-release-public.pem"
+node scripts/verify-release-trust.mjs artifacts/releases/v0.2.0 --json --strict
 ```
 
 ## Planned npm Install
@@ -127,6 +150,8 @@ The npm wrapper should:
 - detect the current OS and architecture
 - download the matching GitHub Release archive
 - verify the archive checksum
+- verify the detached Ed25519 signature before executing the native binary
+- verify release transparency and key rotation policy metadata before trusting public downloads
 - extract the native Go binary into the package vendor directory
 - forward `blacklang` and `black` commands to the native binary
 

@@ -29,19 +29,19 @@ Explicit APIs          2
 
 ## Feature Coverage
 
-- Auth with cookie sessions
-- Secret-safe `database { url env DATABASE_URL }`
-- Company, Contact, Deal, and Activity entities
-- Entity relation fields
-- Field labels, placeholders, help text, min/max, length, URL, and cross-field validation
-- Admin, SalesManager, and SalesRep roles
-- Field-level read and mutation restrictions
-- Deal pipeline workflow
-- Activity follow-up workflow
-- Page state and modal declarations
-- Probability and completion display components
-- Contract-first forecast and lead webhook APIs
-- CRUD pages with search, filter, sort, pagination, archive, and restore
+  Auth with cookie sessions
+  Secret safe `database { url env DATABASE_URL }`
+  Company, Contact, Deal, and Activity entities
+  Entity relation fields
+  Field labels, placeholders, help text, min/max, length, URL, and cross field validation
+  Admin, SalesManager, and SalesRep roles
+  Field level read and mutation restrictions
+  Deal pipeline workflow
+  Activity follow up workflow
+  Page state and modal declarations
+  Probability and completion display components
+  Contract first forecast and lead webhook APIs
+  CRUD pages with search, filter, sort, pagination, archive, and restore
 
 ## Notes
 
@@ -51,17 +51,17 @@ The template intentionally stays inside currently supported syntax so compiler v
 
 ## Verification
 
-Measured on 2026-09-05:
+Measured on 2026 09 05:
 
 ```bash
-black parse examples/crm/app.black --json
-black validate examples/crm/app.black --json
-black lint examples/crm/app.black --json
-black build examples/crm/app.black --out <temp> --json
+black parse examples/crm/app.black   json
+black validate examples/crm/app.black   json
+black lint examples/crm/app.black   json
+black build examples/crm/app.black   out <temp>   json
 npm install
 npm run build
 ```
 
 All parse, validate, lint, generator, TypeScript, and Vite production build checks passed.
 
-`npm install` reported 4 high-severity audit findings from generated app dependencies. They were not force-fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.
+`npm install` reported 4 high severity audit findings from generated app dependencies. They were not force fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.

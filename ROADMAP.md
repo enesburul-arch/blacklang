@@ -1,6 +1,8 @@
 # BlackLang Roadmap
 
-Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md`.
+Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md`; v0.2 now includes computed display fields, relation response load policies, entity index declarations, schema migration planning, explicit rename migration runtime, first-class seed/fixture runtime, first-class browser-check and browser e2e test declarations, deterministic AI task/token benchmark reports, long-running AI eval corpus metadata, evidence-backed local eval result history export, custom query and aggregate summary MVP, deterministic background query worker jobs, custom row-level action MVP, bounded action/API local logic with `value`, indentation-based `if`/`else`, and compound `and`/`or`/`not` conditions, owner/tenant policies, ops runtime signals, cloud adapter manifests, provider CLI deployment preflight/apply runners, observability webhook/OTLP hooks, W3C trace context, prepared package registry/provider adapter marketplace manifests, prepared multi-editor package channel metadata, prepared public ecosystem index metadata, and deterministic local file/image media fields.
+
+Current web completion work targets deterministic web capability parity, not JavaScript runtime parity. The web target now has bounded arithmetic expressions for computed fields, custom action sets, and explicit API update handlers, plus ordered local `value` declarations, Python-like indentation-based `if`/`else` branches, and compound `and`/`or`/`not` conditions inside custom actions and explicit API update blocks. After the web target is mature, BlackLang should add a separate Core Program Logic v1 track that generalizes this beyond row/API handlers into general-purpose variables, assignment rules, boolean logic, functions, parameters, return, scope, collections, loops, errors, and bounded async operations. That future core track should be measured with separate evals such as calculator local expression state, todo local state, conditional pricing, collection loops, and bounded async API calls.
 
 ## Phase 0: Project Foundation
 
@@ -139,6 +141,7 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Generate path parameter contracts beyond default `id`
 - [x] Generate public/private endpoint metadata
 - [x] Generate webhook endpoint contracts
+- [x] Generate declared runtime routes for explicit API and webhook declarations
 
 ## Phase 12: Security Foundation
 
@@ -161,6 +164,7 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Generate basic runtime role storage
 - [x] Generate page-level role enforcement for page access
 - [x] Generate basic role management UI
+- [x] Generate tenant ID management UI when tenant policies exist
 - [x] Generate action-level role enforcement
 - [x] Generate field-level read hiding
 - [x] Generate field-level mutation enforcement
@@ -197,6 +201,7 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Generate React components from component declarations
 - [x] Bind components to table/detail rendering
 - [x] Bind components to form rendering
+- [x] Place declared components as reusable page view sections
 - [x] Generate component tests for runtime behavior
 
 ## Phase 16: Validation System
@@ -222,6 +227,7 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Include database env references in JSON/BlackIR outputs
 - [x] Add `black security scan --json`
 - [x] Detect likely hardcoded passwords, API keys, tokens, and private keys
+- [x] Generate secret/env reference manifest and read-only readiness plan
 - [x] Add production packaging that excludes protected source by default
 - [x] Explore encrypted source mode such as `app.black.enc`
 
@@ -234,18 +240,21 @@ Status: v0.1 roadmap complete. The next milestone is tracked in `ROADMAP-v0.2.md
 - [x] Generate Dockerfile, `.dockerignore`, and `docker-compose.yml`
 - [x] Make generated server read `PORT`
 - [x] Serve built Vite frontend from the generated Express server
-- [ ] Add PostgreSQL runtime support before enabling postgres deploy target
-- [ ] Add preview deployment target
+- [x] Add PostgreSQL runtime support before enabling postgres deploy target
+- [x] Add MySQL runtime, seed, and Docker Compose support before enabling mysql deploy target
+- [x] Generate health/readiness/metrics ops endpoints and Docker healthchecks from `ops`
+- [x] Add local preview deployment target and rollback metadata
+- [ ] Add cloud deployment adapters and external observability hooks
 
 ## Phase 19: Target and Plugin Foundation
 
-- [x] Parse `target web { frontend react backend node database sqlite }`
+- [x] Parse `target web { frontend react backend node database sqlite|postgres|mysql }` and `target api { backend node database sqlite|postgres|mysql }`
 - [x] Validate target platform and generated stack declarations
 - [x] Include target intent in JSON and BlackIR outputs
 - [x] Add target docs and agent-facing explain support
 - [x] Include target changes in affected graph analysis
 - [x] Record generated target stack in generated README output
 - [ ] Add generator adapter/plugin discovery
-- [ ] Add API-only target support
+- [x] Add API-only target support
 - [ ] Add mobile and desktop target planning after web stabilizes
-- [ ] Add PostgreSQL target only after generated runtime support exists
+- [x] Add PostgreSQL target only after generated runtime support exists

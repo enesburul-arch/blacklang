@@ -32,6 +32,17 @@ deploy {
   port env PORT default 3001
   env DATABASE_URL required
   env CORS_ORIGINS optional
+  preview local
+  rollback keep 3
+  cloud fly app env FLY_APP_NAME region env FLY_REGION
+}
+
+ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe otlp endpoint env BLACKLANG_OTLP_ENDPOINT
 }
 
 i18n {
@@ -49,6 +60,11 @@ label Product.name {
   en "Product Name"
 }
 
+label Product.photo {
+  tr "Ürün Görseli"
+  en "Product Photo"
+}
+
 label Product.stock {
   tr "Stok Adedi"
   en "Stock Count"
@@ -64,35 +80,500 @@ label Product.inventoryValue {
   en "Inventory Value"
 }
 
+placeholder Product.sku {
+  tr "Stok kodunu gir"
+  en "Enter SKU"
+}
+
+placeholder Product.name {
+  tr "Ürün adını gir"
+  en "Enter product name"
+}
+
+placeholder Product.stock {
+  tr "Stok adedini gir"
+  en "Enter stock count"
+}
+
+placeholder Product.price {
+  tr "Birim fiyatı gir"
+  en "Enter unit price"
+}
+
+help Product.sku {
+  tr "Depoda ve raporlarda kullanılan kısa ürün kodu"
+  en "Short product code used in warehouse lists and reports"
+}
+
+help Product.name {
+  tr "Listelerde ve siparişlerde görünen ürün adı"
+  en "Visible product name in lists and orders"
+}
+
+help Product.photo {
+  tr "Yerel formdan seçilen ürün görseli data URL olarak saklanır"
+  en "Product image selected from the local form is stored as a data URL"
+}
+
+help Product.stock {
+  tr "Satılabilir mevcut ürün adedi"
+  en "Current available quantity"
+}
+
+help Product.price {
+  tr "Tek ürün için satış fiyatı"
+  en "Selling price for one unit"
+}
+
+message Product.sku {
+  tr "Geçerli bir stok kodu gir"
+  en "Enter a valid SKU"
+}
+
+message Product.stock {
+  tr "Geçerli bir stok adedi gir"
+  en "Enter a valid stock count"
+}
+
+message Product.price {
+  tr "Geçerli bir birim fiyat gir"
+  en "Enter a valid unit price"
+}
+
+message Product.photo {
+  tr "Geçerli bir ürün görseli seç"
+  en "Select a valid product image"
+}
+
+label app.title {
+  tr "Depo"
+  en "Warehouse"
+}
+
+label app.menu {
+  tr "Menü"
+  en "Menu"
+}
+
+label app.language {
+  tr "Dil"
+  en "Language"
+}
+
+label app.logout {
+  tr "Çıkış"
+  en "Logout"
+}
+
+label app.closeNavigation {
+  tr "Gezinmeyi kapat"
+  en "Close navigation"
+}
+
+label app.primaryNavigation {
+  tr "Ana gezinme"
+  en "Primary navigation"
+}
+
+label app.checkingSession {
+  tr "Oturum kontrol ediliyor..."
+  en "Checking session..."
+}
+
+label app.noPages {
+  tr "Bu rol için kullanılabilir sayfa yok."
+  en "No pages are available for this role."
+}
+
+label app.source {
+  tr "kaynak"
+  en "source"
+}
+
+label app.recordForm {
+  tr "Kayıt formu"
+  en "Record form"
+}
+
+label page.Products {
+  tr "Ürünler"
+  en "Products"
+}
+
+label page.LowStock {
+  tr "Düşük Stok"
+  en "Low Stock"
+}
+
+label page.Customers {
+  tr "Müşteriler"
+  en "Customers"
+}
+
+label page.Orders {
+  tr "Siparişler"
+  en "Orders"
+}
+
+label page.Users {
+  tr "Kullanıcılar"
+  en "Users"
+}
+
+label page.Audit {
+  tr "Denetim"
+  en "Audit"
+}
+
+label table.search {
+  tr "Ara"
+  en "Search"
+}
+
+label table.showArchived {
+  tr "Arşivlenenleri göster"
+  en "Show archived"
+}
+
+label table.columns {
+  tr "Kolonlar"
+  en "Columns"
+}
+
+label table.filter {
+  tr "Filtre"
+  en "Filter"
+}
+
+label table.status {
+  tr "Durum"
+  en "Status"
+}
+
+label table.actions {
+  tr "İşlemler"
+  en "Actions"
+}
+
+label table.selectVisibleRecords {
+  tr "Görünen kayıtları seç"
+  en "Select visible records"
+}
+
+label table.selectRecord {
+  tr "Kaydı seç"
+  en "Select record"
+}
+
+label table.empty {
+  tr "Kayıt yok."
+  en "No records yet."
+}
+
+label table.previous {
+  tr "Önceki"
+  en "Previous"
+}
+
+label table.next {
+  tr "Sonraki"
+  en "Next"
+}
+
+label table.page {
+  tr "Sayfa"
+  en "Page"
+}
+
+label table.of {
+  tr "/"
+  en "of"
+}
+
+label status.active {
+  tr "Aktif"
+  en "Active"
+}
+
+label status.archived {
+  tr "Arşivlendi"
+  en "Archived"
+}
+
+label status.loadingRecords {
+  tr "Kayıtlar yükleniyor..."
+  en "Loading records..."
+}
+
+label status.loadingDetails {
+  tr "Detaylar yükleniyor..."
+  en "Loading details..."
+}
+
+label status.selectRecord {
+  tr "Detay görmek için bir kayıt seç."
+  en "Select a record to view details."
+}
+
+label action.new.Product {
+  tr "Yeni Ürün"
+  en "New Product"
+}
+
+label action.create.Product {
+  tr "Ürün Oluştur"
+  en "Create Product"
+}
+
+label action.edit.Product {
+  tr "Ürün Düzenle"
+  en "Edit Product"
+}
+
+label action.view.Product {
+  tr "Ürün Detayı"
+  en "Product Details"
+}
+
+label action.new.Customer {
+  tr "Yeni Müşteri"
+  en "New Customer"
+}
+
+label action.create.Customer {
+  tr "Müşteri Oluştur"
+  en "Create Customer"
+}
+
+label action.edit.Customer {
+  tr "Müşteri Düzenle"
+  en "Edit Customer"
+}
+
+label action.view.Customer {
+  tr "Müşteri Detayı"
+  en "Customer Details"
+}
+
+label action.new.Order {
+  tr "Yeni Sipariş"
+  en "New Order"
+}
+
+label action.create.Order {
+  tr "Sipariş Oluştur"
+  en "Create Order"
+}
+
+label action.edit.Order {
+  tr "Sipariş Düzenle"
+  en "Edit Order"
+}
+
+label action.view.Order {
+  tr "Sipariş Detayı"
+  en "Order Details"
+}
+
+label action.view {
+  tr "Görüntüle"
+  en "View"
+}
+
+label action.create {
+  tr "Oluştur"
+  en "Create"
+}
+
+label action.edit {
+  tr "Düzenle"
+  en "Edit"
+}
+
+label action.delete {
+  tr "Sil"
+  en "Delete"
+}
+
+label action.deleteSelected {
+  tr "Seçilileri Sil"
+  en "Delete Selected"
+}
+
+label action.archive {
+  tr "Arşivle"
+  en "Archive"
+}
+
+label action.restore {
+  tr "Geri Al"
+  en "Restore"
+}
+
+label action.cancel {
+  tr "İptal"
+  en "Cancel"
+}
+
+label action.close {
+  tr "Kapat"
+  en "Close"
+}
+
+label action.saveChanges {
+  tr "Değişiklikleri Kaydet"
+  en "Save Changes"
+}
+
+label action.saving {
+  tr "Kaydediliyor..."
+  en "Saving..."
+}
+
+label action.run {
+  tr "Çalıştır"
+  en "Run"
+}
+
+label action.running {
+  tr "Çalışıyor..."
+  en "Running..."
+}
+
+label action.RestockProduct {
+  tr "Stok Ekle"
+  en "Restock Product"
+}
+
+label action.startPicking {
+  tr "Toplamaya Başla"
+  en "Start Picking"
+}
+
+label action.ship {
+  tr "Gönder"
+  en "Ship"
+}
+
 entity Product {
+  tenantId text required default "default"
   sku text required unique length 3..40
   name text required label "Product Name" placeholder "Enter product name" help "Visible product name in lists and orders" ui text text 14 semibold left
+  photo image optional accept "image/*" label "Product Photo" help "Product image selected from the local form is stored as a data URL"
   stock number default 0 min 0 label "Stock Count" placeholder "Enter stock count" help "Current available quantity"
   price money min 0 label "Unit Price" placeholder "Enter unit price" help "Selling price for one unit"
   computed inventoryValue money = stock * price label "Inventory Value"
+  policy tenant tenantId
+  index tenantId, stock
+  index stock
+}
+
+migration RenameWarehouseProduct {
+  rename entity WarehouseProduct to Product
+  rename field Product.quantity to stock
 }
 
 entity Customer {
+  tenantId text required default "default"
   name text required label "Customer Name" placeholder "Enter customer name" help "Main display name for the customer"
   email email unique label "Email Address" placeholder "name@example.com" help "Used as the unique customer contact"
   phone text optional label "Phone Number" placeholder "Enter phone number" help "Optional direct contact number"
+  policy tenant tenantId
+  index tenantId
 }
 
 entity Order {
-  customer Customer required label "Customer" placeholder "Select a customer" help "Customer connected to this order"
+  tenantId text required default "default"
+  ownerId text required default "system"
+  customer Customer required load list detail query mutation label "Customer" placeholder "Select a customer" help "Customer connected to this order"
   total money default 0 min 0 label "Order Total" placeholder "Enter order total" help "Total amount for this order"
   discount money default 0 min 0 label "Discount" placeholder "Enter discount" help "Discount cannot exceed the order total"
   status text default draft label "Order Status" placeholder "Enter order status" help "Workflow status such as draft or shipped"
   trackingNumber text optional label "Tracking Number" placeholder "Enter tracking number" help "Required after shipping"
+  policy tenant tenantId
+  policy owner ownerId
+  index tenantId, status
+  index customer, status
   validate discount <= total message "Discount cannot exceed total"
   validate trackingNumber required when status == shipped message "Tracking number is required when shipped"
+}
+
+seed DemoProducts {
+  source Product
+
+  row DemoProductLow {
+    tenantId "default"
+    sku "LOW-001"
+    name "Low Stock Widget"
+    stock 3
+    price 19.99
+  }
+
+  row DemoProductFull {
+    tenantId "default"
+    sku "FULL-001"
+    name "Packed Shelf Widget"
+    stock 42
+    price 24.50
+  }
+}
+
+seed DemoCustomers {
+  source Customer
+
+  row DemoCustomerAcme {
+    tenantId "default"
+    name "Acme Logistics"
+    email "ops@acme.example"
+    phone "+1-555-0100"
+  }
+}
+
+seed DemoOrders {
+  source Order
+
+  row DemoOrderDraft {
+    tenantId "default"
+    ownerId "system"
+    customer ref DemoCustomerAcme
+    total 320.50
+    discount 20.50
+    status "draft"
+  }
+}
+
+test WarehouseBrowserSmoke {
+  page Products
+  expect text "Depo"
+  expect page LowStock
+  expect action RestockProduct
 }
 
 query LowStockProducts {
   source Product
   where stock < 10
+  aggregate lowStockCount count
+  aggregate totalStock sum stock
+  aggregate averagePrice avg price
   sort stock asc
   limit 50
+}
+
+job LowStockMonitor {
+  schedule every 15 minutes
+  run query LowStockProducts
+}
+
+action RestockProduct {
+  source Product
+  input quantity number required min 1 label "Quantity" placeholder "Enter received quantity" help "Amount added to current stock"
+  value restockValue = quantity
+  if restockValue > 0 and stock >= 0
+    set stock = stock + restockValue
+  else
+    set stock = stock
+  allow Admin, Worker
+  success "Stock updated"
 }
 
 role Admin {
@@ -119,8 +600,29 @@ api LowStockReport {
 api StockWebhook {
   method POST
   path "/api/webhooks/stock"
+  body tenantId text required
+  body sku text required
+  body stock number required min 0
+
+  update Product where sku == body.sku {
+    value incomingStock = body.stock
+    if incomingStock >= 0 and tenantId == body.tenantId
+      set stock = incomingStock
+    else
+      set stock = stock
+  }
+  respond accepted
   webhook
   public
+}
+
+transaction RestockAtomic {
+  action RestockProduct
+  api StockWebhook
+}
+
+service InventoryIntegration {
+  api StockWebhook
 }
 
 workflow OrderPreparation {
@@ -167,13 +669,23 @@ page Products {
   access Admin, Worker
 
   view {
-    order form, table, detail
+    order table, StockSummary, StockCards, detail, form
+    compose tabs gap md
+    section StockSummary component StockBadge bind selected span 1 title "Stock Summary"
+    section StockCards component StockBadge bind each span 1 title "Stock Cards"
+    tab List sections table
+    tab Record sections StockSummary, StockCards, detail, form
+    trigger detail on rowSelect
+    trigger form on createStart
+    trigger form on editStart
+    trigger detail on saveSuccess
+    trigger table on close
   }
 
   table {
     id ProductsTable
     class inventoryTable
-    columns sku, name, stock, price, inventoryValue
+    columns sku, name, photo, stock, price, inventoryValue
     search sku, name
     filter stock
     sort stock desc
@@ -184,10 +696,10 @@ page Products {
   form {
     id ProductForm
     class inventoryForm
-    fields sku, name, stock, price
+    fields sku, name, photo, stock, price
     ui box border 1 solid 12 12 12 12 8 left | button primary white 6 md solid
   }
-  actions create, edit, delete, archive, restore
+  actions create, edit, delete, archive, restore, RestockProduct
   action create id CreateProductButton
   action create class primaryAction
   action create ui button primary white 6 md solid
@@ -203,16 +715,24 @@ page LowStock {
   access Admin, Worker
 
   table {
-    columns sku, name, stock, price, inventoryValue
+    columns sku, name, photo, stock, price, inventoryValue
     search sku, name
     paginate 10
   }
+  actions RestockProduct
 }
 
 page Customers {
   layout AdminLayout
   source Customer
   access Admin, Worker
+
+  view {
+    order table, detail, form
+    compose grid columns 2 gap md stackAt md
+    section table span 1
+    group CustomerWorkspace sections detail, form compose stack gap md span 1 title "Customer Workspace"
+  }
 
   table {
     columns name, email, phone
@@ -232,6 +752,19 @@ page Orders {
   layout AdminLayout
   source Order
   access Admin, Worker
+
+  view {
+    order table, detail, form
+    compose grid columns 2 gap md stackAt md
+    section table span 2
+    section detail display drawer side right title "Order Details"
+    section form display modal title "Order Form"
+    trigger detail on rowSelect
+    trigger form on createStart
+    trigger form on editStart
+    trigger detail on saveSuccess
+    trigger table on close
+  }
 
   table {
     columns customer, total, discount, status, trackingNumber

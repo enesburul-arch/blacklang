@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateWarehouseExample(t *testing.T) {
 	source := `app Warehouse
@@ -35,6 +38,168 @@ page Products {
 	diagnostics := Validate(program)
 	if len(diagnostics) != 0 {
 		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateMigrationRenames(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text required
+  name text required
+}
+
+migration RenameProductName {
+  rename entity ProductItem to Product
+  rename field Product.title to name
+}
+`
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) > 0 {
+		t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) > 0 {
+		t.Fatalf("unexpected validation diagnostics: %#v", diagnostics)
+	}
+}
+
+func TestValidateMigrationRenameDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  oldName text
+  total money
+  computed displayTotal money = total * 2
+}
+
+migration BadRename {
+  rename field Product.oldName to missing
+  rename field Product.oldTotal to displayTotal
+  rename entity Product to RenamedProduct
+}
+`
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) > 0 {
+		t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{
+		"UNKNOWN_MIGRATION_RENAME_TARGET",
+		"UNSUPPORTED_MIGRATION_RENAME_TARGET",
+		"MIGRATION_RENAME_SOURCE_STILL_EXISTS",
+	} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected diagnostic %s in %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateEntityPolicies(t *testing.T) {
+	source := `app Warehouse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+entity WorkItem {
+  ownerId text required
+  tenantId text required
+  title text required
+  policy owner ownerId
+  policy tenant tenantId
+}
+
+role Admin {
+  allow all
+}
+
+page WorkItems {
+  source WorkItem
+  access Admin
+
+  table {
+    columns title
+  }
+
+  form {
+    fields title
+  }
+
+  actions create, edit, delete
+}
+`
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) > 0 {
+		t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) > 0 {
+		t.Fatalf("unexpected validation diagnostics: %#v", diagnostics)
+	}
+}
+
+func TestValidateEntityPolicyDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+entity WorkItem {
+  ownerId text unique
+  computed displayTenant text = ownerId + ownerId
+  title text required
+  policy owner ownerId
+  policy owner missingOwner
+  policy tenant displayTenant
+}
+
+entity Ticket {
+  title text required
+  policy tenant missingTenant
+}
+
+action BadOwnershipUpdate {
+  source WorkItem
+  input title text required
+  set ownerId = title
+}
+
+page WorkItems {
+  source WorkItem
+
+  table {
+    columns title
+  }
+
+  form {
+    fields title, ownerId
+  }
+
+  actions create, BadOwnershipUpdate
+}
+`
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) > 0 {
+		t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{
+		"AUTH_REQUIRED_FOR_ENTITY_POLICY",
+		"MISSING_ENTITY_POLICY_REQUIRED_FIELD",
+		"UNSUPPORTED_ENTITY_POLICY_UNIQUE_FIELD",
+		"DUPLICATE_ENTITY_POLICY",
+		"UNKNOWN_ENTITY_POLICY_FIELD",
+		"UNSUPPORTED_ENTITY_POLICY_FIELD",
+		"UNSUPPORTED_POLICY_FORM_FIELD",
+		"UNSUPPORTED_ACTION_POLICY_FIELD",
+	} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected %s diagnostic, got %#v", code, diagnostics)
+		}
 	}
 }
 
@@ -115,6 +280,122 @@ page Products {
 	diagnostics := Validate(program)
 	if len(diagnostics) != 0 {
 		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateEntityIndexes(t *testing.T) {
+	source := `app Warehouse
+
+entity Customer {
+  name text required
+}
+
+entity Order {
+  customer Customer required
+  status text
+  total money
+  index customer
+  index customer, status
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateEntityIndexErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text required
+  stock integer
+  price money
+  status text
+  computed inventoryValue money = stock * price
+  index stock, stock
+  index inventoryValue
+  index missing
+  index sku, stock, price, status, missing
+  index stock, price
+  index stock, price
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{"DUPLICATE_INDEX_FIELD", "UNSUPPORTED_COMPUTED_INDEX_FIELD", "UNKNOWN_INDEX_FIELD", "UNSUPPORTED_ENTITY_INDEX_FIELD_COUNT", "DUPLICATE_ENTITY_INDEX"} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected %s diagnostic, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateRelationLoadPolicy(t *testing.T) {
+	source := `app Warehouse
+
+entity Customer {
+  name text required
+}
+
+entity Order {
+  customer Customer required load list detail query mutation
+  reviewer Customer optional load none
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	if diagnostics := Validate(program); len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateRelationLoadPolicyErrors(t *testing.T) {
+	source := `app Warehouse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    email email required unique load list
+  }
+}
+
+entity Customer {
+  name text required
+}
+
+entity Order {
+  customer Customer required load
+  reviewer Customer optional load list list
+  approver Customer optional load list load detail
+  archivedBy Customer optional load none detail
+  shipper Customer optional load compact
+  name text load detail
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{"UNSUPPORTED_AUTH_USER_FIELD_MODIFIER", "MISSING_RELATION_LOAD_SCOPE", "DUPLICATE_RELATION_LOAD_SCOPE", "DUPLICATE_RELATION_LOAD", "CONFLICTING_RELATION_LOAD_SCOPE", "UNSUPPORTED_RELATION_LOAD_SCOPE", "UNSUPPORTED_RELATION_LOAD_FIELD"} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected %s diagnostic, got %#v", code, diagnostics)
+		}
 	}
 }
 
@@ -473,6 +754,388 @@ page Products {
 	}
 }
 
+func TestValidatePageViewCompositionErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    compose carousel columns 5 gap huge stackAt xl
+    section table span 5
+    section detail span 1
+    section detail span 2
+    section form display panel side top
+    group Record sections table, form compose tabs columns 5 gap huge span 5
+    group Record sections detail
+    group DetailGroup sections detail, detail
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_VIEW_COMPOSE_MODE", "UNSUPPORTED_VIEW_COMPOSE_COLUMNS", "UNSUPPORTED_VIEW_GAP", "UNSUPPORTED_VIEW_STACK_AT", "UNSUPPORTED_VIEW_SECTION_SPAN", "DUPLICATE_VIEW_SECTION", "UNSUPPORTED_VIEW_SECTION_DISPLAY", "UNSUPPORTED_VIEW_SECTION_SIDE", "DUPLICATE_VIEW_GROUP", "UNSUPPORTED_VIEW_GROUP_COMPOSE_MODE", "UNSUPPORTED_VIEW_GROUP_COMPOSE_COLUMNS", "UNSUPPORTED_VIEW_GROUP_GAP", "UNSUPPORTED_VIEW_GROUP_SPAN", "UNSUPPORTED_VIEW_GROUP_SECTION", "DUPLICATE_VIEW_GROUP_SECTION"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidatePageViewGroupRejectsTabsAndOverlaySections(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, detail, form
+    compose tabs gap md
+    section form display modal
+    group Record sections detail, form compose stack
+    tab List sections table
+    tab Record sections detail, form
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_VIEW_GROUP", "UNSUPPORTED_VIEW_GROUP_SECTION_DISPLAY", "UNSUPPORTED_VIEW_SECTION_DISPLAY"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidatePageViewTriggerErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, detail, form
+    trigger sidebar on rowSelect
+    trigger detail on hover
+    trigger table on rowSelect
+    trigger form on editStart
+    trigger form on editStart
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_VIEW_TRIGGER_SECTION", "UNSUPPORTED_VIEW_TRIGGER_EVENT", "UNSUPPORTED_VIEW_TRIGGER", "UNSUPPORTED_VIEW_TRIGGER_ACTION", "DUPLICATE_VIEW_TRIGGER"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidatePageViewTabsErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, detail, form
+    compose tabs columns 2 stackAt md
+    tab List sections table, table
+    tab Record sections detail, sidebar
+    tab Record sections form
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_VIEW_COMPOSE_COLUMNS", "UNSUPPORTED_VIEW_STACK_AT", "DUPLICATE_VIEW_TAB_SECTION", "UNSUPPORTED_VIEW_TAB_SECTION", "DUPLICATE_VIEW_TAB", "MISSING_VIEW_TAB_SECTION"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidatePageViewTabsRequireComposeTabs(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table
+    tab List sections table
+  }
+
+  table {
+    columns name
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	if !codes["UNSUPPORTED_VIEW_TAB"] {
+		t.Fatalf("expected UNSUPPORTED_VIEW_TAB, got %#v", diagnostics)
+	}
+}
+
+func TestValidatePageViewTabsRequireTabDeclarations(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table
+    compose tabs
+  }
+
+  table {
+    columns name
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 1 || diagnostics[0].Code != "MISSING_VIEW_TABS" {
+		t.Fatalf("expected MISSING_VIEW_TABS, got %#v", diagnostics)
+	}
+}
+
+func TestValidatePageViewComponentSection(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  stock number
+  price money
+  computed inventoryValue money = stock * price
+}
+
+component StockBadge {
+  input stock number
+  variant low when stock < 10
+}
+
+component InventoryValueBadge {
+  input inventoryValue money
+  variant high when inventoryValue > 1000
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, StockSummary, InventoryPreview, StockCards, detail, form
+    compose grid columns 2 gap md
+    section table span 2
+    section StockSummary component StockBadge bind selected span 1 title "Stock Summary"
+    section InventoryPreview component InventoryValueBadge bind first span 1 title "Inventory Preview"
+    section StockCards component StockBadge bind each span 1 title "Stock Cards"
+    group Record sections StockSummary, InventoryPreview, StockCards compose grid columns 2 title "Record Components"
+  }
+
+  table {
+    columns stock, price, inventoryValue
+  }
+
+  form {
+    fields stock, price
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidatePageViewComponentSectionErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Customer {
+  name text
+}
+
+entity Product {
+  stock number
+}
+
+component StockBadge {
+  input stock number
+}
+
+component MissingFieldBadge {
+  input missing number
+}
+
+component WrongTypeBadge {
+  input stock text
+}
+
+component ListBadge {
+  input stock number[]
+}
+
+component EntityBadge {
+  input customer Customer
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, GhostSection, UnknownSection, NoBind, BadBind, MissingField, WrongType, ListSection, EntitySection, BuiltInComponent, detail, form
+    section UnknownSection component MissingBadge bind selected
+    section NoBind component StockBadge
+    section BadBind component StockBadge bind all
+    section MissingField component MissingFieldBadge bind selected
+    section WrongType component WrongTypeBadge bind selected
+    section ListSection component ListBadge bind selected
+    section EntitySection component EntityBadge bind selected
+    section detail component StockBadge bind selected
+    section form bind selected
+  }
+
+  table {
+    columns stock
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{
+		"UNSUPPORTED_VIEW_SECTION",
+		"UNKNOWN_VIEW_COMPONENT",
+		"MISSING_VIEW_COMPONENT_BIND",
+		"UNSUPPORTED_VIEW_COMPONENT_BIND",
+		"UNKNOWN_VIEW_COMPONENT_INPUT_FIELD",
+		"VIEW_COMPONENT_INPUT_TYPE_MISMATCH",
+		"UNSUPPORTED_VIEW_COMPONENT_INPUT",
+		"CONFLICTING_VIEW_COMPONENT_SECTION",
+		"UNSUPPORTED_VIEW_SECTION_BIND",
+	} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateExplicitUIIdentityErrors(t *testing.T) {
 	source := `app Warehouse
 
@@ -550,6 +1213,160 @@ entity Product {
 		codes[diagnostic.Code] = true
 	}
 	for _, code := range []string{"DUPLICATE_LOCALE", "UNKNOWN_DEFAULT_LOCALE", "MISSING_DEFAULT_LABEL_TRANSLATION", "DUPLICATE_LABEL_LOCALE", "UNKNOWN_LABEL_TARGET", "UNKNOWN_LABEL_LOCALE"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateUILabelTranslationTargets(t *testing.T) {
+	source := `app Warehouse
+
+i18n {
+  default tr
+  locales tr, en
+}
+
+label app.title {
+  tr "Depo"
+  en "Warehouse"
+}
+
+label page.Products {
+  tr "Ürünler"
+  en "Products"
+}
+
+label action.create {
+  tr "Oluştur"
+  en "Create"
+}
+
+label action.new.Product {
+  tr "Yeni Ürün"
+  en "New Product"
+}
+
+label table.search {
+  tr "Ara"
+  en "Search"
+}
+
+label status.active {
+  tr "Aktif"
+  en "Active"
+}
+
+label app.unsupported {
+  tr "Hatalı"
+  en "Invalid"
+}
+
+label page.Missing {
+  tr "Eksik"
+  en "Missing"
+}
+
+label action.new.Missing {
+  tr "Eksik"
+  en "Missing"
+}
+
+entity Product {
+  name text
+}
+
+page Products {
+  source Product
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]int{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code]++
+	}
+	if codes["UNKNOWN_LABEL_TARGET"] != 2 || codes["INVALID_LABEL_TARGET"] != 1 {
+		t.Fatalf("expected unsupported UI label target diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateFieldTextTranslationErrors(t *testing.T) {
+	source := `app Warehouse
+
+i18n {
+  default tr
+  locales tr, en
+}
+
+placeholder Product.name {
+  en "Enter product name"
+  en "Name"
+}
+
+placeholder Product.name {
+  tr "Ürün adını gir"
+  en "Enter product name"
+}
+
+help Product.inventoryValue {
+  tr "Hesaplanan değer"
+  en "Computed value"
+}
+
+message MissingTarget {
+  tr "Hatalı"
+  en "Invalid"
+}
+
+message Product.missing {
+  tr "Eksik"
+  en "Missing"
+}
+
+message Product.name {
+  tr "Geçerli ürün adı gir"
+  de "Enter a valid product name"
+}
+
+entity Product {
+  name text
+  computed inventoryValue money = 1 * 2
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{
+		"DUPLICATE_PLACEHOLDER_TARGET",
+		"DUPLICATE_PLACEHOLDER_LOCALE",
+		"MISSING_DEFAULT_PLACEHOLDER_TRANSLATION",
+		"UNSUPPORTED_HELP_TARGET",
+		"INVALID_MESSAGE_TARGET",
+		"UNKNOWN_MESSAGE_TARGET",
+		"UNKNOWN_MESSAGE_LOCALE",
+	} {
 		if !codes[code] {
 			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
 		}
@@ -700,6 +1517,101 @@ api LowStockReport {
 	}
 }
 
+func TestValidateExplicitAPIUpdateHandler(t *testing.T) {
+	source := `app Warehouse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+entity Product {
+  tenantId text required
+  sku text required unique
+  stock number default 0
+  policy tenant tenantId
+}
+
+api StockWebhook {
+  method POST
+  path "/api/webhooks/stock"
+  body tenantId text required
+  body sku text required
+  body stock number required min 0
+  update Product where sku == body.sku set stock = body.stock
+  respond accepted
+  webhook
+  public
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateExplicitAPIUpdateHandlerErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  tenantId text required
+  sku text required
+  name text
+  stock number default 0
+  computed value number = stock * stock
+  policy tenant tenantId
+}
+
+api BrokenWebhook {
+  method GET
+  path "/api/webhooks/broken"
+  body sku text optional
+  body stock number required label "Stock"
+  body stock money
+  update Product where name == body.sku set tenantId = body.stock, stock = body.missing, value = body.stock
+  respond accepted
+  webhook
+  public
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{
+		"UNSUPPORTED_API_BODY_METHOD",
+		"UNSUPPORTED_API_HANDLER_METHOD",
+		"DUPLICATE_API_BODY",
+		"UNSUPPORTED_API_BODY_MODIFIER",
+		"UNBOUNDED_API_UPDATE",
+		"OPTIONAL_API_HANDLER_VALUE",
+		"MISSING_API_HANDLER_POLICY_SCOPE",
+		"UNSUPPORTED_API_HANDLER_POLICY_FIELD",
+		"UNKNOWN_API_HANDLER_VALUE",
+		"UNSUPPORTED_API_HANDLER_FIELD",
+	} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
 func TestValidateExplicitAPIErrors(t *testing.T) {
 	source := `app Warehouse
 
@@ -729,6 +1641,73 @@ api Broken {
 		if !codes[code] {
 			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
 		}
+	}
+}
+
+func TestValidateExplicitAPIRouteConflicts(t *testing.T) {
+	source := `app Warehouse
+
+api ProductsShadow {
+  method GET
+  path "/api/products"
+  public
+}
+
+api ProductDetailShadow {
+  method GET
+  path "/api/products/{productId}"
+  param productId text
+  public
+}
+
+api ProductSummaryShadow {
+  method GET
+  path "/api/products/query/summary"
+  public
+}
+
+api ReportById {
+  method GET
+  path "/api/reports/{id}"
+  param id text
+  public
+}
+
+api ReportBySlug {
+  method GET
+  path "/api/reports/{slug}"
+  param slug text
+  public
+}
+
+entity Product {
+  name text required
+}
+
+query ProductSummary {
+  source Product
+  aggregate productCount count
+}
+
+page Products {
+  source Product
+  query ProductSummary
+
+  table {
+    columns name
+  }
+
+  actions create, edit, delete, archive, restore
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if !hasDiagnostic(diagnostics, "DUPLICATE_API_ROUTE") {
+		t.Fatalf("expected duplicate API route diagnostics, got %#v", diagnostics)
 	}
 }
 
@@ -786,7 +1765,7 @@ func TestValidateTargetErrors(t *testing.T) {
 target mobile {
   frontend vue
   backend go
-  database postgres
+  database mongodb
 }
 `
 
@@ -800,6 +1779,141 @@ target mobile {
 		codes[diagnostic.Code] = true
 	}
 	for _, code := range []string{"UNSUPPORTED_TARGET", "UNSUPPORTED_TARGET_FRONTEND", "UNSUPPORTED_TARGET_BACKEND", "UNSUPPORTED_TARGET_DATABASE"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateTargetAllowsPostgresDatabase(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+  frontend react
+  backend node
+  database postgres
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == "UNSUPPORTED_TARGET_DATABASE" {
+			t.Fatalf("expected postgres target database to be supported, got %#v", diagnostics)
+		}
+	}
+}
+
+func TestValidateTargetAllowsMySQLDatabase(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+  frontend react
+  backend node
+  database mysql
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == "UNSUPPORTED_TARGET_DATABASE" {
+			t.Fatalf("expected mysql target database to be supported, got %#v", diagnostics)
+		}
+	}
+}
+
+func TestValidateTargetMySQLRejectsMigrations(t *testing.T) {
+	source := `app Warehouse
+
+target web {
+  frontend react
+  backend node
+  database mysql
+}
+
+entity Product {
+  sku text required
+}
+
+migration RenameInventory {
+  rename entity Inventory to Product
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if !hasDiagnostic(diagnostics, "UNSUPPORTED_TARGET_DATABASE_MIGRATION") {
+		t.Fatalf("expected mysql migration diagnostic, got %#v", diagnostics)
+	}
+}
+
+func TestValidateTargetAllowsAPIWithoutFrontend(t *testing.T) {
+	source := `app Warehouse
+
+target api {
+  backend node
+  database sqlite
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, diagnostic := range diagnostics {
+		if strings.HasPrefix(diagnostic.Code, "MISSING_TARGET") || strings.HasPrefix(diagnostic.Code, "UNSUPPORTED_TARGET") {
+			t.Fatalf("expected api target without frontend to be supported, got %#v", diagnostics)
+		}
+	}
+}
+
+func TestValidateTargetAPIRejectsFrontendAndBrowserTests(t *testing.T) {
+	source := `app Warehouse
+
+target api {
+  frontend react
+  backend node
+  database sqlite
+}
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+  table {
+    columns name
+  }
+}
+
+test ProductsBrowser {
+  page Products
+  expect text "Products"
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	for _, code := range []string{"UNSUPPORTED_TARGET_FRONTEND", "UNSUPPORTED_API_TARGET_TEST"} {
 		if !codes[code] {
 			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
 		}
@@ -837,6 +1951,9 @@ deploy {
   port env port default 70000
   env DATABASE_URL maybe
   env DATABASE_URL required
+  preview staging
+  rollback keep 0
+  cloud unknown app env cloud_app region env 1REGION
 }
 `
 
@@ -849,10 +1966,48 @@ deploy {
 	for _, diagnostic := range diagnostics {
 		codes[diagnostic.Code] = true
 	}
-	for _, code := range []string{"UNSUPPORTED_DEPLOY_TARGET", "INVALID_ENV_NAME", "INVALID_DEPLOY_PORT_DEFAULT", "UNSUPPORTED_DEPLOY_ENV_MODE", "DUPLICATE_DEPLOY_ENV"} {
+	for _, code := range []string{"UNSUPPORTED_DEPLOY_TARGET", "INVALID_ENV_NAME", "INVALID_DEPLOY_PORT_DEFAULT", "UNSUPPORTED_DEPLOY_ENV_MODE", "DUPLICATE_DEPLOY_ENV", "UNSUPPORTED_DEPLOY_PREVIEW", "INVALID_DEPLOY_ROLLBACK_KEEP", "DEPLOY_CLOUD_REQUIRES_DOCKER", "UNSUPPORTED_DEPLOY_CLOUD_PROVIDER"} {
 		if !codes[code] {
 			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
 		}
+	}
+}
+
+func TestValidateOpsDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+ops {
+  health path "/api/health"
+  readiness path "/readyz"
+  metrics path "/readyz"
+  logging traces
+  observe otel endpoint env observe_endpoint
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	codes := diagnosticCodes(diagnostics)
+	for _, code := range []string{"INVALID_OPS_PATH", "DUPLICATE_OPS_PATH", "UNSUPPORTED_OPS_LOGGING", "UNSUPPORTED_OPS_OBSERVE_PROVIDER", "INVALID_ENV_NAME"} {
+		if !codes[code] {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+
+	emptyProgram, emptyParseDiagnostics := Parse("test.black", `app Warehouse
+
+ops {
+}
+`)
+	if len(emptyParseDiagnostics) != 0 {
+		t.Fatalf("expected no empty ops parse diagnostics, got %#v", emptyParseDiagnostics)
+	}
+	emptyCodes := diagnosticCodes(Validate(emptyProgram))
+	if !emptyCodes["MISSING_OPS_SIGNAL"] {
+		t.Fatalf("expected MISSING_OPS_SIGNAL, got %#v", Validate(emptyProgram))
 	}
 }
 
@@ -1471,4 +2626,155 @@ component StockBadge {
 	if diagnostics[2].Code != "DUPLICATE_COMPONENT_VARIANT" {
 		t.Fatalf("expected DUPLICATE_COMPONENT_VARIANT, got %q", diagnostics[2].Code)
 	}
+}
+
+func TestValidateMediaFieldConstraints(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  photo image optional accept "image/*"
+  manual file optional accept "application/pdf"
+}
+
+page Products {
+  source Product
+  table {
+    columns photo, manual
+  }
+  form {
+    fields photo, manual
+  }
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateMediaFieldConstraintDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text accept "image/*"
+  photo image accept "application/pdf"
+  manual file accept
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{"UNSUPPORTED_ACCEPT_CONSTRAINT", "UNSUPPORTED_IMAGE_ACCEPT", "MISSING_ACCEPT_VALUE"} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected diagnostic %s in %#v", code, diagnostics)
+		}
+	}
+}
+
+func TestValidateActionMediaInputIsUnsupported(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  photo image optional
+}
+
+action AttachPhoto {
+  source Product
+  input upload image required
+  set photo = upload
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if !hasDiagnostic(diagnostics, "UNSUPPORTED_ACTION_INPUT_TYPE") {
+		t.Fatalf("expected unsupported action media input diagnostic, got %#v", diagnostics)
+	}
+}
+
+func TestValidateJobDeclaration(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+  stock number default 0
+}
+
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+
+job LowStockMonitor {
+  schedule every 15 minutes
+  run query LowStockProducts
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no validation diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestValidateJobErrors(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+  stock number default 0
+}
+
+query LowStockProducts {
+  source Product
+  where stock < 10
+}
+
+job lowStockMonitor {
+  schedule every 0 weeks
+  run query MissingQuery
+}
+
+job LowStockProducts {
+  schedule every 15 minutes
+  run query LowStockProducts
+}
+`
+
+	program, parseDiagnostics := Parse("test.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{"INVALID_JOB_NAME", "UNSUPPORTED_JOB_SCHEDULE_UNIT", "UNKNOWN_JOB_QUERY", "JOB_NAME_COLLISION"} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected validation code %s, got %#v", code, diagnostics)
+		}
+	}
+}
+
+func hasDiagnostic(diagnostics []Diagnostic, code string) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == code {
+			return true
+		}
+	}
+	return false
 }

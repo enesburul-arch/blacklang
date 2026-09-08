@@ -1,7 +1,5 @@
 package main
 
-import "os"
-
 func LintFile(file string) LintResult {
 	result := LintResult{
 		Success:  true,
@@ -14,37 +12,36 @@ func LintFile(file string) LintResult {
 		Errors:   []Diagnostic{},
 	}
 
-	source, err := os.ReadFile(file)
-	if err != nil {
+	source, readDiagnostics := ReadBlackSource(file)
+	if len(readDiagnostics) > 0 {
 		result.Success = false
-		result.Errors = []Diagnostic{{
-			File:       file,
-			Code:       "FILE_READ_ERROR",
-			Message:    err.Error(),
-			Suggestion: "Pass a readable .black file path or set source in blacklang.toml.",
-		}}
+		result.Errors = readDiagnostics
 		result.Checks = append(result.Checks,
-			LintCheck{Name: "format", Success: false, Findings: 1},
-			LintCheck{Name: "parse", Success: false, Findings: 1},
-			LintCheck{Name: "validate", Success: false, Findings: 1},
-			LintCheck{Name: "security", Success: false, Findings: 1},
+			LintCheck{Name: "format", Success: false, Findings: len(readDiagnostics)},
+			LintCheck{Name: "parse", Success: false, Findings: len(readDiagnostics)},
+			LintCheck{Name: "validate", Success: false, Findings: len(readDiagnostics)},
+			LintCheck{Name: "security", Success: false, Findings: len(readDiagnostics)},
 		)
 		return result
 	}
 
-	formatted, formatDiagnostics := FormatBlackSource(file, string(source))
+	formatted, formatDiagnostics := FormatBlackSource(file, source)
 	formatFindings := append([]Diagnostic{}, formatDiagnostics...)
-	if len(formatDiagnostics) == 0 && formatted != string(source) {
+	if len(formatDiagnostics) == 0 && formatted != source {
+		suggestion := "Run `black format " + file + "`."
+		if isEncryptedSourcePath(file) {
+			suggestion = "Decrypt to a trusted plaintext workspace, run `black format`, then re-encrypt with `black security encrypt`."
+		}
 		formatFindings = append(formatFindings, Diagnostic{
 			File:       file,
 			Code:       "FORMAT_REQUIRED",
 			Message:    "BlackLang source is not formatted.",
-			Suggestion: "Run `black format " + file + "`.",
+			Suggestion: suggestion,
 		})
 	}
 	result.addLintCheck("format", formatFindings)
 
-	program, parseDiagnostics := Parse(file, string(source))
+	program, parseDiagnostics := Parse(file, source)
 	result.addLintCheck("parse", parseDiagnostics)
 
 	validateDiagnostics := []Diagnostic{}
@@ -58,7 +55,7 @@ func LintFile(file string) LintResult {
 	}
 	result.addLintCheck("validate", validateDiagnostics)
 
-	securityFindings := SecurityScanText(file, string(source))
+	securityFindings := SecurityScanText(file, source)
 	result.addLintCheck("security", securityFindings)
 
 	result.Success = len(result.Findings) == 0 && len(result.Errors) == 0

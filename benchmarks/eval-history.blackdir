@@ -1,0 +1,18 @@
+evalHistory BLACKLANG-WEB-AI-EVAL-HISTORY
+version 0.2
+status published-local
+source benchmarks/eval-history.blackdir
+publishedAt 2026-09-07
+policy "Eval history entries must be evidence-backed. Local validation entries may record compiler and generated-app checks, but must not be presented as billed model benchmark scores. External model results require repeated harness runs, command evidence, and secret-free worklog references."
+
+command "black benchmark eval examples/warehouse/app.black --out generated --json"
+command "black benchmark eval-history --json"
+command "black benchmark eval-history --ir"
+
+run warehouse-web-completion-2026-09-07 suite BLACKLANG-WEB-AI-EVAL-v0.2 source examples/warehouse/app.black status published-local startedAt 2026-09-06 completedAt 2026-09-07 coverage 99 cases 8 repeat 3 totalRuns 24 passedRuns 24 failedRuns 0 averageScore 100
+  model blacklang-local-validation provider local source compiler-generated-checks runs 24 passed 24 failed 0 averageScore 100 medianTokens 0
+  evidence WEB-COMPLETION-WORKLOG.md
+  evidence benchmarks/warehouse-v0.1.md
+  evidence docs/benchmark.md
+  note "Initial published-local history entry records repeated compiler/generated validation evidence for the web completion run; it is not an external paid-model score."
+  modelNote "Use future external harness results for model-to-model scoring; this local validation source keeps the history format live without inventing AI model performance."

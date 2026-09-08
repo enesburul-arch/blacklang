@@ -84,20 +84,13 @@ func LoadProject(args []string) LoadedProject {
 		Diagnostics: []Diagnostic{},
 	}
 
-	source, err := os.ReadFile(sourcePath)
-	if err != nil {
-		project.Diagnostics = append(project.Diagnostics, Diagnostic{
-			File:       sourcePath,
-			Line:       0,
-			Column:     0,
-			Code:       "FILE_READ_ERROR",
-			Message:    err.Error(),
-			Suggestion: "Pass a readable .black file path or set source in blacklang.toml.",
-		})
+	source, readDiagnostics := ReadBlackSource(sourcePath)
+	if len(readDiagnostics) > 0 {
+		project.Diagnostics = append(project.Diagnostics, readDiagnostics...)
 		return project
 	}
 
-	program, parseDiagnostics := Parse(sourcePath, string(source))
+	program, parseDiagnostics := Parse(sourcePath, source)
 	validateDiagnostics := Validate(program)
 	diagnostics := append(parseDiagnostics, validateDiagnostics...)
 	if diagnostics == nil {

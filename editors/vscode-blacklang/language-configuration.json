@@ -1,0 +1,48 @@
+{
+  "comments": {
+    "lineComment": "#"
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}"
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    {
+      "open": "{",
+      "close": "}"
+    },
+    {
+      "open": "\"",
+      "close": "\""
+    }
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*(app|target|database|security|auth|role|entity|query|action|api|migration|seed|test|page|workflow|state|component|i18n|label|placeholder|help|message|deploy|ops)\\b.*\\{\\s*$",
+      "end": "^\\s*}\\s*$"
+    }
+  }
+}

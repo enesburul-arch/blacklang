@@ -1,0 +1,55 @@
+registry blacklang-packages
+version 0.2
+status prepared-local
+purpose "Deterministic package registry index for BlackLang release, npm, and editor bridge tooling."
+
+package npm:blacklang kind npm-wrapper source packages/npm publish npm name blacklang status local-package-source
+  docs docs/npm-wrapper.md
+  docs docs/install.md
+  command "cd packages/npm && npm test"
+  trust native-cli-forwarder true
+  trust allow-download-env BLACKLANG_ALLOW_DOWNLOAD
+  trust binary-override-env BLACKLANG_BINARY
+  trust signed-release-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+package vscode:blacklang-vscode kind editor-extension source editors/vscode-blacklang publish vscode-marketplace name blacklang-vscode status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  command "cd editors/vscode-blacklang && npm test"
+  command "cd editors/vscode-blacklang && npm run package:vsix"
+  trust compiler-backed-diagnostics true
+  trust compiler-backed-completions true
+  trust native-cli-required true
+  trust signed-release-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+package openvsx:blacklang-vscode kind editor-extension-channel source editors/vscode-blacklang publish open-vsx name blacklang-vscode status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  command "cd editors/vscode-blacklang && npm test"
+  command "cd editors/vscode-blacklang && npm run package:vsix"
+  trust compiler-backed-diagnostics true
+  trust compiler-backed-completions true
+  trust native-cli-required true
+  trust signed-release-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+package cursor:blacklang-vscode kind editor-extension-channel source editors/vscode-blacklang publish cursor-compatible-vsix name blacklang-vscode status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  command "cd editors/vscode-blacklang && npm test"
+  command "cd editors/vscode-blacklang && npm run package:vsix"
+  trust compiler-backed-diagnostics true
+  trust compiler-backed-completions true
+  trust native-cli-required true
+  trust signed-release-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true

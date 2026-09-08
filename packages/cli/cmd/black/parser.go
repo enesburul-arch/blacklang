@@ -44,14 +44,32 @@ func (p *parser) parse() {
 			index = p.parseSecurity(index, parts)
 		case "deploy":
 			index = p.parseDeploy(index, parts)
+		case "ops":
+			index = p.parseOps(index, parts)
 		case "i18n":
 			index = p.parseI18N(index, parts)
 		case "label":
 			index = p.parseLabelTranslation(index, parts)
+		case "placeholder", "help", "message":
+			index = p.parseFieldTextTranslation(index, parts, parts[0])
 		case "entity":
 			index = p.parseEntity(index, parts)
+		case "migration":
+			index = p.parseMigration(index, parts)
+		case "seed":
+			index = p.parseSeed(index, parts)
+		case "test":
+			index = p.parseTest(index, parts)
 		case "query":
 			index = p.parseQuery(index, parts)
+		case "job":
+			index = p.parseJob(index, parts)
+		case "action":
+			index = p.parseCustomAction(index, parts)
+		case "transaction":
+			index = p.parseTransaction(index, parts)
+		case "service":
+			index = p.parseService(index, parts)
 		case "role":
 			index = p.parseRole(index, parts)
 		case "api":
@@ -67,7 +85,7 @@ func (p *parser) parse() {
 		case "component":
 			index = p.parseComponent(index, parts)
 		default:
-			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, target, auth, database, security, deploy, i18n, label, entity, query, role, api, layout, page, workflow, state, or component at the top level.")
+			p.addError(lineNumber, 1, "UNEXPECTED_TOP_LEVEL", fmt.Sprintf("Unexpected top-level token %q.", parts[0]), "Use app, target, auth, database, security, deploy, ops, i18n, label, placeholder, help, message, entity, migration, seed, test, query, job, action, transaction, service, role, api, layout, page, workflow, state, or component at the top level.")
 		}
 	}
 }
@@ -90,11 +108,11 @@ func (p *parser) parseApp(parts []string, lineNumber int) {
 func (p *parser) parseTarget(start int, parts []string) int {
 	lineNumber := p.lineNumber(start)
 	if len(parts) != 3 || parts[2] != "{" {
-		p.addError(lineNumber, 1, "INVALID_TARGET_DECLARATION", "Target declaration must be `target name {`.", "Example: `target web { frontend react }`.")
+		p.addError(lineNumber, 1, "INVALID_TARGET_DECLARATION", "Target declaration must be `target name {`.", "Example: `target web { frontend react backend node database sqlite }` or `target api { backend node database mysql }`.")
 		return start
 	}
 	if p.program.Target != nil {
-		p.addError(lineNumber, 1, "DUPLICATE_TARGET", "Only one target declaration is allowed.", "Keep a single `target` block per project in v0.1.")
+		p.addError(lineNumber, 1, "DUPLICATE_TARGET", "Only one target declaration is allowed.", "Keep a single `target` block per project in v0.2.")
 		return start
 	}
 
@@ -134,7 +152,7 @@ func (p *parser) parseTarget(start int, parts []string) int {
 			target.Backend = rowParts[1]
 		case "database":
 			if len(rowParts) != 2 {
-				p.addError(currentLine, 1, "INVALID_TARGET_DATABASE", "Target database must be `database name`.", "Example: `database sqlite`.")
+				p.addError(currentLine, 1, "INVALID_TARGET_DATABASE", "Target database must be `database name`.", "Example: `database sqlite`, `database postgres`, or `database mysql`.")
 				continue
 			}
 			if target.Database != "" {
@@ -240,6 +258,74 @@ func (p *parser) parseDatabase(start int, parts []string) int {
 
 	p.addError(lineNumber, 1, "UNCLOSED_DATABASE", "Database block is missing a closing brace.", "Add `}` after the database block.")
 	return len(p.lines) - 1
+}
+
+func (p *parser) parseMigration(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 3 || parts[2] != "{" {
+		p.addError(lineNumber, 1, "INVALID_MIGRATION_DECLARATION", "Migration declaration must be `migration Name {`.", "Example: `migration RenameProductName { rename field Product.oldName to name }`.")
+		return start
+	}
+
+	migration := MigrationDecl{
+		Name:     parts[1],
+		Renames:  []MigrationRenameDecl{},
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Migrations = append(p.program.Migrations, migration)
+			return index
+		}
+
+		switch rowParts[0] {
+		case "rename":
+			rename, ok := p.parseMigrationRename(rowParts, currentLine)
+			if ok {
+				migration.Renames = append(migration.Renames, rename)
+			}
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_MIGRATION_TOKEN", fmt.Sprintf("Unexpected migration token %q.", rowParts[0]), "Use rename declarations inside migration.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_MIGRATION", fmt.Sprintf("Migration %s is missing a closing brace.", migration.Name), "Add `}` after the migration body.")
+	return len(p.lines) - 1
+}
+
+func (p *parser) parseMigrationRename(parts []string, lineNumber int) (MigrationRenameDecl, bool) {
+	if len(parts) != 5 || parts[3] != "to" {
+		p.addError(lineNumber, 1, "INVALID_MIGRATION_RENAME", "Migration rename must be `rename entity Old to New` or `rename field Entity.old to new`.", "Use `rename entity ProductItem to Product` or `rename field Product.oldName to name`.")
+		return MigrationRenameDecl{}, false
+	}
+	switch parts[1] {
+	case "entity":
+		return MigrationRenameDecl{
+			Kind:     "entity",
+			From:     parts[2],
+			To:       parts[4],
+			Position: p.position(lineNumber, 1),
+		}, true
+	case "field":
+		entityName, fieldName, ok := strings.Cut(parts[2], ".")
+		if !ok || entityName == "" || fieldName == "" {
+			p.addError(lineNumber, 1, "INVALID_MIGRATION_FIELD_RENAME", "Field rename source must be `Entity.oldField`.", "Use `rename field Product.oldName to name`.")
+			return MigrationRenameDecl{}, false
+		}
+		return MigrationRenameDecl{
+			Kind:     "field",
+			Entity:   entityName,
+			From:     fieldName,
+			To:       parts[4],
+			Position: p.position(lineNumber, 1),
+		}, true
+	default:
+		p.addError(lineNumber, 1, "INVALID_MIGRATION_RENAME_KIND", fmt.Sprintf("Unsupported migration rename kind %q.", parts[1]), "Use entity or field.")
+		return MigrationRenameDecl{}, false
+	}
 }
 
 func (p *parser) parseSecurity(start int, parts []string) int {
@@ -395,13 +481,195 @@ func (p *parser) parseDeploy(start int, parts []string) int {
 				Mode:     rowParts[2],
 				Position: p.position(currentLine, 1),
 			})
+		case "preview":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_PREVIEW", "Deploy preview must be `preview local`.", "Example: `preview local`.")
+				continue
+			}
+			if deploy.Preview != nil {
+				p.addError(currentLine, 1, "DUPLICATE_DEPLOY_PREVIEW", "Deploy preview is already declared.", "Keep one preview line inside deploy.")
+				continue
+			}
+			deploy.Preview = &DeployPreviewDecl{
+				Mode:     rowParts[1],
+				Position: p.position(currentLine, 1),
+			}
+		case "rollback":
+			if len(rowParts) != 3 || rowParts[1] != "keep" {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_ROLLBACK", "Deploy rollback must be `rollback keep NUMBER`.", "Example: `rollback keep 3`.")
+				continue
+			}
+			if deploy.Rollback != nil {
+				p.addError(currentLine, 1, "DUPLICATE_DEPLOY_ROLLBACK", "Deploy rollback is already declared.", "Keep one rollback line inside deploy.")
+				continue
+			}
+			keep, err := strconv.Atoi(rowParts[2])
+			if err != nil {
+				p.addError(currentLine, 1, "INVALID_DEPLOY_ROLLBACK", "Deploy rollback keep count must be an integer.", "Example: `rollback keep 3`.")
+				continue
+			}
+			deploy.Rollback = &DeployRollbackDecl{
+				Strategy: "keep",
+				Keep:     keep,
+				Position: p.position(currentLine, 1),
+			}
+		case "cloud":
+			cloud, ok := p.parseDeployCloud(rowParts, currentLine)
+			if !ok {
+				continue
+			}
+			if deploy.Cloud != nil {
+				p.addError(currentLine, 1, "DUPLICATE_DEPLOY_CLOUD", "Deploy cloud adapter is already declared.", "Keep one `cloud provider app env NAME` line inside deploy.")
+				continue
+			}
+			deploy.Cloud = &cloud
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_DEPLOY_TOKEN", fmt.Sprintf("Unexpected deploy token %q.", rowParts[0]), "Use target, port, or env inside deploy.")
+			p.addError(currentLine, 1, "UNEXPECTED_DEPLOY_TOKEN", fmt.Sprintf("Unexpected deploy token %q.", rowParts[0]), "Use target, port, env, preview, rollback, or cloud inside deploy.")
 		}
 	}
 
 	p.addError(lineNumber, 1, "UNCLOSED_DEPLOY", "Deploy block is missing a closing brace.", "Add `}` after the deploy block.")
 	return len(p.lines) - 1
+}
+
+func (p *parser) parseDeployCloud(parts []string, lineNumber int) (DeployCloudDecl, bool) {
+	if len(parts) != 5 && len(parts) != 8 {
+		p.addError(lineNumber, 1, "INVALID_DEPLOY_CLOUD", "Deploy cloud must be `cloud PROVIDER app env NAME` with optional `region env NAME`.", "Example: `cloud fly app env FLY_APP_NAME region env FLY_REGION`.")
+		return DeployCloudDecl{}, false
+	}
+	if parts[2] != "app" || parts[3] != "env" {
+		p.addError(lineNumber, 1, "INVALID_DEPLOY_CLOUD", "Deploy cloud app must reference an environment variable.", "Example: `cloud fly app env FLY_APP_NAME`.")
+		return DeployCloudDecl{}, false
+	}
+	cloud := DeployCloudDecl{
+		Provider: parts[1],
+		App: EnvRef{
+			Name:     parts[4],
+			Position: p.position(lineNumber, 1),
+		},
+		Position: p.position(lineNumber, 1),
+	}
+	if len(parts) == 8 {
+		if parts[5] != "region" || parts[6] != "env" {
+			p.addError(lineNumber, 1, "INVALID_DEPLOY_CLOUD", "Deploy cloud region must be `region env NAME`.", "Example: `cloud fly app env FLY_APP_NAME region env FLY_REGION`.")
+			return DeployCloudDecl{}, false
+		}
+		cloud.Region = EnvRef{
+			Name:     parts[7],
+			Position: p.position(lineNumber, 1),
+		}
+	}
+	return cloud, true
+}
+
+func (p *parser) parseOps(start int, parts []string) int {
+	lineNumber := p.lineNumber(start)
+	if len(parts) != 2 || parts[1] != "{" {
+		p.addError(lineNumber, 1, "INVALID_OPS_DECLARATION", "Ops declaration must be `ops {`.", "Start with `ops {`, then add health, readiness, metrics, or logging lines.")
+		return start
+	}
+	if p.program.Ops != nil {
+		p.addError(lineNumber, 1, "DUPLICATE_OPS", "Only one ops declaration is allowed.", "Keep a single `ops` block per project.")
+		return start
+	}
+
+	ops := OpsDecl{
+		Position: p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.program.Ops = &ops
+			return index
+		}
+
+		switch rowParts[0] {
+		case "health":
+			endpoint, ok := p.parseOpsEndpoint(rowParts, currentLine, "health", "INVALID_OPS_HEALTH")
+			if !ok {
+				continue
+			}
+			if ops.Health != nil {
+				p.addError(currentLine, 1, "DUPLICATE_OPS_HEALTH", "Ops health endpoint is already declared.", "Keep one `health path \"/healthz\"` line inside ops.")
+				continue
+			}
+			ops.Health = &endpoint
+		case "readiness":
+			endpoint, ok := p.parseOpsEndpoint(rowParts, currentLine, "readiness", "INVALID_OPS_READINESS")
+			if !ok {
+				continue
+			}
+			if ops.Readiness != nil {
+				p.addError(currentLine, 1, "DUPLICATE_OPS_READINESS", "Ops readiness endpoint is already declared.", "Keep one `readiness path \"/readyz\"` line inside ops.")
+				continue
+			}
+			ops.Readiness = &endpoint
+		case "metrics":
+			endpoint, ok := p.parseOpsEndpoint(rowParts, currentLine, "metrics", "INVALID_OPS_METRICS")
+			if !ok {
+				continue
+			}
+			if ops.Metrics != nil {
+				p.addError(currentLine, 1, "DUPLICATE_OPS_METRICS", "Ops metrics endpoint is already declared.", "Keep one `metrics path \"/metrics\"` line inside ops.")
+				continue
+			}
+			ops.Metrics = &endpoint
+		case "logging":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_OPS_LOGGING", "Ops logging must be `logging requests`.", "Use `logging requests` for generated request logs.")
+				continue
+			}
+			if ops.Logging != "" {
+				p.addError(currentLine, 1, "DUPLICATE_OPS_LOGGING", "Ops logging is already declared.", "Keep one logging line inside ops.")
+				continue
+			}
+			ops.Logging = rowParts[1]
+		case "observe":
+			observe, ok := p.parseOpsObserve(rowParts, currentLine)
+			if !ok {
+				continue
+			}
+			if ops.Observe != nil {
+				p.addError(currentLine, 1, "DUPLICATE_OPS_OBSERVE", "Ops observability hook is already declared.", "Keep one `observe PROVIDER endpoint env NAME` line inside ops.")
+				continue
+			}
+			ops.Observe = &observe
+		default:
+			p.addError(currentLine, 1, "UNEXPECTED_OPS_TOKEN", fmt.Sprintf("Unexpected ops token %q.", rowParts[0]), "Use health, readiness, metrics, logging, or observe inside ops.")
+		}
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_OPS", "Ops block is missing a closing brace.", "Add `}` after the ops block.")
+	return len(p.lines) - 1
+}
+
+func (p *parser) parseOpsEndpoint(parts []string, lineNumber int, name string, code string) (OpsEndpointDecl, bool) {
+	if len(parts) != 3 || parts[1] != "path" {
+		examplePath := map[string]string{"health": "/healthz", "readiness": "/readyz", "metrics": "/metrics"}[name]
+		p.addError(lineNumber, 1, code, fmt.Sprintf("Ops %s endpoint must be `%s path %q`.", name, name, examplePath), fmt.Sprintf("Example: `%s path %q`.", name, examplePath))
+		return OpsEndpointDecl{}, false
+	}
+	return OpsEndpointDecl{
+		Path:     parts[2],
+		Position: p.position(lineNumber, 1),
+	}, true
+}
+
+func (p *parser) parseOpsObserve(parts []string, lineNumber int) (OpsObserveDecl, bool) {
+	if len(parts) != 5 || parts[2] != "endpoint" || parts[3] != "env" {
+		p.addError(lineNumber, 1, "INVALID_OPS_OBSERVE", "Ops observe must be `observe PROVIDER endpoint env NAME`.", "Example: `observe otlp endpoint env BLACKLANG_OTLP_ENDPOINT`.")
+		return OpsObserveDecl{}, false
+	}
+	return OpsObserveDecl{
+		Provider: parts[1],
+		Endpoint: EnvRef{
+			Name:     parts[4],
+			Position: p.position(lineNumber, 1),
+		},
+		Position: p.position(lineNumber, 1),
+	}, true
 }
 
 func (p *parser) parseI18N(start int, parts []string) int {
@@ -493,6 +761,53 @@ func (p *parser) parseLabelTranslation(start int, parts []string) int {
 	return len(p.lines) - 1
 }
 
+func (p *parser) parseFieldTextTranslation(start int, parts []string, kind string) int {
+	lineNumber := p.lineNumber(start)
+	codeKind := strings.ToUpper(kind)
+	if len(parts) != 3 || parts[2] != "{" {
+		p.addError(lineNumber, 1, "INVALID_"+codeKind+"_DECLARATION", fmt.Sprintf("%s translation declaration must be `%s Entity.field {`.", title(kind), kind), fmt.Sprintf("Example: `%s Product.name { tr \"Ürün adını gir\" }`.", kind))
+		return start
+	}
+
+	block := FieldTextTranslationDecl{
+		Target:       parts[1],
+		Translations: []TranslationValue{},
+		Position:     p.position(lineNumber, 1),
+	}
+
+	for index := start + 1; index < len(p.lines); index++ {
+		currentLine := p.lineNumber(index)
+		rowParts := p.partsAt(index)
+		if isClosingBrace(rowParts) {
+			p.appendFieldTextTranslation(kind, block)
+			return index
+		}
+		if len(rowParts) != 2 {
+			p.addError(currentLine, 1, "INVALID_"+codeKind+"_TRANSLATION", fmt.Sprintf("%s translation must be `locale \"Text\"`.", title(kind)), "Example: `tr \"Ürün adını gir\"`.")
+			continue
+		}
+		block.Translations = append(block.Translations, TranslationValue{
+			Locale:   rowParts[0],
+			Text:     rowParts[1],
+			Position: p.position(currentLine, 1),
+		})
+	}
+
+	p.addError(lineNumber, 1, "UNCLOSED_"+codeKind, fmt.Sprintf("%s translation %s is missing a closing brace.", title(kind), block.Target), fmt.Sprintf("Add `}` after %s translations.", kind))
+	return len(p.lines) - 1
+}
+
+func (p *parser) appendFieldTextTranslation(kind string, block FieldTextTranslationDecl) {
+	switch kind {
+	case "placeholder":
+		p.program.Placeholders = append(p.program.Placeholders, block)
+	case "help":
+		p.program.HelpTexts = append(p.program.HelpTexts, block)
+	case "message":
+		p.program.Messages = append(p.program.Messages, block)
+	}
+}
+
 func (p *parser) parseAuthUser(start int, parts []string) (UserDecl, int) {
 	lineNumber := p.lineNumber(start)
 	user := UserDecl{
@@ -517,11 +832,12 @@ func (p *parser) parseAuthUser(start int, parts []string) (UserDecl, int) {
 		}
 		fieldMetadata := p.parseModifiersAndUI(fieldParts[2:], currentLine)
 		user.Fields = append(user.Fields, FieldDecl{
-			Name:      fieldParts[0],
-			Type:      fieldParts[1],
-			Modifiers: fieldMetadata.modifiers,
-			UI:        fieldMetadata.ui,
-			Position:  p.position(currentLine, 1),
+			Name:         fieldParts[0],
+			Type:         fieldParts[1],
+			Modifiers:    fieldMetadata.modifiers,
+			RelationLoad: relationLoadScopesFromModifiers(fieldMetadata.modifiers),
+			UI:           fieldMetadata.ui,
+			Position:     p.position(currentLine, 1),
 		})
 	}
 
@@ -540,6 +856,8 @@ func (p *parser) parseEntity(start int, parts []string) int {
 		Name:           parts[1],
 		Fields:         []FieldDecl{},
 		ComputedFields: []ComputedFieldDecl{},
+		Indexes:        []EntityIndexDecl{},
+		Policies:       []EntityPolicyDecl{},
 		Validations:    []EntityValidationDecl{},
 		Position:       p.position(lineNumber, 1),
 	}
@@ -560,9 +878,23 @@ func (p *parser) parseEntity(start int, parts []string) int {
 			continue
 		}
 		if fieldParts[0] == "computed" {
-			computed, ok := p.parseComputedField(fieldParts, currentLine)
+			computed, ok := p.parseComputedField(p.lines[index], currentLine)
 			if ok {
 				entity.ComputedFields = append(entity.ComputedFields, computed)
+			}
+			continue
+		}
+		if fieldParts[0] == "index" {
+			indexDecl, ok := p.parseEntityIndex(fieldParts, currentLine)
+			if ok {
+				entity.Indexes = append(entity.Indexes, indexDecl)
+			}
+			continue
+		}
+		if fieldParts[0] == "policy" {
+			policy, ok := p.parseEntityPolicy(fieldParts, currentLine)
+			if ok {
+				entity.Policies = append(entity.Policies, policy)
 			}
 			continue
 		}
@@ -573,11 +905,12 @@ func (p *parser) parseEntity(start int, parts []string) int {
 
 		fieldMetadata := p.parseModifiersAndUI(fieldParts[2:], currentLine)
 		field := FieldDecl{
-			Name:      fieldParts[0],
-			Type:      fieldParts[1],
-			Modifiers: fieldMetadata.modifiers,
-			UI:        fieldMetadata.ui,
-			Position:  p.position(currentLine, 1),
+			Name:         fieldParts[0],
+			Type:         fieldParts[1],
+			Modifiers:    fieldMetadata.modifiers,
+			RelationLoad: relationLoadScopesFromModifiers(fieldMetadata.modifiers),
+			UI:           fieldMetadata.ui,
+			Position:     p.position(currentLine, 1),
 		}
 		entity.Fields = append(entity.Fields, field)
 	}
@@ -586,23 +919,111 @@ func (p *parser) parseEntity(start int, parts []string) int {
 	return len(p.lines) - 1
 }
 
-func (p *parser) parseComputedField(parts []string, lineNumber int) (ComputedFieldDecl, bool) {
-	if len(parts) < 7 || parts[3] != "=" {
-		p.addError(lineNumber, 1, "INVALID_COMPUTED_FIELD", "Computed field must be `computed name type = left operator right`.", "Example: `computed inventoryValue money = stock * price`.")
+func (p *parser) parseComputedField(statement sourceStatement, lineNumber int) (ComputedFieldDecl, bool) {
+	tokens := statement.Tokens
+	if len(tokens) < 7 || !queryStatementIdentifiers(statement, 1, 2) || tokens[3].Kind != tokenOperator || tokens[3].Value != "=" {
+		p.addError(lineNumber, 1, "INVALID_COMPUTED_FIELD", "Computed field must be `computed name type = expression`.", "Example: `computed inventoryValue money = stock * (price + tax)`.")
 		return ComputedFieldDecl{}, false
 	}
 
+	expression, modifierStart, ok := p.parseComputedExpressionAndModifierStart(tokens, lineNumber)
+	if !ok {
+		return ComputedFieldDecl{}, false
+	}
+	left, operator, right := computedExpressionLegacyParts(expression)
+	expressionCopy := expression
+
 	return ComputedFieldDecl{
-		Name: parts[1],
-		Type: parts[2],
+		Name: tokens[1].Value,
+		Type: tokens[2].Value,
 		Expression: ComputedExpressionDecl{
-			Left:     parts[4],
-			Operator: parts[5],
-			Right:    parts[6],
+			Left:     left,
+			Operator: operator,
+			Right:    right,
+			Tree:     &expressionCopy,
 			Position: p.position(lineNumber, 1),
 		},
-		Modifiers: parseModifiers(parts[7:]),
+		Modifiers: parseModifiers(tokensToParts(tokens[modifierStart:])),
 		Position:  p.position(lineNumber, 1),
+	}, true
+}
+
+func (p *parser) parseComputedExpressionAndModifierStart(tokens []sourceToken, lineNumber int) (ExpressionDecl, int, bool) {
+	for index := 4; index <= len(tokens); index++ {
+		if index != len(tokens) && !isComputedModifierStart(tokens[index]) && !isComputedUnknownModifierStart(tokens[index]) {
+			continue
+		}
+		expressionTokens := tokens[4:index]
+		if len(expressionTokens) == 0 {
+			continue
+		}
+		expression, ok := parseCoreExpression(expressionTokens, parseComputedExpressionOperand)
+		if !ok || !expressionHasBinary(expression) {
+			continue
+		}
+		return expression, index, true
+	}
+	p.addError(lineNumber, 1, "INVALID_COMPUTED_EXPRESSION", "Computed expression must use number-like fields or numeric literals with +, -, *, /, and parentheses.", "Example: `computed inventoryValue money = stock * (price + tax)`.")
+	return ExpressionDecl{}, len(tokens), false
+}
+
+func isComputedModifierStart(token sourceToken) bool {
+	return token.Kind == tokenIdentifier && supportedComputedFieldModifiers[token.Value]
+}
+
+func isComputedUnknownModifierStart(token sourceToken) bool {
+	return token.Kind == tokenIdentifier && expressionOperatorPrecedence(token.Value) == 0
+}
+
+func parseComputedExpressionOperand(token sourceToken) (string, string, bool) {
+	if token.Kind != tokenIdentifier {
+		return "", "", false
+	}
+	if queryNumberPattern.MatchString(token.Value) {
+		return "number", token.Value, true
+	}
+	if queryIdentifierPattern.MatchString(token.Value) {
+		return "reference", token.Value, true
+	}
+	return "", "", false
+}
+
+func computedExpressionLegacyParts(expression ExpressionDecl) (string, string, string) {
+	if expression.Kind == "binary" {
+		left := ""
+		right := ""
+		if expression.Left != nil {
+			left = formatCoreExpression(*expression.Left)
+		}
+		if expression.Right != nil {
+			right = formatCoreExpression(*expression.Right)
+		}
+		return left, expression.Operator, right
+	}
+	return formatCoreExpression(expression), "", ""
+}
+
+func (p *parser) parseEntityIndex(parts []string, lineNumber int) (EntityIndexDecl, bool) {
+	fields := parseList(parts[1:])
+	if len(fields) == 0 {
+		p.addError(lineNumber, 1, "INVALID_ENTITY_INDEX", "Entity index must list at least one stored field.", "Example: `index sku` or `index customer, status`.")
+		return EntityIndexDecl{}, false
+	}
+	return EntityIndexDecl{
+		Fields:   fields,
+		Position: p.position(lineNumber, 1),
+	}, true
+}
+
+func (p *parser) parseEntityPolicy(parts []string, lineNumber int) (EntityPolicyDecl, bool) {
+	if len(parts) != 3 || !queryIdentifierPattern.MatchString(parts[1]) || !queryIdentifierPattern.MatchString(parts[2]) {
+		p.addError(lineNumber, 1, "INVALID_ENTITY_POLICY", "Entity policy must be `policy owner field` or `policy tenant field`.", "Example: `policy owner ownerId`.")
+		return EntityPolicyDecl{}, false
+	}
+	return EntityPolicyDecl{
+		Kind:     parts[1],
+		Field:    parts[2],
+		Position: p.position(lineNumber, 1),
 	}, true
 }
 
@@ -655,18 +1076,36 @@ func (p *parser) parseAPI(start int, parts []string) int {
 		Name:     parts[1],
 		Queries:  []APIParamDecl{},
 		Params:   []APIParamDecl{},
+		Body:     []FieldDecl{},
 		Position: p.position(lineNumber, 1),
 	}
+	seen := map[string]bool{}
 
 	for index := start + 1; index < len(p.lines); index++ {
 		currentLine := p.lineNumber(index)
-		rowParts := p.partsAt(index)
+		statement := p.lines[index]
+		rowParts := statement.Parts()
 		if isClosingBrace(rowParts) {
 			p.program.APIs = append(p.program.APIs, api)
 			return index
 		}
+		if len(rowParts) == 0 {
+			continue
+		}
+		keyword := rowParts[0]
+		if keyword == "method" || keyword == "path" || keyword == "public" || keyword == "private" || keyword == "webhook" || keyword == "update" || keyword == "respond" {
+			seenKey := keyword
+			if keyword == "public" || keyword == "private" {
+				seenKey = "access"
+			}
+			if seen[seenKey] {
+				p.addError(currentLine, 1, "DUPLICATE_API_"+strings.ToUpper(seenKey), fmt.Sprintf("API %s already declares %s.", api.Name, seenKey), "Keep one "+seenKey+" clause inside each api.")
+				continue
+			}
+			seen[seenKey] = true
+		}
 
-		switch rowParts[0] {
+		switch keyword {
 		case "method":
 			if len(rowParts) != 2 {
 				p.addError(currentLine, 1, "INVALID_API_METHOD", "API method must be `method GET`.", "Use GET, POST, PUT, PATCH, or DELETE.")
@@ -691,6 +1130,30 @@ func (p *parser) parseAPI(start int, parts []string) int {
 				continue
 			}
 			api.Params = append(api.Params, APIParamDecl{Name: rowParts[1], Type: rowParts[2], Position: p.position(currentLine, 1)})
+		case "body":
+			field, ok := p.parseAPIBodyField(statement, currentLine)
+			if ok {
+				api.Body = append(api.Body, field)
+			}
+		case "update":
+			if len(statement.Tokens) > 0 && statement.Tokens[len(statement.Tokens)-1].Kind == tokenSymbol && statement.Tokens[len(statement.Tokens)-1].Value == "{" {
+				update, next, ok := p.parseAPIUpdateBlock(index, statement, currentLine)
+				if ok {
+					api.Update = &update
+					index = next
+				}
+				continue
+			}
+			update, ok := p.parseAPIUpdate(statement, currentLine)
+			if ok {
+				api.Update = &update
+			}
+		case "respond":
+			if len(rowParts) != 2 {
+				p.addError(currentLine, 1, "INVALID_API_RESPOND", "API respond must be `respond declared`, `respond accepted`, or `respond updated`.", "Example: `respond accepted`.")
+				continue
+			}
+			api.Respond = rowParts[1]
 		case "public", "private":
 			if len(rowParts) != 1 {
 				p.addError(currentLine, 1, "INVALID_API_ACCESS", "API access must be `public` or `private`.", "Use one access token per line.")
@@ -704,7 +1167,7 @@ func (p *parser) parseAPI(start int, parts []string) int {
 			}
 			api.Webhook = true
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_API_TOKEN", fmt.Sprintf("Unexpected api token %q.", rowParts[0]), "Use method, path, query, param, public, private, or webhook inside an api block.")
+			p.addError(currentLine, 1, "UNEXPECTED_API_TOKEN", fmt.Sprintf("Unexpected api token %q.", rowParts[0]), "Use method, path, query, param, body, update, respond, public, private, or webhook inside an api block.")
 		}
 	}
 
@@ -959,13 +1422,263 @@ func (p *parser) parsePageView(start int, parts []string) (PageViewDecl, int) {
 				continue
 			}
 			view.Order = parseList(rowParts[1:])
+		case "compose":
+			if view.Compose != nil {
+				p.addError(currentLine, 1, "DUPLICATE_VIEW_COMPOSE", "View compose is already declared.", "Keep one compose line inside view.")
+				continue
+			}
+			compose, ok := p.parseViewCompose(rowParts, currentLine)
+			if ok {
+				view.Compose = &compose
+			}
+		case "section":
+			section, ok := p.parseViewSection(rowParts, currentLine)
+			if ok {
+				view.Sections = append(view.Sections, section)
+			}
+		case "tab":
+			tab, ok := p.parseViewTab(rowParts, currentLine)
+			if ok {
+				view.Tabs = append(view.Tabs, tab)
+			}
+		case "group":
+			group, ok := p.parseViewGroup(rowParts, currentLine)
+			if ok {
+				view.Groups = append(view.Groups, group)
+			}
+		case "trigger":
+			trigger, ok := p.parseViewTrigger(rowParts, currentLine)
+			if ok {
+				view.Triggers = append(view.Triggers, trigger)
+			}
 		default:
-			p.addError(currentLine, 1, "UNEXPECTED_VIEW_TOKEN", fmt.Sprintf("Unexpected view token %q.", rowParts[0]), "Use order inside a view block.")
+			p.addError(currentLine, 1, "UNEXPECTED_VIEW_TOKEN", fmt.Sprintf("Unexpected view token %q.", rowParts[0]), "Use order, compose, section, tab, group, or trigger inside a view block.")
 		}
 	}
 
 	p.addError(lineNumber, 1, "UNCLOSED_VIEW", "View is missing a closing brace.", "Add `}` after view settings.")
 	return view, len(p.lines) - 1
+}
+
+func (p *parser) parseViewCompose(parts []string, lineNumber int) (ViewComposeDecl, bool) {
+	compose := ViewComposeDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) < 2 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_COMPOSE", "View compose must name a mode.", "Example: `compose grid columns 2 gap md stackAt md`.")
+		return compose, false
+	}
+	compose.Mode = parts[1]
+	for index := 2; index < len(parts); index += 2 {
+		if index+1 >= len(parts) {
+			p.addError(lineNumber, 1, "INVALID_VIEW_COMPOSE", "View compose options must use key value pairs.", "Example: `compose grid columns 2 gap md stackAt md`.")
+			return compose, false
+		}
+		key := parts[index]
+		value := parts[index+1]
+		switch key {
+		case "columns":
+			if compose.Columns != 0 {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_COMPOSE_OPTION", "View compose columns option is already declared.", "Keep one columns option.")
+				return compose, false
+			}
+			columns, err := strconv.Atoi(value)
+			if err != nil || columns < 1 {
+				p.addError(lineNumber, 1, "INVALID_VIEW_COMPOSE_COLUMNS", "View compose columns must be a number.", "Use columns 1, 2, 3, or 4.")
+				return compose, false
+			}
+			compose.Columns = columns
+		case "gap":
+			if compose.Gap != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_COMPOSE_OPTION", "View compose gap option is already declared.", "Keep one gap option.")
+				return compose, false
+			}
+			compose.Gap = value
+		case "stackAt":
+			if compose.StackAt != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_COMPOSE_OPTION", "View compose stackAt option is already declared.", "Keep one stackAt option.")
+				return compose, false
+			}
+			compose.StackAt = value
+		default:
+			p.addError(lineNumber, 1, "INVALID_VIEW_COMPOSE_OPTION", fmt.Sprintf("Unknown view compose option %q.", key), "Use columns, gap, or stackAt.")
+			return compose, false
+		}
+	}
+	return compose, true
+}
+
+func (p *parser) parseViewSection(parts []string, lineNumber int) (ViewSectionDecl, bool) {
+	section := ViewSectionDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) < 2 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_SECTION", "View section must be `section <name> [component <Component>] [bind selected|first|each] [span <columns>] [display inline|modal|drawer]`.", "Example: `section StockSummary component StockBadge bind selected title \"Stock Summary\"`.")
+		return section, false
+	}
+	section.Name = parts[1]
+	for index := 2; index < len(parts); index += 2 {
+		if index+1 >= len(parts) {
+			p.addError(lineNumber, 1, "INVALID_VIEW_SECTION", "View section options must use key value pairs.", "Use component, bind, span, display, side, or title options.")
+			return section, false
+		}
+		key := parts[index]
+		value := parts[index+1]
+		switch key {
+		case "component":
+			if section.Component != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section component option is already declared.", "Keep one component option.")
+				return section, false
+			}
+			section.Component = value
+		case "bind":
+			if section.Bind != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section bind option is already declared.", "Keep one bind option.")
+				return section, false
+			}
+			section.Bind = value
+		case "span":
+			if section.Span != 0 {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section span option is already declared.", "Keep one span option.")
+				return section, false
+			}
+			span, err := strconv.Atoi(value)
+			if err != nil {
+				p.addError(lineNumber, 1, "INVALID_VIEW_SECTION_SPAN", "View section span must be a number.", "Use span 1, 2, 3, or 4.")
+				return section, false
+			}
+			section.Span = span
+		case "display":
+			if section.Display != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section display option is already declared.", "Keep one display option.")
+				return section, false
+			}
+			section.Display = value
+		case "side":
+			if section.Side != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section side option is already declared.", "Keep one side option.")
+				return section, false
+			}
+			section.Side = value
+		case "title":
+			if section.Title != "" {
+				p.addError(lineNumber, 1, "DUPLICATE_VIEW_SECTION_OPTION", "View section title option is already declared.", "Keep one title option.")
+				return section, false
+			}
+			section.Title = value
+		default:
+			p.addError(lineNumber, 1, "INVALID_VIEW_SECTION_OPTION", fmt.Sprintf("Unknown view section option %q.", key), "Use component, bind, span, display, side, or title.")
+			return section, false
+		}
+	}
+	return section, true
+}
+
+func (p *parser) parseViewTab(parts []string, lineNumber int) (ViewTabDecl, bool) {
+	tab := ViewTabDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) < 4 || parts[2] != "sections" || !isThemeIdentifier(parts[1]) {
+		p.addError(lineNumber, 1, "INVALID_VIEW_TAB", "View tab must be `tab <Name> sections <section...>`.", "Example: `tab Overview sections table, detail`.")
+		return tab, false
+	}
+	sections := parseList(parts[3:])
+	if len(sections) == 0 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_TAB", "View tab must list at least one section.", "Example: `tab Details sections detail, form`.")
+		return tab, false
+	}
+	tab.Name = parts[1]
+	tab.Sections = sections
+	return tab, true
+}
+
+func (p *parser) parseViewGroup(parts []string, lineNumber int) (ViewGroupDecl, bool) {
+	group := ViewGroupDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) < 4 || parts[2] != "sections" || !isThemeIdentifier(parts[1]) {
+		p.addError(lineNumber, 1, "INVALID_VIEW_GROUP", "View group must be `group <Name> sections <section...> [compose stack|grid]`.", "Example: `group Record sections detail, form compose stack title \"Record\"`.")
+		return group, false
+	}
+	group.Name = parts[1]
+
+	sectionEnd := 3
+	for sectionEnd < len(parts) && !isViewGroupOption(parts[sectionEnd]) {
+		sectionEnd++
+	}
+	if sectionEnd == 3 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_GROUP", "View group must list at least one section.", "Example: `group Record sections detail, form`.")
+		return group, false
+	}
+	group.Sections = parseList(parts[3:sectionEnd])
+	if len(group.Sections) == 0 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_GROUP", "View group must list at least one section.", "Example: `group Record sections detail, form`.")
+		return group, false
+	}
+
+	options := parts[sectionEnd:]
+	if len(options)%2 != 0 {
+		p.addError(lineNumber, 1, "INVALID_VIEW_GROUP_OPTION", "View group options must use key value pairs.", "Use compose, columns, gap, span, or title options.")
+		return group, false
+	}
+
+	seen := map[string]bool{}
+	for index := 0; index < len(options); index += 2 {
+		key := options[index]
+		value := options[index+1]
+		if seen[key] {
+			p.addError(lineNumber, 1, "DUPLICATE_VIEW_GROUP_OPTION", fmt.Sprintf("View group option %q is already declared.", key), "Keep one value for each group option.")
+			return group, false
+		}
+		seen[key] = true
+		switch key {
+		case "compose":
+			if group.Compose == nil {
+				group.Compose = &ViewComposeDecl{Position: group.Position}
+			}
+			group.Compose.Mode = value
+		case "columns":
+			if group.Compose == nil {
+				group.Compose = &ViewComposeDecl{Position: group.Position}
+			}
+			columns, err := strconv.Atoi(value)
+			if err != nil || columns < 1 {
+				p.addError(lineNumber, 1, "INVALID_VIEW_GROUP_COLUMNS", "View group columns must be a number.", "Use columns 1, 2, 3, or 4.")
+				return group, false
+			}
+			group.Compose.Columns = columns
+		case "gap":
+			if group.Compose == nil {
+				group.Compose = &ViewComposeDecl{Position: group.Position}
+			}
+			group.Compose.Gap = value
+		case "span":
+			span, err := strconv.Atoi(value)
+			if err != nil || span < 1 {
+				p.addError(lineNumber, 1, "INVALID_VIEW_GROUP_SPAN", "View group span must be a number.", "Use span 1, 2, 3, or 4.")
+				return group, false
+			}
+			group.Span = span
+		case "title":
+			group.Title = value
+		default:
+			p.addError(lineNumber, 1, "INVALID_VIEW_GROUP_OPTION", fmt.Sprintf("Unknown view group option %q.", key), "Use compose, columns, gap, span, or title.")
+			return group, false
+		}
+	}
+	return group, true
+}
+
+func isViewGroupOption(value string) bool {
+	switch value {
+	case "compose", "columns", "gap", "span", "title":
+		return true
+	default:
+		return false
+	}
+}
+
+func (p *parser) parseViewTrigger(parts []string, lineNumber int) (ViewTriggerDecl, bool) {
+	trigger := ViewTriggerDecl{Position: p.position(lineNumber, 1)}
+	if len(parts) != 4 || parts[2] != "on" {
+		p.addError(lineNumber, 1, "INVALID_VIEW_TRIGGER", "View trigger must be `trigger <section> on <event>`.", "Example: `trigger detail on rowSelect`.")
+		return trigger, false
+	}
+	trigger.Section = parts[1]
+	trigger.Event = parts[3]
+	return trigger, true
 }
 
 func (p *parser) parseTable(start int, parts []string) (TableDecl, int) {
@@ -1354,6 +2067,11 @@ func parseModifiers(parts []string) []Modifier {
 	for index := 0; index < len(parts); index++ {
 		name := parts[index]
 		modifier := Modifier{Name: name}
+		if modifierTakesList(name) {
+			modifier.Value, index = parseListModifierValue(parts, index)
+			modifiers = append(modifiers, modifier)
+			continue
+		}
 		if modifierTakesValue(name) && index+1 < len(parts) {
 			modifier.Value = parts[index+1]
 			index++
@@ -1383,6 +2101,11 @@ func (p *parser) parseModifiersAndUI(parts []string, lineNumber int) fieldMetada
 			return metadata
 		}
 		modifier := Modifier{Name: name}
+		if modifierTakesList(name) {
+			modifier.Value, index = parseListModifierValue(parts, index)
+			metadata.modifiers = append(metadata.modifiers, modifier)
+			continue
+		}
 		if modifierTakesValue(name) && index+1 < len(parts) {
 			modifier.Value = parts[index+1]
 			index++
@@ -1432,7 +2155,7 @@ func (p *parser) parseUIIntents(parts []string, lineNumber int) ([]UIIntent, boo
 }
 
 func modifierTakesValue(name string) bool {
-	return name == "default" || name == "label" || name == "placeholder" || name == "help" || name == "min" || name == "max" || name == "length" || name == "regex" || name == "message"
+	return name == "default" || name == "label" || name == "placeholder" || name == "help" || name == "min" || name == "max" || name == "length" || name == "regex" || name == "accept" || name == "message"
 }
 
 func parseList(parts []string) []string {

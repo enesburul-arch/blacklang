@@ -55,7 +55,7 @@ func TestQueryLearningContract(t *testing.T) {
 	if !explanation.Success || len(explanation.AgentSteps) < 6 || !containsString(explanation.Related, "inspect") || len(explanation.ErrorCodes) == 0 {
 		t.Fatalf("incomplete query explanation: %#v", explanation)
 	}
-	for _, note := range []string{"403", "1..1000", "row authorization", "AND", "relation selectors"} {
+	for _, note := range []string{"403", "1..1000", "row policy", "AND", "relation selectors"} {
 		if !strings.Contains(strings.Join(doc.AgentNotes, " "), note) {
 			t.Fatalf("query docs must explain %q", note)
 		}
@@ -81,7 +81,7 @@ func TestQueryInspectAndAffected(t *testing.T) {
 			t.Fatalf("list query must not affect database/mutation schema: %s", path)
 		}
 	}
-	for _, symbol := range []string{"Product", "Product.stock", "LowStock", "Reader", "auth"} {
+	for _, symbol := range []string{"Product", "Product.stock", "Product.price", "LowStock", "Reader", "auth"} {
 		result, errors := AnalyzeAffected(program, symbol)
 		if len(errors) != 0 || !affectedItemsContain(result.Queries, "LowStockProducts") {
 			t.Fatalf("%s must identify dependent query: %#v %#v", symbol, result, errors)
@@ -104,7 +104,7 @@ func TestQueryInspectAndAffected(t *testing.T) {
 		t.Fatal("affected output must be deterministic")
 	}
 	encoded, err := json.Marshal(InspectResult{Success: true, Program: program})
-	if err != nil || !strings.Contains(string(encoded), `"queries":[`) || !strings.Contains(string(encoded), `"query":"LowStockProducts"`) {
+	if err != nil || !strings.Contains(string(encoded), `"queries":[`) || !strings.Contains(string(encoded), `"aggregates":[`) || !strings.Contains(string(encoded), `"query":"LowStockProducts"`) {
 		t.Fatalf("inspect JSON must retain declarations and bindings: %s %v", encoded, err)
 	}
 	ir := FormatAffectedIR(InspectAffectedResult{Success: true, Affected: analysis})
@@ -112,7 +112,7 @@ func TestQueryInspectAndAffected(t *testing.T) {
 		t.Fatalf("affected IR missing query: %s", ir)
 	}
 	inspectIR := FormatInspectIR(InspectResult{Success: true, Program: program})
-	if !strings.Contains(inspectIR, "queries 2") || !strings.Contains(inspectIR, "query LowStockProducts source Product filters 2") {
+	if !strings.Contains(inspectIR, "queries 2") || !strings.Contains(inspectIR, "query LowStockProducts source Product filters 2 aggregates 3") {
 		t.Fatalf("inspect IR missing query: %s", inspectIR)
 	}
 }
@@ -124,11 +124,53 @@ func TestQueryBlackIRRetainsLiteralKinds(t *testing.T) {
 		"query LowStockProducts source Product\n",
 		"  where stock < 10\n",
 		`  where name != "true, {stock} # literal"`,
+		"  aggregate lowStockCount count\n",
+		"  aggregate totalStock sum stock\n",
+		"  aggregate averagePrice avg price\n",
 		"  sort stock asc\n  limit 50\n",
 		"  query LowStockProducts\n",
 	} {
 		if !strings.Contains(ir, expected) {
 			t.Fatalf("query IR missing %q: %s", expected, ir)
+		}
+	}
+}
+
+func TestQueryAggregateValidation(t *testing.T) {
+	source := `app Inventory
+entity Product {
+  name text required
+  stock number default 0
+  price money default 0
+  computed inventoryValue money = stock * price
+}
+query BadAggregates {
+  source Product
+  aggregate duplicateCount count
+  aggregate duplicateCount count
+  aggregate countedStock count stock
+  aggregate missingSum sum
+  aggregate medianStock median stock
+  aggregate nameSum sum name
+  aggregate displaySum sum inventoryValue
+  aggregate __proto__ count
+}
+`
+	program, parseDiagnostics := Parse("query-aggregate-diagnostics.black", source)
+	if len(parseDiagnostics) != 0 {
+		t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+	}
+	diagnostics := Validate(program)
+	for _, code := range []string{
+		"DUPLICATE_QUERY_AGGREGATE",
+		"UNSUPPORTED_QUERY_AGGREGATE_FIELD",
+		"MISSING_QUERY_AGGREGATE_FIELD",
+		"UNSUPPORTED_QUERY_AGGREGATE",
+		"UNSUPPORTED_QUERY_FIELD",
+		"INVALID_QUERY_AGGREGATE",
+	} {
+		if !hasDiagnostic(diagnostics, code) {
+			t.Fatalf("expected %s diagnostic, got %#v", code, diagnostics)
 		}
 	}
 }
@@ -153,6 +195,9 @@ query LowStockProducts {
   source Product
   where stock < 10
   where name != "true, {stock} # literal"
+  aggregate lowStockCount count
+  aggregate totalStock sum stock
+  aggregate averagePrice avg price
   sort stock asc
   limit 50
 }

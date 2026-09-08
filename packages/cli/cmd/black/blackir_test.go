@@ -31,14 +31,27 @@ deploy {
   target docker
   port env PORT default 3001
   env DATABASE_URL required
+  preview local
+  rollback keep 3
+  cloud fly app env FLY_APP_NAME region env FLY_REGION
+}
+
+ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe webhook endpoint env BLACKLANG_OBSERVABILITY_ENDPOINT
 }
 
 entity Product {
   sku text required unique
+  customer Customer required load detail query label "Customer"
   stock number default 0 ui text "#172026" 14 semibold left
   price money default 0
   computed inventoryValue money = stock * price label "Inventory Value"
   status text default draft
+  index stock
 }
 
 role Admin {
@@ -80,7 +93,12 @@ page Products {
   source Product
   access Admin
   view {
-    order form, table, detail
+    order form, StockSummary, StockCards, table, detail
+    section StockSummary component StockBadge bind selected span 1 title "Stock Summary"
+    section StockCards component StockBadge bind each span 1 title "Stock Cards"
+    group Record sections detail, form compose stack gap md title "Record Workspace"
+    trigger detail on rowSelect
+    trigger form on editStart
   }
   table {
     columns sku, stock
@@ -117,12 +135,23 @@ page Products {
 		"deploy target docker",
 		"port env PORT default 3001",
 		"env DATABASE_URL required",
+		"preview local",
+		"rollback keep 3",
+		"cloud fly app env FLY_APP_NAME region env FLY_REGION",
+		"ops",
+		"health path \"/healthz\"",
+		"readiness path \"/readyz\"",
+		"metrics path \"/metrics\"",
+		"logging requests",
+		"observe webhook endpoint env BLACKLANG_OBSERVABILITY_ENDPOINT",
 		"entity Product",
 		"sku text required unique",
+		"customer Customer required load detail query label Customer",
 		"stock number default 0 ui text #172026 14 semibold left",
 		"price money default 0",
 		"computed inventoryValue money = stock * price label Inventory Value",
 		"status text default draft",
+		"index stock",
 		"role Admin",
 		"allow all",
 		"workflow OrderPreparation source Product",
@@ -139,7 +168,12 @@ page Products {
 		"layout AdminLayout",
 		"sidebar Products",
 		"page Products layout AdminLayout source Product",
-		"view-order form table detail",
+		"view-order form StockSummary StockCards table detail",
+		"view-section StockSummary component StockBadge bind selected span 1 title \"Stock Summary\"",
+		"view-section StockCards component StockBadge bind each span 1 title \"Stock Cards\"",
+		"view-group Record sections detail form compose stack gap md title \"Record Workspace\"",
+		"view-trigger detail on rowSelect",
+		"view-trigger form on editStart",
 		"table sku stock",
 		"filter stock",
 		"sort stock desc",
@@ -153,6 +187,36 @@ page Products {
 	for _, value := range expected {
 		if !strings.Contains(ir, value) {
 			t.Fatalf("expected IR to contain %q, got:\n%s", value, ir)
+		}
+	}
+}
+
+func TestFormatBlackIRIncludesMigrations(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text
+  name text
+}
+
+migration RenameProductName {
+  rename entity ProductItem to Product
+  rename field Product.title to name
+}
+`
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+
+	ir := FormatBlackIR(program)
+	for _, expected := range []string{
+		"migration RenameProductName",
+		"rename entity ProductItem to Product",
+		"rename field Product.title to name",
+	} {
+		if !strings.Contains(ir, expected) {
+			t.Fatalf("expected IR to contain %q, got:\n%s", expected, ir)
 		}
 	}
 }

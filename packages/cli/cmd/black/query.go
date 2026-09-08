@@ -10,15 +10,16 @@ import (
 )
 
 type QueryDecl struct {
-	Name           string            `json:"name"`
-	Source         string            `json:"source"`
-	Where          []QueryFilterDecl `json:"where,omitempty"`
-	Sort           SortDecl          `json:"sort,omitempty"`
-	Limit          int               `json:"limit,omitempty"`
-	Position       Position          `json:"position"`
-	SourcePosition Position          `json:"sourcePosition,omitempty"`
-	SortPosition   Position          `json:"sortPosition,omitempty"`
-	LimitPosition  Position          `json:"limitPosition,omitempty"`
+	Name           string               `json:"name"`
+	Source         string               `json:"source"`
+	Where          []QueryFilterDecl    `json:"where,omitempty"`
+	Aggregates     []QueryAggregateDecl `json:"aggregates,omitempty"`
+	Sort           SortDecl             `json:"sort,omitempty"`
+	Limit          int                  `json:"limit,omitempty"`
+	Position       Position             `json:"position"`
+	SourcePosition Position             `json:"sourcePosition,omitempty"`
+	SortPosition   Position             `json:"sortPosition,omitempty"`
+	LimitPosition  Position             `json:"limitPosition,omitempty"`
 }
 
 type QueryFilterDecl struct {
@@ -33,11 +34,21 @@ type QueryLiteral struct {
 	Value string `json:"value"`
 }
 
+type QueryAggregateDecl struct {
+	Name          string   `json:"name"`
+	Function      string   `json:"function"`
+	Field         string   `json:"field,omitempty"`
+	Position      Position `json:"position"`
+	FieldPosition Position `json:"fieldPosition,omitempty"`
+}
+
 var queryNamePattern = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
 var queryIdentifierPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 var queryNumberPattern = regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.[0-9]+)?$`)
 var queryDatePattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
 var queryDateTimePattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$`)
+var supportedQueryAggregates = setOf("count", "sum", "avg", "min", "max")
+var reservedQueryAggregateNames = setOf("__proto__", "constructor", "prototype")
 
 func (p *parser) parseQuery(start int, parts []string) int {
 	line := p.lineNumber(start)
@@ -61,7 +72,7 @@ func (p *parser) parseQuery(start int, parts []string) int {
 		}
 		keyword := tokens[0].Value
 		if tokens[0].Kind != tokenIdentifier {
-			p.addError(line, 1, "UNEXPECTED_QUERY_TOKEN", "Query clauses must begin with source, where, sort, or limit.", "Use one query clause per line.")
+			p.addError(line, 1, "UNEXPECTED_QUERY_TOKEN", "Query clauses must begin with source, where, aggregate, sort, or limit.", "Use one query clause per line.")
 			continue
 		}
 		if keyword == "source" || keyword == "sort" || keyword == "limit" {
@@ -90,6 +101,17 @@ func (p *parser) parseQuery(start int, parts []string) int {
 				continue
 			}
 			query.Where = append(query.Where, QueryFilterDecl{Field: tokens[1].Value, Operator: tokens[2].Value, Value: literal, Position: tokens[1].Position})
+		case "aggregate":
+			if (len(tokens) != 3 && len(tokens) != 4) || !queryStatementIdentifiers(statement, 1, 2) || (len(tokens) == 4 && !queryStatementIdentifiers(statement, 3)) {
+				p.addError(line, 1, "INVALID_QUERY_AGGREGATE", "Query aggregate must be `aggregate name count` or `aggregate name function field`.", "Example: `aggregate lowStockCount count` or `aggregate totalStock sum stock`.")
+				continue
+			}
+			aggregate := QueryAggregateDecl{Name: tokens[1].Value, Function: tokens[2].Value, Position: tokens[1].Position}
+			if len(tokens) == 4 {
+				aggregate.Field = tokens[3].Value
+				aggregate.FieldPosition = tokens[3].Position
+			}
+			query.Aggregates = append(query.Aggregates, aggregate)
 		case "sort":
 			if len(tokens) != 3 || !queryStatementIdentifiers(statement, 1, 2) {
 				p.addError(line, 1, "INVALID_QUERY_SORT", "Query sort must be `sort field asc` or `sort field desc`.", "Example: `sort stock asc`.")
@@ -110,7 +132,7 @@ func (p *parser) parseQuery(start int, parts []string) int {
 			query.Limit = limit
 			query.LimitPosition = tokens[1].Position
 		default:
-			p.addError(line, 1, "UNEXPECTED_QUERY_TOKEN", fmt.Sprintf("Unexpected query token %q.", keyword), "Use source, where, sort, or limit inside a query.")
+			p.addError(line, 1, "UNEXPECTED_QUERY_TOKEN", fmt.Sprintf("Unexpected query token %q.", keyword), "Use source, where, aggregate, sort, or limit inside a query.")
 		}
 	}
 	p.addError(line, 1, "UNCLOSED_QUERY", fmt.Sprintf("Query %s is missing a closing brace.", query.Name), "Add `}` after the query body.")
@@ -198,13 +220,46 @@ func (v *semanticValidator) validateQueries(entities map[string]EntityDecl) {
 				v.addDiagnostic(filter.Position, "UNSUPPORTED_QUERY_OPERATOR", fmt.Sprintf("Operator %q is not supported for query field %s.%s (%s).", filter.Operator, entity.Name, field.Name, field.Type), "Use == or != for all scalar types; numeric/date/datetime fields also allow <, <=, >, >=.")
 			}
 			if !queryLiteralMatchesField(filter.Value, field.Type) {
-				v.addDiagnostic(filter.Position, "QUERY_LITERAL_TYPE_MISMATCH", fmt.Sprintf("Query value %q does not match field %s.%s (%s).", filter.Value.Value, entity.Name, field.Name, field.Type), "Use quoted text/email, YYYY-MM-DD date, RFC3339 datetime, a finite decimal number, or true/false matching the stored type; number/integer require int32 values.")
+				v.addDiagnostic(filter.Position, "QUERY_LITERAL_TYPE_MISMATCH", fmt.Sprintf("Query value %q does not match field %s.%s (%s).", filter.Value.Value, entity.Name, field.Name, field.Type), "Use quoted text/email/file/image, YYYY-MM-DD date, RFC3339 datetime, a finite decimal number, or true/false matching the stored type; number/integer require int32 values.")
 			}
 		}
 		if query.Sort.Field != "" {
 			v.validateQueryField(entity, query.Sort.Field, query.SortPosition)
 			if query.Sort.Direction != "asc" && query.Sort.Direction != "desc" {
 				v.addDiagnostic(query.SortPosition, "UNSUPPORTED_QUERY_SORT_DIRECTION", fmt.Sprintf("Query sort direction %q is not supported.", query.Sort.Direction), "Use asc or desc.")
+			}
+		}
+		seenAggregates := map[string]Position{}
+		for _, aggregate := range query.Aggregates {
+			normalized := strings.ToLower(aggregate.Name)
+			if existing, ok := seenAggregates[normalized]; ok {
+				v.addDiagnostic(aggregate.Position, "DUPLICATE_QUERY_AGGREGATE", fmt.Sprintf("Query aggregate %s is already defined.", aggregate.Name), fmt.Sprintf("First aggregate with this name is at %s:%d.", existing.File, existing.Line))
+				continue
+			}
+			seenAggregates[normalized] = aggregate.Position
+			if !queryIdentifierPattern.MatchString(aggregate.Name) || reservedQueryAggregateNames[aggregate.Name] {
+				v.addDiagnostic(aggregate.Position, "INVALID_QUERY_AGGREGATE", fmt.Sprintf("Query aggregate name %q must be a valid identifier.", aggregate.Name), "Use a name such as lowStockCount or totalStock.")
+			}
+			if !supportedQueryAggregates[aggregate.Function] {
+				v.addDiagnostic(aggregate.Position, "UNSUPPORTED_QUERY_AGGREGATE", fmt.Sprintf("Query aggregate function %q is not supported.", aggregate.Function), "Use count, sum, avg, min, or max.")
+				continue
+			}
+			if aggregate.Function == "count" {
+				if aggregate.Field != "" {
+					v.addDiagnostic(aggregate.FieldPosition, "UNSUPPORTED_QUERY_AGGREGATE_FIELD", "count aggregates do not accept a field.", "Use `aggregate totalCount count`; use sum, avg, min, or max when a stored numeric field is required.")
+				}
+				continue
+			}
+			if aggregate.Field == "" {
+				v.addDiagnostic(aggregate.Position, "MISSING_QUERY_AGGREGATE_FIELD", fmt.Sprintf("Query aggregate %s requires a stored numeric field.", aggregate.Name), "Use `aggregate totalStock sum stock`.")
+				continue
+			}
+			field, ok := v.validateQueryField(entity, aggregate.Field, aggregate.FieldPosition)
+			if !ok {
+				continue
+			}
+			if !supportedComputedFieldTypes[field.Type] {
+				v.addDiagnostic(aggregate.FieldPosition, "UNSUPPORTED_QUERY_AGGREGATE_FIELD", fmt.Sprintf("Query aggregate %s cannot read non-numeric field %s.%s (%s).", aggregate.Name, entity.Name, field.Name, field.Type), "Use a stored number, integer, decimal, or money field.")
 			}
 		}
 	}
@@ -244,7 +299,7 @@ func (v *semanticValidator) validateQueryField(entity EntityDecl, name string, p
 
 func queryLiteralMatchesField(literal QueryLiteral, fieldType string) bool {
 	switch fieldType {
-	case "text", "email":
+	case "text", "email", "file", "image":
 		return literal.Kind == "string"
 	case "date":
 		if literal.Kind != "string" || !queryDatePattern.MatchString(literal.Value) {
@@ -282,7 +337,7 @@ func queryLiteralMatchesField(literal QueryLiteral, fieldType string) bool {
 }
 
 func queryOtherSymbols(program Program) map[string]bool {
-	symbols := setOf("app", "target", "auth", "database", "security", "cors", "deploy")
+	symbols := setOf("app", "target", "auth", "database", "security", "cors", "deploy", "seed", "test")
 	add := func(name string) {
 		symbols[name] = true
 		symbols[strings.ToLower(name)] = true
@@ -290,6 +345,15 @@ func queryOtherSymbols(program Program) map[string]bool {
 	add(program.App.Name)
 	for _, entity := range program.Entities {
 		add(entity.Name)
+	}
+	for _, action := range program.Actions {
+		add(action.Name)
+	}
+	for _, seed := range program.Seeds {
+		add(seed.Name)
+	}
+	for _, test := range program.Tests {
+		add(test.Name)
 	}
 	for _, page := range program.Pages {
 		add(page.Name)
@@ -333,6 +397,11 @@ func queryFieldNames(query QueryDecl) []string {
 	}
 	if query.Sort.Field != "" && !containsString(fields, query.Sort.Field) {
 		fields = append(fields, query.Sort.Field)
+	}
+	for _, aggregate := range query.Aggregates {
+		if aggregate.Field != "" && !containsString(fields, aggregate.Field) {
+			fields = append(fields, aggregate.Field)
+		}
 	}
 	return fields
 }

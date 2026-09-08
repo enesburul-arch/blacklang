@@ -15,6 +15,17 @@ func FormatBlackFile(file string, write bool, check bool) (FormatResult, string)
 		Errors:  []Diagnostic{},
 	}
 
+	if isEncryptedSourcePath(file) {
+		result.Success = false
+		result.Errors = []Diagnostic{{
+			File:       file,
+			Code:       "UNSUPPORTED_FORMAT_ENCRYPTED_SOURCE",
+			Message:    "Format does not rewrite encrypted BlackLang source files.",
+			Suggestion: "Decrypt to a trusted plaintext workspace, format the .black file, then re-encrypt with `black security encrypt`.",
+		}}
+		return result, ""
+	}
+
 	source, err := os.ReadFile(file)
 	if err != nil {
 		result.Success = false
@@ -75,11 +86,19 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 	statements := tokensToStatements(tokens)
 	lines := []string{}
 	indent := 0
+	logicIndents := []int{}
 
 	for _, statement := range statements {
 		codeTokens, commentTokens := splitFormatTokens(statement.Tokens)
 		if len(codeTokens) == 0 && len(commentTokens) == 0 {
 			continue
+		}
+
+		if len(codeTokens) > 0 {
+			currentColumn := codeTokens[0].Position.Column
+			for len(logicIndents) > 0 && currentColumn <= logicIndents[len(logicIndents)-1] {
+				logicIndents = logicIndents[:len(logicIndents)-1]
+			}
 		}
 
 		if len(codeTokens) > 0 && codeTokens[0].Kind == tokenSymbol && codeTokens[0].Value == "}" {
@@ -89,7 +108,8 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 			}
 		}
 
-		if shouldInsertFormatBlankLine(lines, indent, codeTokens) {
+		lineIndent := indent + len(logicIndents)
+		if shouldInsertFormatBlankLine(lines, lineIndent, codeTokens) {
 			lines = append(lines, "")
 		}
 
@@ -102,12 +122,15 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 			line += comment
 		}
 		if line != "" {
-			line = strings.Repeat("  ", indent) + line
+			line = strings.Repeat("  ", lineIndent) + line
 		}
 		lines = append(lines, line)
 
 		if len(codeTokens) > 0 && codeTokens[len(codeTokens)-1].Kind == tokenSymbol && codeTokens[len(codeTokens)-1].Value == "{" {
 			indent++
+		}
+		if formatOpensLogicIndent(codeTokens) {
+			logicIndents = append(logicIndents, codeTokens[0].Position.Column)
 		}
 	}
 
@@ -115,6 +138,13 @@ func FormatBlackSource(file string, source string) (string, []Diagnostic) {
 		return "", nil
 	}
 	return strings.Join(lines, "\n") + "\n", nil
+}
+
+func formatOpensLogicIndent(tokens []sourceToken) bool {
+	if len(tokens) == 0 || tokens[0].Kind != tokenIdentifier {
+		return false
+	}
+	return tokens[0].Value == "if" || tokens[0].Value == "else"
 }
 
 func splitFormatTokens(tokens []sourceToken) ([]sourceToken, []sourceToken) {

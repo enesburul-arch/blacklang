@@ -77,6 +77,15 @@ page Products {
 	assertStartupReadFile(t, result.ReadFirst, "theme.blackthm", true)
 	assertStartupCommand(t, result.Commands, "inspect", "black inspect src/app.black --json")
 	assertStartupCommand(t, result.Commands, "build", "black build src/app.black --out generated --json")
+	assertStartupCommand(t, result.Commands, "generated-test", "cd generated && npm test")
+	assertStartupCommand(t, result.Commands, "benchmark", "black benchmark src/app.black --out generated --json")
+	assertStartupCommand(t, result.Commands, "benchmark-tasks", "black benchmark tasks src/app.black --out generated --json")
+	assertStartupCommand(t, result.Commands, "benchmark-eval", "black benchmark eval src/app.black --out generated --json")
+	assertStartupCommand(t, result.Commands, "coverage", "black benchmark coverage --json")
+	assertStartupCommand(t, result.Commands, "coverage-issues", "black benchmark issues --json")
+	assertStartupCommand(t, result.Commands, "ide", "black ide --json")
+	assertStartupCommand(t, result.Commands, "ide-diagnostics", "black ide diagnostics src/app.black --json")
+	assertStartupCommand(t, result.Commands, "ecosystem", "black ecosystem --json")
 	assertStartupCommand(t, result.Commands, "theme", "black theme inspect theme.blackthm --json")
 	if len(result.Checklist) < 8 {
 		t.Fatalf("expected detailed checklist, got %#v", result.Checklist)
@@ -114,6 +123,58 @@ out = "generated"
 	}
 	assertStartupReadFile(t, result.ReadFirst, "missing/app.black", false)
 	assertStartupCommand(t, result.Commands, "diagnostics", "black docs diagnostics --json")
+}
+
+func TestAgentStartupChecklistFindsProjectReadFirstFromSubdirectory(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "AGENTS.md"), "# Rules\n")
+	writeTestFile(t, filepath.Join(root, "BLACKLANG.md"), "# BlackLang\n")
+	writeTestFile(t, filepath.Join(root, "SPEC.md"), "# Spec\n")
+	writeTestFile(t, filepath.Join(root, "docs", "diagnostics.md"), "# Diagnostics\n")
+	writeTestFile(t, filepath.Join(root, "blacklang.toml"), `version = "0.1"
+target = "web"
+source = "src/app.black"
+out = "generated"
+`)
+	writeTestFile(t, filepath.Join(root, "src", "app.black"), `app Warehouse
+
+entity Product {
+  sku text required unique
+}
+
+page Products {
+  source Product
+  actions create, edit, delete
+}
+`)
+	workdir := filepath.Join(root, "packages", "cli")
+	if err := os.MkdirAll(workdir, 0o755); err != nil {
+		t.Fatalf("mkdir workdir: %v", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("expected cwd: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	}()
+	if err := os.Chdir(workdir); err != nil {
+		t.Fatalf("chdir nested project dir: %v", err)
+	}
+
+	result := AgentStartupChecklist([]string{"../../src/app.black"})
+	if !result.Success {
+		t.Fatalf("expected startup checklist success, got %#v", result.Errors)
+	}
+	assertStartupReadFile(t, result.ReadFirst, "../../AGENTS.md", true)
+	assertStartupReadFile(t, result.ReadFirst, "../../blacklang.toml", true)
+	assertStartupReadFile(t, result.ReadFirst, "../../BLACKLANG.md", true)
+	assertStartupReadFile(t, result.ReadFirst, "../../SPEC.md", true)
+	assertStartupReadFile(t, result.ReadFirst, "../../docs/diagnostics.md", true)
+	assertStartupReadFile(t, result.ReadFirst, "../../src/app.black", true)
 }
 
 func TestFormatAgentStartupIR(t *testing.T) {

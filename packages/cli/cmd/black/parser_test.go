@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseWarehouseExample(t *testing.T) {
 	source := `app Warehouse
@@ -207,7 +210,127 @@ page Products {
 	}
 }
 
-func TestParseI18NAndLabelTranslations(t *testing.T) {
+func TestParseViewComponentSection(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  stock number
+}
+
+component StockBadge {
+  input stock number
+  variant low when stock < 10
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, StockSummary, StockCards, detail, form
+    section StockSummary component StockBadge bind selected span 1 title "Stock Summary"
+    section StockCards component StockBadge bind each span 1 title "Stock Cards"
+  }
+
+  table {
+    columns stock
+  }
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if len(program.Pages) != 1 || program.Pages[0].View == nil || len(program.Pages[0].View.Sections) != 2 {
+		t.Fatalf("expected two page component sections, got %#v", program.Pages)
+	}
+	section := program.Pages[0].View.Sections[0]
+	if section.Name != "StockSummary" || section.Component != "StockBadge" || section.Bind != "selected" || section.Span != 1 || section.Title != "Stock Summary" {
+		t.Fatalf("expected StockSummary component section, got %#v", section)
+	}
+	section = program.Pages[0].View.Sections[1]
+	if section.Name != "StockCards" || section.Component != "StockBadge" || section.Bind != "each" || section.Span != 1 || section.Title != "Stock Cards" {
+		t.Fatalf("expected StockCards component section, got %#v", section)
+	}
+}
+
+func TestParseMigrationRenames(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text required
+  name text required
+}
+
+migration RenameProductName {
+  rename entity ProductItem to Product
+  rename field Product.title to name
+}
+`
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) > 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diagnostics)
+	}
+	if len(program.Migrations) != 1 {
+		t.Fatalf("expected one migration, got %#v", program.Migrations)
+	}
+	migration := program.Migrations[0]
+	if migration.Name != "RenameProductName" || len(migration.Renames) != 2 {
+		t.Fatalf("unexpected migration: %#v", migration)
+	}
+	if migration.Renames[0].Kind != "entity" || migration.Renames[0].From != "ProductItem" || migration.Renames[0].To != "Product" {
+		t.Fatalf("unexpected entity rename: %#v", migration.Renames[0])
+	}
+	if migration.Renames[1].Kind != "field" || migration.Renames[1].Entity != "Product" || migration.Renames[1].From != "title" || migration.Renames[1].To != "name" {
+		t.Fatalf("unexpected field rename: %#v", migration.Renames[1])
+	}
+}
+
+func TestParseEntityPolicies(t *testing.T) {
+	source := `app Warehouse
+
+auth {
+  strategy emailPassword
+  session cookie
+
+  user {
+    name text required
+    email email required unique
+  }
+}
+
+entity WorkItem {
+  owner Customer
+  ownerId text required
+  tenantId text required
+  title text required
+  policy owner ownerId
+  policy tenant tenantId
+}
+
+entity Customer {
+  name text required
+}
+`
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) > 0 {
+		t.Fatalf("unexpected diagnostics: %#v", diagnostics)
+	}
+	if len(program.Entities) != 2 || len(program.Entities[0].Policies) != 2 {
+		t.Fatalf("expected two policies on WorkItem, got %#v", program.Entities)
+	}
+	if program.Entities[0].Fields[0].Name != "owner" {
+		t.Fatalf("expected owner to remain a normal field name, got %#v", program.Entities[0].Fields[0])
+	}
+	if program.Entities[0].Policies[0].Kind != "owner" || program.Entities[0].Policies[0].Field != "ownerId" {
+		t.Fatalf("expected owner policy ownerId, got %#v", program.Entities[0].Policies[0])
+	}
+	if program.Entities[0].Policies[1].Kind != "tenant" || program.Entities[0].Policies[1].Field != "tenantId" {
+		t.Fatalf("expected tenant policy tenantId, got %#v", program.Entities[0].Policies[1])
+	}
+}
+
+func TestParseI18NAndFieldTextTranslations(t *testing.T) {
 	source := `app Warehouse
 
 i18n {
@@ -218,6 +341,21 @@ i18n {
 label Product.name {
   tr "Ürün Adı"
   en "Product Name"
+}
+
+placeholder Product.name {
+  tr "Ürün adını gir"
+  en "Enter product name"
+}
+
+help Product.name {
+  tr "Listelerde görünen ad"
+  en "Visible list name"
+}
+
+message Product.name {
+  tr "Geçerli ürün adı gir"
+  en "Enter a valid product name"
 }
 
 entity Product {
@@ -237,6 +375,15 @@ entity Product {
 	}
 	if program.Labels[0].Translations[0].Locale != "tr" || program.Labels[0].Translations[0].Text != "Ürün Adı" {
 		t.Fatalf("expected Turkish translation, got %#v", program.Labels[0].Translations)
+	}
+	if len(program.Placeholders) != 1 || program.Placeholders[0].Target != "Product.name" {
+		t.Fatalf("expected Product.name placeholder translation, got %#v", program.Placeholders)
+	}
+	if len(program.HelpTexts) != 1 || program.HelpTexts[0].Translations[1].Text != "Visible list name" {
+		t.Fatalf("expected Product.name help translation, got %#v", program.HelpTexts)
+	}
+	if len(program.Messages) != 1 || program.Messages[0].Translations[0].Text != "Geçerli ürün adı gir" {
+		t.Fatalf("expected Product.name message translation, got %#v", program.Messages)
 	}
 }
 
@@ -296,6 +443,31 @@ entity Product {
 	}
 }
 
+func TestParseTargetAPI(t *testing.T) {
+	source := `app Warehouse
+
+target api {
+  backend node
+  database sqlite
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.Target == nil {
+		t.Fatalf("expected target declaration")
+	}
+	if program.Target.Name != "api" || program.Target.Frontend != "" || program.Target.Backend != "node" || program.Target.Database != "sqlite" {
+		t.Fatalf("expected api node sqlite target without frontend, got %#v", program.Target)
+	}
+}
+
 func TestParseDeployDocker(t *testing.T) {
 	source := `app Warehouse
 
@@ -304,6 +476,9 @@ deploy {
   port env PORT default 3001
   env DATABASE_URL required
   env CORS_ORIGINS optional
+  preview local
+  rollback keep 3
+  cloud fly app env FLY_APP_NAME region env FLY_REGION
 }
 
 entity Product {
@@ -326,6 +501,99 @@ entity Product {
 	}
 	if len(program.Deploy.Env) != 2 || program.Deploy.Env[0].Name != "DATABASE_URL" || program.Deploy.Env[0].Mode != "required" {
 		t.Fatalf("expected deploy env declarations, got %#v", program.Deploy.Env)
+	}
+	if program.Deploy.Preview == nil || program.Deploy.Preview.Mode != "local" {
+		t.Fatalf("expected local preview declaration, got %#v", program.Deploy.Preview)
+	}
+	if program.Deploy.Rollback == nil || program.Deploy.Rollback.Strategy != "keep" || program.Deploy.Rollback.Keep != 3 {
+		t.Fatalf("expected rollback keep 3 declaration, got %#v", program.Deploy.Rollback)
+	}
+	if program.Deploy.Cloud == nil || program.Deploy.Cloud.Provider != "fly" || program.Deploy.Cloud.App.Name != "FLY_APP_NAME" || program.Deploy.Cloud.Region.Name != "FLY_REGION" {
+		t.Fatalf("expected cloud fly app/region env declaration, got %#v", program.Deploy.Cloud)
+	}
+}
+
+func TestParseDeployPreviewRollbackDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+deploy {
+  target docker
+  preview
+  rollback latest 3
+  rollback keep many
+  cloud fly app FLY_APP_NAME
+  cloud render app env RENDER_SERVICE_ID
+  cloud railway app env RAILWAY_SERVICE_NAME
+}
+`
+
+	_, diagnostics := Parse("test.black", source)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	if !codes["INVALID_DEPLOY_PREVIEW"] || !codes["INVALID_DEPLOY_ROLLBACK"] || !codes["INVALID_DEPLOY_CLOUD"] || !codes["DUPLICATE_DEPLOY_CLOUD"] {
+		t.Fatalf("expected deploy preview and rollback parse diagnostics, got %#v", diagnostics)
+	}
+}
+
+func TestParseOpsDeclaration(t *testing.T) {
+	source := `app Warehouse
+
+ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe webhook endpoint env BLACKLANG_OBSERVABILITY_ENDPOINT
+}
+
+entity Product {
+  name text required
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if program.Ops == nil {
+		t.Fatalf("expected ops declaration")
+	}
+	if program.Ops.Health == nil || program.Ops.Health.Path != "/healthz" {
+		t.Fatalf("expected health path /healthz, got %#v", program.Ops.Health)
+	}
+	if program.Ops.Readiness == nil || program.Ops.Readiness.Path != "/readyz" {
+		t.Fatalf("expected readiness path /readyz, got %#v", program.Ops.Readiness)
+	}
+	if program.Ops.Metrics == nil || program.Ops.Metrics.Path != "/metrics" {
+		t.Fatalf("expected metrics path /metrics, got %#v", program.Ops.Metrics)
+	}
+	if program.Ops.Logging != "requests" {
+		t.Fatalf("expected logging requests, got %#v", program.Ops.Logging)
+	}
+	if program.Ops.Observe == nil || program.Ops.Observe.Provider != "webhook" || program.Ops.Observe.Endpoint.Name != "BLACKLANG_OBSERVABILITY_ENDPOINT" {
+		t.Fatalf("expected observe webhook endpoint env declaration, got %#v", program.Ops.Observe)
+	}
+}
+
+func TestParseOpsObserveDiagnostics(t *testing.T) {
+	source := `app Warehouse
+
+ops {
+  observe webhook endpoint BLACKLANG_OBSERVABILITY_ENDPOINT
+  observe webhook endpoint env BLACKLANG_OBSERVABILITY_ENDPOINT
+  observe webhook endpoint env OPS_EVENTS_ENDPOINT
+}
+`
+
+	_, diagnostics := Parse("test.black", source)
+	codes := map[string]bool{}
+	for _, diagnostic := range diagnostics {
+		codes[diagnostic.Code] = true
+	}
+	if !codes["INVALID_OPS_OBSERVE"] || !codes["DUPLICATE_OPS_OBSERVE"] {
+		t.Fatalf("expected ops observe parse diagnostics, got %#v", diagnostics)
 	}
 }
 
@@ -501,6 +769,37 @@ entity Product {
 	}
 }
 
+func TestParseRelationLoadModifier(t *testing.T) {
+	source := `app Warehouse
+
+entity Customer {
+  name text required
+}
+
+entity Order {
+  customer Customer required load list detail query label "Customer"
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no parse diagnostics, got %#v", diagnostics)
+	}
+	field := program.Entities[1].Fields[0]
+	if len(field.Modifiers) != 3 {
+		t.Fatalf("expected required, load, and label modifiers, got %#v", field.Modifiers)
+	}
+	if field.Modifiers[1].Name != "load" || field.Modifiers[1].Value != "list,detail,query" {
+		t.Fatalf("expected normalized relation load modifier, got %#v", field.Modifiers[1])
+	}
+	if len(field.RelationLoad) != 3 || field.RelationLoad[0] != "list" || field.RelationLoad[1] != "detail" || field.RelationLoad[2] != "query" {
+		t.Fatalf("expected relationLoad AST scopes, got %#v", field.RelationLoad)
+	}
+	if field.Modifiers[2].Name != "label" || field.Modifiers[2].Value != "Customer" {
+		t.Fatalf("expected label modifier after relation load list, got %#v", field.Modifiers)
+	}
+}
+
 func TestParseAdvancedValidationModifiers(t *testing.T) {
 	source := `app Warehouse
 
@@ -524,6 +823,32 @@ entity Product {
 	}
 	if website.Modifiers[1].Name != "url" {
 		t.Fatalf("expected url modifier, got %#v", website.Modifiers)
+	}
+}
+
+func TestParseMediaFieldAcceptModifier(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  photo image optional accept "image/*"
+  manual file optional accept "application/pdf"
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if len(program.Entities) != 1 || len(program.Entities[0].Fields) != 2 {
+		t.Fatalf("expected media fields, got %#v", program.Entities)
+	}
+	photo := program.Entities[0].Fields[0]
+	manual := program.Entities[0].Fields[1]
+	if photo.Name != "photo" || photo.Type != "image" || modifierValue(photo, "accept") != "image/*" {
+		t.Fatalf("expected image accept modifier, got %#v", photo)
+	}
+	if manual.Name != "manual" || manual.Type != "file" || modifierValue(manual, "accept") != "application/pdf" {
+		t.Fatalf("expected file accept modifier, got %#v", manual)
 	}
 }
 
@@ -662,6 +987,147 @@ page Products {
 	}
 }
 
+func TestParseEntityIndexes(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  sku text required unique
+  stock integer
+  status text
+  index stock
+  index sku, status
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	entity := program.Entities[0]
+	if len(entity.Indexes) != 2 {
+		t.Fatalf("expected two indexes, got %#v", entity.Indexes)
+	}
+	if len(entity.Indexes[0].Fields) != 1 || entity.Indexes[0].Fields[0] != "stock" {
+		t.Fatalf("expected stock index, got %#v", entity.Indexes[0])
+	}
+	if strings.Join(entity.Indexes[1].Fields, " ") != "sku status" {
+		t.Fatalf("expected sku status index, got %#v", entity.Indexes[1])
+	}
+}
+
+func TestParsePageViewComposition(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, detail, form
+    compose grid columns 2 gap md stackAt md
+    section table span 2
+    section detail span 1 display drawer side left title "Product Drawer"
+    section form span 1 display modal title "Product Form"
+    group Record sections detail, form compose grid columns 2 gap sm span 1 title "Record Workspace"
+    trigger detail on rowSelect
+    trigger form on editStart
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	view := program.Pages[0].View
+	if view == nil || view.Compose == nil {
+		t.Fatalf("expected view composition, got %#v", view)
+	}
+	if view.Compose.Mode != "grid" || view.Compose.Columns != 2 || view.Compose.Gap != "md" || view.Compose.StackAt != "md" {
+		t.Fatalf("expected grid composition options, got %#v", view.Compose)
+	}
+	if len(view.Sections) != 3 || view.Sections[0].Name != "table" || view.Sections[0].Span != 2 {
+		t.Fatalf("expected section spans, got %#v", view.Sections)
+	}
+	if view.Sections[1].Display != "drawer" || view.Sections[1].Side != "left" || view.Sections[1].Title != "Product Drawer" {
+		t.Fatalf("expected drawer section metadata, got %#v", view.Sections[1])
+	}
+	if view.Sections[2].Display != "modal" || view.Sections[2].Title != "Product Form" {
+		t.Fatalf("expected modal section metadata, got %#v", view.Sections[2])
+	}
+	if len(view.Groups) != 1 || view.Groups[0].Name != "Record" {
+		t.Fatalf("expected view group, got %#v", view.Groups)
+	}
+	group := view.Groups[0]
+	if strings.Join(group.Sections, " ") != "detail form" || group.Compose == nil || group.Compose.Mode != "grid" || group.Compose.Columns != 2 || group.Compose.Gap != "sm" || group.Span != 1 || group.Title != "Record Workspace" {
+		t.Fatalf("expected view group metadata, got %#v", group)
+	}
+	if len(view.Triggers) != 2 || view.Triggers[0].Section != "detail" || view.Triggers[0].Event != "rowSelect" || view.Triggers[1].Section != "form" || view.Triggers[1].Event != "editStart" {
+		t.Fatalf("expected view triggers, got %#v", view.Triggers)
+	}
+}
+
+func TestParsePageViewTabs(t *testing.T) {
+	source := `app Warehouse
+
+entity Product {
+  name text required
+}
+
+page Products {
+  source Product
+
+  view {
+    order table, detail, form
+    compose tabs gap md
+    tab List sections table
+    tab Record sections detail, form
+  }
+
+  table {
+    columns name
+  }
+
+  form {
+    fields name
+  }
+
+  actions create
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	view := program.Pages[0].View
+	if view == nil || view.Compose == nil || view.Compose.Mode != "tabs" {
+		t.Fatalf("expected tabs composition, got %#v", view)
+	}
+	if len(view.Tabs) != 2 {
+		t.Fatalf("expected two tabs, got %#v", view.Tabs)
+	}
+	if view.Tabs[0].Name != "List" || strings.Join(view.Tabs[0].Sections, " ") != "table" {
+		t.Fatalf("unexpected first tab: %#v", view.Tabs[0])
+	}
+	if view.Tabs[1].Name != "Record" || strings.Join(view.Tabs[1].Sections, " ") != "detail form" {
+		t.Fatalf("unexpected second tab: %#v", view.Tabs[1])
+	}
+}
+
 func TestParseInvalidInlineUIIntent(t *testing.T) {
 	source := `app Warehouse
 
@@ -701,6 +1167,10 @@ api LowStockReport {
 api StockWebhook {
   method POST
   path "/api/webhooks/stock"
+  body sku text required
+  body stock number required min 0
+  update Product where sku == body.sku set stock = body.stock
+  respond accepted
   webhook
   public
 }
@@ -725,6 +1195,19 @@ api StockWebhook {
 	}
 	if !program.APIs[1].Webhook || program.APIs[1].Access != "public" {
 		t.Fatalf("unexpected webhook api: %#v", program.APIs[1])
+	}
+	webhook := program.APIs[1]
+	if len(webhook.Body) != 2 || webhook.Body[0].Name != "sku" || webhook.Body[1].Name != "stock" || webhook.Body[1].Type != "number" || modifierValue(webhook.Body[1], "min") != "0" {
+		t.Fatalf("unexpected webhook body: %#v", webhook.Body)
+	}
+	if webhook.Update == nil || webhook.Update.Source != "Product" || webhook.Update.Where.Field != "sku" || webhook.Update.Where.Value.Kind != "body" || webhook.Update.Where.Value.Value != "sku" {
+		t.Fatalf("unexpected webhook update: %#v", webhook.Update)
+	}
+	if len(webhook.Update.Sets) != 1 || webhook.Update.Sets[0].Field != "stock" || webhook.Update.Sets[0].Expr.Left.Kind != "body" || webhook.Update.Sets[0].Expr.Left.Value != "stock" {
+		t.Fatalf("unexpected webhook update sets: %#v", webhook.Update.Sets)
+	}
+	if webhook.Respond != "accepted" {
+		t.Fatalf("expected webhook respond accepted, got %q", webhook.Respond)
 	}
 }
 
@@ -754,5 +1237,34 @@ entity Order {
 	}
 	if validations[1].Left != "trackingNumber" || !validations[1].Required || validations[1].When == nil || validations[1].When.Left != "status" || validations[1].When.Operator != "==" || validations[1].When.Right != "shipped" || validations[1].Message != "Tracking number is required when shipped" {
 		t.Fatalf("unexpected conditional validation: %#v", validations[1])
+	}
+}
+
+func TestParseJobDeclaration(t *testing.T) {
+	source := `app Warehouse
+
+query LowStockProducts {
+  source Product
+  where stock < 10
+  sort stock asc
+  limit 50
+}
+
+job LowStockMonitor {
+  schedule every 15 minutes
+  run query LowStockProducts
+}
+`
+
+	program, diagnostics := Parse("test.black", source)
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if len(program.Jobs) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(program.Jobs))
+	}
+	job := program.Jobs[0]
+	if job.Name != "LowStockMonitor" || job.Schedule.Kind != "every" || job.Schedule.Every != 15 || job.Schedule.Unit != "minutes" || job.Run.Kind != "query" || job.Run.Query != "LowStockProducts" {
+		t.Fatalf("expected parsed LowStockMonitor job, got %#v", job)
 	}
 }

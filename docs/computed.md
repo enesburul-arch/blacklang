@@ -10,14 +10,15 @@ They are intended for generated table columns and detail views, not database sto
 entity Product {
   stock number default 0
   price money default 0
-  computed inventoryValue money = stock * price label "Inventory Value"
+  tax money default 0
+  computed inventoryValue money = stock * (price + tax) label "Inventory Value"
 }
 ```
 
 Shape:
 
 ```text
-computed <name> <type> = <left> <operator> <right> [label "Text"] [help "Text"]
+computed <name> <type> = <numericExpression> [label "Text"] [help "Text"]
 ```
 
 Supported computed types in v0.2:
@@ -38,7 +39,7 @@ Supported operators in v0.2:
 /
 ```
 
-Operands must be stored number-like fields on the same entity or numeric literals.
+Expressions may use stored number-like fields on the same entity, numeric literals, parentheses, and standard arithmetic precedence.
 
 ## Page Usage
 
@@ -63,6 +64,7 @@ The computed field is also shown in the generated detail view.
 - Computed fields are not submitted by generated forms.
 - Computed fields can be listed in table `columns`.
 - Computed fields cannot be used in form `fields`.
+- Computed expressions support `+`, `-`, `*`, `/`, parentheses, and deterministic precedence.
 - Computed field `search`, `filter`, and `sort` support is planned for a later data logic phase.
 - Custom query `where` and `sort` only accept stored primitive fields; computed display fields may still appear in the bound page's table columns.
 - If a computed field reads a source field hidden by field-level permissions, the computed value is hidden too.

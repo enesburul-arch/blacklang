@@ -158,6 +158,33 @@ profile UICompact {
 
 It reports `NON_APPEND_ONLY_UI_SLOT` because the old slot order changed.
 
+## Migration Check
+
+Use `black theme migrate` before replacing a theme used by existing `.black` source:
+
+```bash
+black theme migrate theme-v1.blackthm theme-v2.blackthm --json
+black theme migrate theme-v1.blackthm theme-v2.blackthm --ir
+```
+
+The command does not rewrite files. It compares the old and new theme/profile metadata and returns:
+
+- `safe: true` when existing inline UI values keep the same positional meaning.
+- `changes` for compatible changes such as `slot-appended`, `mode-added`, or version advances.
+- `errors` for incompatible changes.
+
+Safe migration rules:
+
+- Theme name and target stay stable.
+- Theme/profile versions do not go backward.
+- A locked profile stays locked.
+- The profile name stays stable.
+- Every old UI mode still exists.
+- Every old mode slot sequence remains the exact prefix of the new slot sequence.
+- New slots are appended at the end.
+
+If a new slot is inserted before old slots, reordered, or removes an old slot, the command reports `UI_SLOT_MIGRATION_BREAK`.
+
 ## Standard Mode Groups
 
 ```text
@@ -177,9 +204,10 @@ If a web profile is missing one of these modes, `black theme inspect --json` rep
 black theme inspect --json
 black theme inspect examples/warehouse/theme.blackthm --json
 black theme inspect examples/warehouse/theme.blackthm --ir
+black theme migrate theme-v1.blackthm theme-v2.blackthm --json
 ```
 
-In this phase, `black theme inspect` reads and validates `.blackthm` metadata. `black build` uses the configured profile order when mapping compact inline UI values to CSS properties. Full `.blackthm` token value resolution is planned for later Phase 20 steps.
+In this phase, `black theme inspect` reads and validates `.blackthm` metadata, while `black theme migrate` compares an old and new theme for positional UI compatibility. `black build` uses the configured profile order when mapping compact inline UI values to CSS properties. Full `.blackthm` token value resolution is planned for later Phase 20 steps.
 
 ## AI Agent Rule
 
@@ -187,6 +215,7 @@ AI agents should inspect the theme before writing inline UI intent:
 
 ```bash
 black theme inspect --json
+black theme migrate old.blackthm new.blackthm --json
 ```
 
 Then use the returned `profile.modes[].slots` arrays as the source of truth for positional UI values.

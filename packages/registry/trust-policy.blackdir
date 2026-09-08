@@ -1,0 +1,21 @@
+policy package-registry-trust
+version 0.2
+status prepared-local
+purpose "Rules that must pass before package registry publishing is trusted."
+
+require release-manifest release.blackdir
+require checksum-file checksums.sha256
+require detached-signature-pattern "<artifact>.sig"
+require release-signature-algorithm ed25519
+require release-public-key-env BLACKLANG_RELEASE_PUBLIC_KEY
+require release-public-key-file-env BLACKLANG_RELEASE_PUBLIC_KEY_FILE
+require release-trust-command "node scripts/verify-release-trust.mjs artifacts/releases/<version> --json --strict"
+require release-transparency-policy packages/registry/release-transparency.blackdir
+require release-key-rotation-policy packages/registry/key-rotation-policy.blackdir
+require wrapper-native-forwarding true
+require no-language-reimplementation true
+require package-validation-command "node packages/registry/scripts/validate-registry.mjs"
+require npm-validation-command "cd packages/npm && npm test"
+require editor-validation-command "cd editors/vscode-blacklang && npm test"
+require external-download-opt-in BLACKLANG_ALLOW_DOWNLOAD
+require binary-override-env BLACKLANG_BINARY

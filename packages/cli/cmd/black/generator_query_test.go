@@ -42,6 +42,9 @@ query LowStockProducts {
   where stock < 10
   where stock >= 0
   where active == true
+  aggregate lowStockCount count
+  aggregate totalStock sum stock
+  aggregate averagePrice avg price
   sort price asc
   limit 2
 }
@@ -134,18 +137,30 @@ func TestQueryPagesHaveIndependentRoutesAndPreserveRelationLists(t *testing.T) {
 	page := readQueryGenerated(t, outDir, "src/pages/LowStockPage.tsx")
 	orders := readQueryGenerated(t, outDir, "src/pages/OrdersPage.tsx")
 	server := readQueryGenerated(t, outDir, "src/server.ts")
+	apiSmoke := readQueryGenerated(t, outDir, "src/blacklang.api.test.ts")
 	for _, pair := range [][2]string{
 		{baseRoute, `productRouter.use("/products", requirePageAccess(["Admin"]));`},
 		{queryRoute, `productRouter.use("/lowstock", requirePageAccess(["Admin", "Worker"]));`},
 		{queryRoute, `productRouter.get("/lowstock/query", requirePermission("read", "Product")`},
-		{queryRoute, `["stock", "active", "price"].every((field) => canAccessField(currentRole(req), "read", "Product", field))`},
+		{queryRoute, `productRouter.get("/lowstock/query/summary", requirePermission("read", "Product")`},
+		{queryRoute, `const summary = await productModel.aggregate({`},
+		{queryRoute, `_count: { _all: true }`},
+		{queryRoute, `_sum: { "stock": true }`},
+		{queryRoute, `_avg: { "price": true }`},
+		{queryRoute, `["stock", "active", "price"].every((field) => canAccessField(currentRoles(req), "read", "Product", field))`},
 		{queryClient, `queryList: (includeArchived = false)`},
+		{queryClient, `querySummary: (includeArchived = false)`},
 		{page, `import { productApi } from "../api/product.lowstock";`},
 		{page, `productApi.queryList(showArchived)`},
+		{page, `productApi.querySummary(showArchived)`},
+		{page, `className="query-summary"`},
+		{page, `formatQuerySummaryValue(querySummary["lowStockCount"])`},
 		{orders, `import { productApi } from "../api/product";`},
 		{orders, `productApi.list()`},
 		{server, `import { productRouter as page0Router } from "./routes/product.lowstock";`},
 		{server, `import { productRouter as page1Router } from "./routes/product";`},
+		{apiSmoke, `const lowStockProductsSummaryResponse = await fetch(baseURL + "/api/lowstock/query/summary");`},
+		{apiSmoke, `assert.equal(lowStockProductsSummaryResponse.status, 401, "LowStockProducts summary should reject anonymous requests");`},
 	} {
 		if !strings.Contains(pair[0], pair[1]) {
 			t.Errorf("missing generated wiring: %s", pair[1])
@@ -173,6 +188,14 @@ func TestQueryPagesHaveIndependentRoutesAndPreserveRelationLists(t *testing.T) {
 	if op["x-blacklang-query"] != "LowStockProducts" || op["x-blacklang-limit"] != float64(2) || op["security"] == nil {
 		t.Fatalf("query contract must describe its runtime: %#v", op)
 	}
+	summaryOp := spec.Paths["/api/lowstock/query/summary"]["get"]
+	if summaryOp["x-blacklang-query-summary"] != "LowStockProducts" || summaryOp["security"] == nil {
+		t.Fatalf("query summary contract must describe its runtime: %#v", summaryOp)
+	}
+	aggregates, ok := summaryOp["x-blacklang-aggregates"].([]any)
+	if !ok || len(aggregates) != 3 {
+		t.Fatalf("query summary contract must include aggregate metadata: %#v", summaryOp)
+	}
 	if _, ok := spec.Paths["/api/products/query"]; ok {
 		t.Fatal("unbound page must not expose query contract")
 	}
@@ -186,7 +209,7 @@ func TestQueryPagesInvalidateEveryMutation(t *testing.T) {
 	if got := strings.Count(page, "refreshQuery();"); got != 7 {
 		t.Fatalf("expected all seven mutation paths to refresh, got %d", got)
 	}
-	for _, value := range []string{"[showArchived, queryRevision]", "setQueryRevision((current) => current + 1);", "setItems([]);", "setSelectedIds([]);"} {
+	for _, value := range []string{"[showArchived, queryRevision]", "setQueryRevision((current) => current + 1);", "setItems([]);", "setSelectedIds([]);", `setQuerySummary({ "lowStockCount": null, "totalStock": null, "averagePrice": null });`} {
 		if !strings.Contains(page, value) {
 			t.Errorf("missing query refresh lifecycle %q", value)
 		}
@@ -231,23 +254,33 @@ func TestGeneratedQueryRouteExecutesTypedFiltersAndPermissionGuards(t *testing.T
 	)
 	route := g.queryRoute(g.program.Pages[0], g.program.Entities[0])
 	script := `const assert = require("node:assert/strict");
-let handler, permission, calls = 0, lastArgs;
+let permission, calls = 0, aggregateCalls = 0, lastArgs, lastAggregateArgs;
+const handlers = {};
 const rows = [{ id: "a", stock: 1, active: true, price: 9 }];
-const productModel = { async findMany(args) { calls++; lastArgs = args; return rows; } };
-const productRouter = { get(path, guard, callback) { assert.equal(path, "/lowstock/query"); permission = guard; handler = callback; } };
+const productModel = {
+  async findMany(args) { calls++; lastArgs = args; return rows; },
+  async aggregate(args) { aggregateCalls++; lastAggregateArgs = args; return { _count: { _all: 3 }, _sum: { stock: 11 }, _avg: { price: 7.5 } }; }
+};
+const productRouter = { get(path, guard, callback) { handlers[path] = callback; if (path === "/lowstock/query") permission = guard; } };
 function requirePermission(action, resource) { assert.equal(action, "read"); assert.equal(resource, "Product"); return "entityReadGuard"; }
-function currentRole(req) { return req.role; }
-function canAccessField(role, _action, _resource, field) { return role !== "Worker" || field !== "price"; }
-function sanitizeProduct(item, role) { return { ...item, sanitizedFor: role }; }
+function currentRoles(req) { return [req.role]; }
+function canAccessField(roles, _action, _resource, field) { return !roles.includes("Worker") || field !== "price"; }
+function sanitizeProduct(item, roles) { return { ...item, sanitizedFor: roles.join(",") }; }
 ` + route + `
 async function run(role, query) {
   const response = { statusCode: 200, body: null, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; } };
-  await handler({ role, query }, response);
+  await handlers["/lowstock/query"]({ role, query }, response);
+  return response;
+}
+async function runSummary(role, query) {
+  const response = { statusCode: 200, body: null, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; } };
+  await handlers["/lowstock/query/summary"]({ role, query }, response);
   return response;
 }
 
 (async () => {
   assert.equal(permission, "entityReadGuard");
+  assert.equal(typeof handlers["/lowstock/query/summary"], "function");
   let response = await run("Admin", { stock: "999", limit: "999999", sort: "name", where: "injected" });
   assert.equal(response.statusCode, 200);
   assert.equal(response.body[0].sanitizedFor, "Admin");
@@ -265,6 +298,19 @@ async function run(role, query) {
   response = await run("Worker", {});
   assert.equal(response.statusCode, 403);
   assert.equal(calls, callsBeforeDenied, "hidden sort field must deny before any database query");
+  response = await runSummary("Admin", {});
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { lowStockCount: 3, totalStock: 11, averagePrice: 7.5 });
+  assert.deepEqual(lastAggregateArgs.where.AND.slice(0, 4), [{ archivedAt: null }, { stock: { lt: 10 } }, { stock: { gte: 0 } }, { active: { equals: true } }]);
+  assert.deepEqual(lastAggregateArgs._count, { _all: true });
+  assert.deepEqual(lastAggregateArgs._sum, { stock: true });
+  assert.deepEqual(lastAggregateArgs._avg, { price: true });
+  assert.equal(lastAggregateArgs.orderBy, undefined);
+  assert.equal(lastAggregateArgs.take, undefined);
+  const aggregateCallsBeforeDenied = aggregateCalls;
+  response = await runSummary("Worker", {});
+  assert.equal(response.statusCode, 403);
+  assert.equal(aggregateCalls, aggregateCallsBeforeDenied, "hidden aggregate field must deny before any database query");
   console.log("query runtime passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
 `
@@ -295,14 +341,20 @@ func TestGeneratedQueryEffectRejectsStaleLoadsAndClearsDeniedReload(t *testing.T
 	// the actual generated effect independently of React's rendering machinery.
 	effect := strings.ReplaceAll(page[start:refreshEnd], "reason: unknown", "reason")
 	script := `const assert = require("node:assert/strict");
-let effect, items = [{id:"old"}], selectedIds = ["old"], loading = false, error = null;
+let effect, items = [{id:"old"}], selectedIds = ["old"], querySummary = { old: 1 }, loading = false, error = null;
 let showArchived = false, queryRevision = 0;
 const queryRequestVersion = {current: 0};
-const requests = [];
-const productApi = {queryList(archived) {return new Promise((resolve,reject) => requests.push({resolve,reject,archived}));}};
+const listRequests = [];
+const summaryRequests = [];
+const emptySummary = { "lowStockCount": null, "totalStock": null, "averagePrice": null };
+const productApi = {
+  queryList(archived) {return new Promise((resolve,reject) => listRequests.push({resolve,reject,archived}));},
+  querySummary(archived) {return new Promise((resolve,reject) => summaryRequests.push({resolve,reject,archived}));}
+};
 function useEffect(callback) {effect = callback;}
 function setItems(value) {items = value;}
 function setSelectedIds(value) {selectedIds = value;}
+function setQuerySummary(value) {querySummary = value;}
 function setLoading(value) {loading = value;}
 function setError(value) {error = value;}
 function setQueryRevision(callback) {queryRevision = callback(queryRevision);}
@@ -312,35 +364,44 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   let cleanup = effect();
   assert.deepEqual(items, []);
   assert.deepEqual(selectedIds, []);
+  assert.deepEqual(querySummary, emptySummary);
   refreshQuery();
   // React has not yet run the previous effect's cleanup. Immediate invalidation
   // must still prevent this response from restoring records changed by a mutation.
-  requests[0].resolve([{id:"pre-mutation"}]);
+  listRequests[0].resolve([{id:"pre-mutation"}]);
+  summaryRequests[0].resolve({ lowStockCount: 99, totalStock: 99, averagePrice: 99 });
   await flush();
   assert.deepEqual(items, []);
+  assert.deepEqual(querySummary, emptySummary);
   assert.equal(loading, true);
   cleanup();
   cleanup = effect();
-  requests[1].resolve([{id:"current"}]);
+  summaryRequests[1].resolve({ lowStockCount: 1, totalStock: 3, averagePrice: 4.5 });
+  listRequests[1].resolve([{id:"current"}]);
   await flush();
   assert.deepEqual(items, [{id:"current"}]);
+  assert.deepEqual(querySummary, { lowStockCount: 1, totalStock: 3, averagePrice: 4.5 });
   assert.equal(loading, false);
   // An archive toggle followed by denial must not retain the previous list.
   cleanup();
   showArchived = true;
   cleanup = effect();
-  assert.equal(requests[2].archived, true);
-  requests[2].reject(new Error("Forbidden"));
+  assert.equal(listRequests[2].archived, true);
+  assert.equal(summaryRequests[2].archived, true);
+  listRequests[2].reject(new Error("Forbidden"));
   await flush();
   assert.deepEqual(items, []);
+  assert.deepEqual(querySummary, emptySummary);
   assert.equal(error, "Forbidden");
   assert.equal(loading, false);
   cleanup();
   cleanup = effect();
   cleanup();
-  requests[3].resolve([{id:"after-unmount"}]);
+  listRequests[3].resolve([{id:"after-unmount"}]);
+  summaryRequests[3].resolve({ lowStockCount: 2, totalStock: 2, averagePrice: 2 });
   await flush();
   assert.deepEqual(items, []);
+  assert.deepEqual(querySummary, emptySummary);
   console.log("query effect lifecycle passed");
 })().catch(error => {console.error(error); process.exitCode = 1;});
 `

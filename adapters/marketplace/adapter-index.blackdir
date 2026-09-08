@@ -1,0 +1,128 @@
+marketplace provider-adapters
+version 0.2
+status prepared-local
+purpose "Deterministic provider adapter marketplace index for BlackLang web target tooling."
+
+adapter target:web-react-node-sqlite kind target source core provider builtin status built-in
+  docs docs/target.md
+  docs docs/deployment.md
+  capability "generated React frontend"
+  capability "generated Node API"
+  capability "SQLite setup/runtime"
+
+adapter target:web-react-node-postgres kind target source core provider builtin status built-in
+  docs docs/target.md
+  docs docs/deployment.md
+  capability "generated React frontend"
+  capability "generated Node API"
+  capability "Prisma PostgreSQL adapter"
+  capability "PostgreSQL Docker Compose service"
+
+adapter target:web-react-node-mysql kind target source core provider builtin status built-in
+  docs docs/target.md
+  docs docs/deployment.md
+  capability "generated React frontend"
+  capability "generated Node API"
+  capability "Prisma MySQL provider"
+  capability "PrismaMariaDb adapter"
+  capability "MySQL Docker Compose service"
+
+adapter deploy:docker kind deploy source core provider docker status built-in
+  docs docs/deployment.md
+  capability Dockerfile
+  capability docker-compose.yml
+  capability healthchecks
+  capability "deployment manifest metadata"
+
+adapter deploy-preview:local kind deploy-preview source core provider local status built-in
+  docs docs/deployment.md
+  capability docker-compose.preview.yml
+  capability "isolated preview port"
+  capability "preview database defaults"
+
+adapter deploy-cloud:docker-provider kind deploy-cloud source core provider fly,render,railway status built-in
+  docs docs/deployment.md
+  capability deploy/cloud.json
+  capability scripts/cloud-plan.mjs
+  capability scripts/cloud-exec.mjs
+  capability "read-only cloud plan"
+  capability "read-only cloud preflight"
+  capability "explicit apply provider CLI runner"
+  trust env-only-secrets true
+  trust read-only-plan-before-mutation true
+  trust explicit-apply-before-mutation true
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+adapter observability:ops-probes kind observability source core provider builtin status built-in
+  docs docs/ops.md
+  capability "health endpoint"
+  capability "readiness endpoint"
+  capability "metrics endpoint"
+  capability "structured request logging"
+
+adapter observability:webhook kind observability source core provider webhook status built-in
+  docs docs/ops.md
+  capability "env-referenced endpoint"
+  capability "non-blocking request event POST"
+  capability "W3C traceparent correlation"
+  capability "OpenAPI observability metadata"
+  capability "generated local smoke test receiver"
+  trust env-only-secrets true
+  trust non-blocking-runtime true
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+adapter observability:otlp kind observability source core provider otlp status built-in
+  docs docs/ops.md
+  capability ops/observability.json
+  capability "env-referenced OTLP HTTP endpoint"
+  capability "W3C traceparent request propagation"
+  capability "non-blocking OTLP HTTP JSON trace export"
+  capability "generated local smoke test receiver"
+  trust env-only-secrets true
+  trust non-blocking-runtime true
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+adapter editor:vscode kind editor source extension provider vscode status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  capability "syntax highlighting"
+  capability "compiler-owned completions"
+  capability "compiler-owned diagnostics"
+  capability "format quick fix"
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+adapter editor:open-vsx kind editor source extension provider openvsx status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  capability "VSIX package reuse"
+  capability "compiler-owned completions"
+  capability "compiler-owned diagnostics"
+  capability "format quick fix"
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true
+
+adapter editor:cursor-compatible kind editor source extension provider cursor-compatible-vsix status packageable-source
+  docs docs/ide.md
+  docs docs/editor-marketplace.md
+  capability "VSIX package reuse"
+  capability "compiler-owned completions"
+  capability "compiler-owned diagnostics"
+  capability "format quick fix"
+  trust signed-package-verification true
+  trust release-signature-algorithm ed25519
+  trust release-transparency-log true
+  trust release-key-rotation true

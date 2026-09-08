@@ -1,0 +1,85 @@
+{
+  "scopeName": "source.blacklang",
+  "name": "BlackLang",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.blacklang",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.blacklang",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.blacklang",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.blacklang",
+          "match": "\\b-?[0-9]+(?:\\.[0-9]+)?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.blacklang",
+          "match": "\\b(app|target|frontend|backend|database|security|cors|origins|auth|strategy|session|user|role|access|entity|computed|index|policy|owner|tenant|query|where|sort|limit|aggregate|job|schedule|every|run|action|input|transaction|set|success|allow|api|method|path|param|body|update|respond|migration|rename|seed|row|ref|test|expect|page|source|table|form|actions|view|order|compose|section|group|trigger|tab|workflow|states|transition|from|to|state|modal|component|variant|when|i18n|locales|default|label|placeholder|help|message|accept|deploy|port|env|preview|rollback|cloud|region|ops|health|readiness|metrics|logging|observe|endpoint)\\b"
+        },
+        {
+          "name": "constant.language.blacklang",
+          "match": "\\b(true|false|null|required|optional|unique|create|edit|delete|archive|restore|read|manage|all|web|react|node|sqlite|postgres|docker|local|keep|requests|minutes|hours|days|inline|modal|drawer|stack|grid|tabs|left|right|asc|desc|count|sum|avg|min|max)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.blacklang",
+          "match": "\\b(text|email|number|integer|decimal|money|boolean|date|datetime|file|image)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.blacklang",
+          "match": "(==|!=|<=|>=|<|>|=|\\+|-|\\*|/)"
+        }
+      ]
+    }
+  }
+}

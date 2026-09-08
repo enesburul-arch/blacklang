@@ -1,0 +1,501 @@
+{
+  "success": true,
+  "command": "ecosystem",
+  "version": "0.1.0-dev",
+  "release": {
+    "channel": "dev",
+    "artifactManifest": "release.blackdir",
+    "checksumFile": "checksums.sha256",
+    "scripts": [
+      {
+        "name": "build-windows-release",
+        "command": "scripts/build-release-windows.ps1",
+        "purpose": "Build a Windows CLI release archive with manifest.blackdir."
+      },
+      {
+        "name": "write-release-checksums",
+        "command": "scripts/write-release-checksums.ps1",
+        "purpose": "Write checksums.sha256 and release.blackdir for finalized release archives."
+      },
+      {
+        "name": "verify-release-trust",
+        "command": "node scripts/verify-release-trust.mjs artifacts/releases/\u003cversion\u003e --json --strict",
+        "purpose": "Verify release.blackdir, checksums.sha256, detached Ed25519 signatures, and trusted public key presence before publish."
+      }
+    ],
+    "trust": {
+      "signatureAlgorithm": "ed25519",
+      "signatureFilePattern": "\u003cartifact\u003e.sig",
+      "publicKeyEnv": "BLACKLANG_RELEASE_PUBLIC_KEY",
+      "publicKeyFileEnv": "BLACKLANG_RELEASE_PUBLIC_KEY_FILE",
+      "verifyCommand": "node scripts/verify-release-trust.mjs artifacts/releases/\u003cversion\u003e --json --strict",
+      "requiredBeforePublish": [
+        "release.blackdir",
+        "checksums.sha256",
+        "detached Ed25519 signature for every archive",
+        "trusted release public key from BLACKLANG_RELEASE_PUBLIC_KEY or BLACKLANG_RELEASE_PUBLIC_KEY_FILE",
+        "release transparency log entry for every public archive",
+        "key rotation policy check before changing trusted public keys"
+      ],
+      "transparencyLog": {
+        "policyFile": "packages/registry/release-transparency.blackdir",
+        "releaseLogFile": "transparency.blackdir",
+        "status": "prepared-local-policy",
+        "hashAlgorithm": "sha256",
+        "entryFields": [
+          "release",
+          "channel",
+          "artifact",
+          "sha256",
+          "signature",
+          "keyId",
+          "previousEntryHash",
+          "entryHash",
+          "publishedAt"
+        ],
+        "requiredBeforePublish": [
+          "append-only transparency.blackdir entry per archive",
+          "entry hash covers release, artifact, checksum, signature, key id, and previous entry hash",
+          "release.blackdir, checksums.sha256, signature, and transparency entry must agree"
+        ]
+      },
+      "keyRotation": {
+        "policyFile": "packages/registry/key-rotation-policy.blackdir",
+        "status": "prepared-local-policy",
+        "keyIdFormat": "sha256-public-key-spki-prefix",
+        "minimumOverlapDays": 30,
+        "revocationFile": "key-revocations.blackdir",
+        "requiredBeforePublish": [
+          "new public key id is listed before it signs public archives",
+          "old and new public keys overlap for at least 30 days unless an emergency revocation is declared",
+          "revoked key ids are refused for new release entries",
+          "private signing keys stay outside .black source, generated output, manifests, and package metadata"
+        ]
+      }
+    }
+  },
+  "packages": [
+    {
+      "id": "npm:blacklang",
+      "kind": "npm-wrapper",
+      "path": "packages/npm",
+      "status": "local-package-source",
+      "commands": [
+        "cd packages/npm \u0026\u0026 npm test",
+        "BLACKLANG_BINARY=/path/to/black npx blacklang --help"
+      ]
+    },
+    {
+      "id": "vscode:blacklang-vscode",
+      "kind": "editor-extension",
+      "path": "editors/vscode-blacklang",
+      "status": "packageable-source",
+      "commands": [
+        "cd editors/vscode-blacklang \u0026\u0026 npm test",
+        "cd editors/vscode-blacklang \u0026\u0026 npm run package:vsix"
+      ]
+    },
+    {
+      "id": "openvsx:blacklang-vscode",
+      "kind": "editor-extension-channel",
+      "path": "editors/vscode-blacklang",
+      "status": "packageable-source",
+      "commands": [
+        "cd editors/vscode-blacklang \u0026\u0026 npm test",
+        "cd editors/vscode-blacklang \u0026\u0026 npm run package:vsix"
+      ]
+    },
+    {
+      "id": "cursor:blacklang-vscode",
+      "kind": "editor-extension-channel",
+      "path": "editors/vscode-blacklang",
+      "status": "packageable-source",
+      "commands": [
+        "cd editors/vscode-blacklang \u0026\u0026 npm test",
+        "cd editors/vscode-blacklang \u0026\u0026 npm run package:vsix"
+      ]
+    }
+  ],
+  "adapters": [
+    {
+      "id": "target:web-react-node-sqlite",
+      "kind": "target",
+      "name": "React + Node + SQLite",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/target.md",
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "generated React frontend",
+        "generated Node API",
+        "SQLite setup/runtime"
+      ]
+    },
+    {
+      "id": "target:web-react-node-postgres",
+      "kind": "target",
+      "name": "React + Node + PostgreSQL",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/target.md",
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "generated React frontend",
+        "generated Node API",
+        "Prisma PostgreSQL adapter",
+        "PostgreSQL Docker Compose service"
+      ]
+    },
+    {
+      "id": "target:web-react-node-mysql",
+      "kind": "target",
+      "name": "React + Node + MySQL",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/target.md",
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "generated React frontend",
+        "generated Node API",
+        "Prisma MySQL provider",
+        "PrismaMariaDb adapter",
+        "MySQL Docker Compose service"
+      ]
+    },
+    {
+      "id": "deploy:docker",
+      "kind": "deploy",
+      "name": "Docker deploy target",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "Dockerfile",
+        "docker-compose.yml",
+        "environment references",
+        "healthchecks",
+        "deployment manifest metadata"
+      ]
+    },
+    {
+      "id": "deploy-cloud:docker-provider",
+      "kind": "deploy-cloud",
+      "name": "Docker provider CLI cloud adapter",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "fly provider metadata",
+        "render provider metadata",
+        "railway provider metadata",
+        "deploy/cloud.json",
+        "read-only cloud plan script",
+        "read-only cloud preflight script",
+        "explicit apply provider CLI runner"
+      ]
+    },
+    {
+      "id": "deploy-preview:local",
+      "kind": "deploy-preview",
+      "name": "Local preview stack",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/deployment.md"
+      ],
+      "capabilities": [
+        "docker-compose.preview.yml",
+        "isolated preview port",
+        "preview database defaults"
+      ]
+    },
+    {
+      "id": "observability:ops-probes",
+      "kind": "observability",
+      "name": "Generated ops probes",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/ops.md"
+      ],
+      "capabilities": [
+        "health endpoint",
+        "readiness endpoint",
+        "metrics endpoint",
+        "request logging"
+      ]
+    },
+    {
+      "id": "observability:webhook",
+      "kind": "observability",
+      "name": "External observability webhook hook",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/ops.md"
+      ],
+      "capabilities": [
+        "env-referenced endpoint",
+        "non-blocking request event POST",
+        "W3C traceparent correlation",
+        "OpenAPI observability metadata",
+        "generated local smoke test receiver"
+      ]
+    },
+    {
+      "id": "observability:otlp",
+      "kind": "observability",
+      "name": "OTLP HTTP trace exporter",
+      "status": "built-in",
+      "source": "core",
+      "docs": [
+        "docs/ops.md"
+      ],
+      "capabilities": [
+        "ops/observability.json",
+        "env-referenced OTLP HTTP endpoint",
+        "W3C traceparent request propagation",
+        "non-blocking OTLP HTTP JSON trace export",
+        "generated local smoke test receiver"
+      ]
+    },
+    {
+      "id": "editor:vscode",
+      "kind": "editor",
+      "name": "VS Code bridge",
+      "status": "packageable-source",
+      "source": "extension",
+      "docs": [
+        "docs/ide.md",
+        "docs/editor-marketplace.md"
+      ],
+      "capabilities": [
+        "syntax highlighting",
+        "compiler-owned completions",
+        "compiler-owned snippets",
+        "compiler-owned diagnostics",
+        "format quick fix",
+        "affected-symbol inspection"
+      ]
+    },
+    {
+      "id": "editor:open-vsx",
+      "kind": "editor",
+      "name": "Open VSX package channel",
+      "status": "packageable-source",
+      "source": "extension",
+      "docs": [
+        "docs/ide.md",
+        "docs/editor-marketplace.md"
+      ],
+      "capabilities": [
+        "VSIX package reuse",
+        "compiler-owned completions",
+        "compiler-owned diagnostics",
+        "format quick fix"
+      ]
+    },
+    {
+      "id": "editor:cursor-compatible",
+      "kind": "editor",
+      "name": "Cursor-compatible VSIX channel",
+      "status": "packageable-source",
+      "source": "extension",
+      "docs": [
+        "docs/ide.md",
+        "docs/editor-marketplace.md"
+      ],
+      "capabilities": [
+        "VSIX package reuse",
+        "compiler-owned completions",
+        "compiler-owned diagnostics",
+        "format quick fix"
+      ]
+    }
+  ],
+  "registries": [
+    {
+      "id": "registry:packages",
+      "kind": "package-registry",
+      "path": "packages/registry/package-index.blackdir",
+      "status": "prepared-local-manifest",
+      "packages": [
+        "npm:blacklang",
+        "vscode:blacklang-vscode",
+        "openvsx:blacklang-vscode",
+        "cursor:blacklang-vscode"
+      ],
+      "docs": [
+        "docs/package-registry.md",
+        "docs/npm-wrapper.md",
+        "docs/ide.md",
+        "docs/editor-marketplace.md"
+      ],
+      "commands": [
+        "node packages/registry/scripts/validate-registry.mjs",
+        "cd packages/npm \u0026\u0026 npm test",
+        "cd editors/vscode-blacklang \u0026\u0026 npm test",
+        "cd editors/vscode-blacklang \u0026\u0026 npm run package:vsix"
+      ],
+      "trust": [
+        "Release artifacts must be listed in release.blackdir and checksums.sha256 before public registry publish.",
+        "Release archives, npm wrapper downloads, and editor packages must pass detached Ed25519 signature verification before public install paths are trusted.",
+        "Release transparency entries and key rotation policy metadata must be present before public package registry publishing.",
+        "npm wrapper downloads are disabled unless BLACKLANG_ALLOW_DOWNLOAD=1 is set by the installer.",
+        "Editor bridges must call the native black CLI for diagnostics, completions, snippets, and affected inspection.",
+        "VS Code, Open VSX, and Cursor-compatible editor package channels share the same compiler-owned bridge and release trust checks."
+      ]
+    }
+  ],
+  "marketplaces": [
+    {
+      "id": "marketplace:provider-adapters",
+      "kind": "adapter-marketplace",
+      "path": "adapters/marketplace/adapter-index.blackdir",
+      "status": "prepared-local-manifest",
+      "adapters": [
+        "deploy-cloud:docker-provider",
+        "observability:webhook",
+        "observability:otlp",
+        "editor:vscode",
+        "editor:open-vsx",
+        "editor:cursor-compatible",
+        "target:web-react-node-sqlite",
+        "target:web-react-node-postgres",
+        "target:web-react-node-mysql",
+        "deploy:docker",
+        "deploy-preview:local"
+      ],
+      "providers": [
+        "fly",
+        "render",
+        "railway",
+        "webhook",
+        "otlp",
+        "mysql",
+        "vscode",
+        "openvsx",
+        "cursor-compatible-vsix"
+      ],
+      "docs": [
+        "docs/adapter-marketplace.md",
+        "docs/deployment.md",
+        "docs/ops.md",
+        "docs/ecosystem.md",
+        "docs/editor-marketplace.md"
+      ],
+      "commands": [
+        "node packages/registry/scripts/validate-registry.mjs",
+        "black ecosystem --json",
+        "black docs adapter-marketplace --json"
+      ],
+      "trust": [
+        "Provider adapters must expose deterministic manifest metadata, read-only preflight, and explicit apply boundaries before any provider CLI execution.",
+        "Provider app, region, endpoint, DSN, token, and secret values must stay in environment variables or provider tooling.",
+        "Provider adapter packages must use the same detached Ed25519 release trust workflow before external marketplace publishing.",
+        "Provider adapter packages must use the same release transparency and key rotation policy metadata before external marketplace publishing.",
+        "Marketplace entries must include docs, capabilities, source ownership, status, and verification commands."
+      ]
+    }
+  ],
+  "publicIndex": {
+    "id": "public-index:blacklang-ecosystem",
+    "kind": "ecosystem-public-index",
+    "path": "website/ecosystem-index.json",
+    "status": "prepared-local-source",
+    "formats": [
+      "json",
+      "blackir"
+    ],
+    "sources": [
+      "packages/registry/public-index.blackdir",
+      "packages/registry/package-index.blackdir",
+      "adapters/marketplace/adapter-index.blackdir",
+      "packages/registry/trust-policy.blackdir",
+      "adapters/marketplace/trust-policy.blackdir"
+    ],
+    "packages": [
+      "npm:blacklang",
+      "vscode:blacklang-vscode",
+      "openvsx:blacklang-vscode",
+      "cursor:blacklang-vscode"
+    ],
+    "adapters": [
+      "deploy-cloud:docker-provider",
+      "observability:webhook",
+      "observability:otlp",
+      "editor:vscode",
+      "editor:open-vsx",
+      "editor:cursor-compatible",
+      "target:web-react-node-sqlite",
+      "target:web-react-node-postgres",
+      "target:web-react-node-mysql"
+    ],
+    "docs": [
+      "docs/ecosystem.md",
+      "docs/package-registry.md",
+      "docs/adapter-marketplace.md",
+      "docs/editor-marketplace.md",
+      "docs/release-trust.md"
+    ],
+    "commands": [
+      "black ecosystem --json",
+      "black ecosystem --ir",
+      "node packages/registry/scripts/validate-registry.mjs"
+    ],
+    "trust": [
+      "Public index source must be generated from compiler-owned ecosystem metadata, not hand-written package/adaptor copies.",
+      "Public hosted provider adapter marketplace index publication requires release-owner review and signed release trust checks.",
+      "Public index content must contain no provider credentials, marketplace tokens, DSNs, app names, regions, or secret values.",
+      "Registry and marketplace manifests must validate locally before any hosted index deployment."
+    ]
+  },
+  "trustWorkflow": {
+    "policyFiles": [
+      "packages/registry/public-index.blackdir",
+      "packages/registry/trust-policy.blackdir",
+      "packages/registry/release-transparency.blackdir",
+      "packages/registry/key-rotation-policy.blackdir",
+      "adapters/marketplace/trust-policy.blackdir"
+    ],
+    "requiredChecks": [
+      "black ecosystem --json",
+      "black ecosystem --ir",
+      "black docs package-registry --json",
+      "black docs adapter-marketplace --json",
+      "black docs release-trust --json",
+      "node packages/registry/scripts/validate-registry.mjs",
+      "node scripts/verify-release-trust.mjs artifacts/releases/\u003cversion\u003e --json --strict",
+      "cd packages/npm \u0026\u0026 npm test",
+      "cd editors/vscode-blacklang \u0026\u0026 npm test",
+      "cd editors/vscode-blacklang \u0026\u0026 npm run package:vsix"
+    ],
+    "installSteps": [
+      "Read black ecosystem --json and choose a registry or marketplace entry by stable id.",
+      "Read the entry docs and policy file before installing or enabling a package/adapter.",
+      "Verify local validation commands, release checksums, detached signatures, and public key trust before trusting external downloads.",
+      "Keep provider credentials outside .black source and pass them through environment variables or provider tooling."
+    ]
+  },
+  "policies": [
+    "Provider-specific behavior belongs in extensions or adapters instead of expanding core syntax prematurely.",
+    "Each extension or adapter must preserve parser, validator, docs, JSON/BlackIR, diagnostics, and affected-graph discipline before its syntax becomes official.",
+    "Installable wrappers must stay thin and forward to the native BlackLang CLI instead of reimplementing the language.",
+    "Release artifacts must include checksums, detached Ed25519 signatures, and compact manifest metadata for AI agents and package managers.",
+    "Public release trust must include append-only transparency entries and key rotation policy metadata before external publishing.",
+    "Multi-editor package channels must reuse compiler-owned IDE output and the same signed VSIX artifact instead of forking syntax rules.",
+    "Hosted ecosystem indexes must be generated from compiler-owned metadata and deployed only after release-owner trust review.",
+    "Registry and marketplace manifests must be validated locally before any external publish step."
+  ],
+  "errors": []
+}

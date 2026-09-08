@@ -29,19 +29,19 @@ Explicit APIs          2
 
 ## Feature Coverage
 
-- Auth with cookie sessions
-- Secret-safe `database { url env DATABASE_URL }`
-- Organization, Customer, Team, SupportAgent, ServiceLevelAgreement, Ticket, TicketComment, and KnowledgeArticle entities
-- Entity relation fields
-- Field labels, placeholders, help text, min/max, length, email, URL-safe database references, and cross-field validation
-- Admin, SupportManager, SupportAgentRole, and CustomerSupportViewer roles
-- Field-level read and mutation restrictions
-- Ticket lifecycle workflow
-- Knowledge article review workflow
-- Page state and modal declarations
-- Priority score and published display components
-- Contract-first ticket intake webhook and SLA report APIs
-- CRUD pages with search, filter, sort, pagination, archive, and restore
+  Auth with cookie sessions
+  Secret safe `database { url env DATABASE_URL }`
+  Organization, Customer, Team, SupportAgent, ServiceLevelAgreement, Ticket, TicketComment, and KnowledgeArticle entities
+  Entity relation fields
+  Field labels, placeholders, help text, min/max, length, email, URL safe database references, and cross field validation
+  Admin, SupportManager, SupportAgentRole, and CustomerSupportViewer roles
+  Field level read and mutation restrictions
+  Ticket lifecycle workflow
+  Knowledge article review workflow
+  Page state and modal declarations
+  Priority score and published display components
+  Contract first ticket intake webhook and SLA report APIs
+  CRUD pages with search, filter, sort, pagination, archive, and restore
 
 ## Notes
 
@@ -51,17 +51,17 @@ The template intentionally stays inside currently supported syntax so compiler v
 
 ## Verification
 
-Measured on 2026-09-05:
+Measured on 2026 09 05:
 
 ```bash
-black parse examples/helpdesk/app.black --json
-black validate examples/helpdesk/app.black --json
-black lint examples/helpdesk/app.black --json
-black build examples/helpdesk/app.black --out <temp> --json
+black parse examples/helpdesk/app.black   json
+black validate examples/helpdesk/app.black   json
+black lint examples/helpdesk/app.black   json
+black build examples/helpdesk/app.black   out <temp>   json
 npm install
 npm run build
 ```
 
 All parse, validate, lint, generator, TypeScript, and Vite production build checks passed.
 
-`npm install` reported 4 high-severity audit findings from generated app dependencies. They were not force-fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.
+`npm install` reported 4 high severity audit findings from generated app dependencies. They were not force fixed in this template benchmark because that can introduce dependency changes outside the BlackLang source measurement.

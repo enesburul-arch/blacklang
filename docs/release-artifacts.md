@@ -82,13 +82,22 @@ artifacts/releases/<version>/
 ├── blacklang-<version>-linux-amd64.tar.gz
 ├── blacklang-<version>-darwin-amd64.tar.gz
 ├── blacklang-<version>-darwin-arm64.tar.gz
+├── blacklang-<version>-windows-amd64.zip.sig
+├── blacklang-<version>-linux-amd64.tar.gz.sig
+├── blacklang-<version>-darwin-amd64.tar.gz.sig
+├── blacklang-<version>-darwin-arm64.tar.gz.sig
 ├── checksums.sha256
-└── release.blackdir
+├── release.blackdir
+└── transparency.blackdir
 ```
 
 `checksums.sha256` contains one SHA-256 entry per archive.
 
 `release.blackdir` contains release-level metadata for AI agents, scripts, and package managers.
+
+`transparency.blackdir` contains append-only public release entries that tie each archive to its checksum, signature, signing key id, previous entry hash, entry hash, and publish timestamp. The policy shape is defined in `packages/registry/release-transparency.blackdir`.
+
+Detached `.sig` files contain Ed25519 signatures for finalized archive bytes. Signing uses a private key outside this repository.
 
 ## Windows Build Script
 
@@ -135,6 +144,7 @@ Rules:
 - `cli` is the command name exposed to users.
 - Each `artifact` line is append-only inside a released manifest.
 - Hash values must be generated from the final archive bytes.
+- Each released archive must have a sibling detached signature named `<artifact>.sig`.
 
 ## manifest.blackdir Shape
 
@@ -171,6 +181,24 @@ Rules:
 - Every archive listed in `release.blackdir` must have a checksum line.
 - Every checksum line must point to a file in the same release root.
 - Checksums are generated after archives are finalized.
+
+## Signed Release Verification
+
+Before public install paths are trusted, run:
+
+```bash
+node scripts/verify-release-trust.mjs artifacts/releases/<version> --json --strict
+```
+
+The verifier checks:
+
+- `release.blackdir`
+- `checksums.sha256`
+- archive SHA-256 hashes
+- detached Ed25519 signatures named `<artifact>.sig`
+- trusted public key from `BLACKLANG_RELEASE_PUBLIC_KEY` or `BLACKLANG_RELEASE_PUBLIC_KEY_FILE`
+
+Run `node packages/registry/scripts/validate-registry.mjs` as the companion policy check for release transparency and key rotation metadata. The verifier is read-only. It never creates signatures and never reads private keys.
 
 ## Checksum Script
 
@@ -213,6 +241,31 @@ black version --json
 ## Non-Goals for This Layout
 
 This layout does not define package-manager publishing behavior.
+
+## Editor Extension Package
+
+The compiler-backed editor bridge source lives at:
+
+```text
+editors/vscode-blacklang/
+```
+
+It can be validated without launching VS Code:
+
+```bash
+cd editors/vscode-blacklang
+npm test
+```
+
+When the VS Code packaging tool is available, build the shared local `.vsix` with:
+
+```bash
+npm run package:vsix
+```
+
+The extension must stay a thin bridge over `black ide --json` and `black ide diagnostics <file> --json`. It must not reimplement BlackLang parsing, validation, or snippets in JavaScript.
+
+The same bridge is registered as prepared VS Code Marketplace, Open VSX, and Cursor-compatible VSIX channel metadata in `docs/editor-marketplace.md`, `packages/registry/package-index.blackdir`, and `adapters/marketplace/adapter-index.blackdir`. External publication remains a release-owner step after release trust verification.
 
 npm, Homebrew, Scoop, Winget, Chocolatey, Docker, and GitHub Releases may reuse these archives, but their publishing rules live in separate release automation steps.
 

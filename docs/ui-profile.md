@@ -80,6 +80,7 @@ text.align  = left
 - Locked profiles require one baseline for each current mode.
 - A locked mode must start with the exact baseline slot sequence.
 - Web profiles must include standard `box`, `text`, `table`, and `button` mode groups.
+- Before replacing a theme used by existing source, run `black theme migrate <old.blackthm> <new.blackthm> --json`.
 
 ## Standard Mode Groups
 
@@ -126,12 +127,23 @@ blackthm WarehouseTheme {
 
 The compiler reports `NON_APPEND_ONLY_UI_SLOT`.
 
+## Migration Check
+
+`black theme migrate` compares an old profile with a new profile without editing either file:
+
+```bash
+black theme migrate theme-v1.blackthm theme-v2.blackthm --json
+```
+
+The result is safe only when every old mode still exists and every old slot list remains the exact prefix of the new slot list. Appending `shadow` after `color width style` is safe. Inserting `shadow` between `color` and `width` reports `UI_SLOT_MIGRATION_BREAK` because old inline UI values would map to different slots.
+
 ## CLI
 
 ```bash
 black theme inspect --json
+black theme migrate old.blackthm new.blackthm --json
 black docs ui --json
 black docs ui-profile --json
 ```
 
-AI agents should use `profile.rules`, `profile.modeGroups`, and `profile.modes[].slots` from `black theme inspect --json` before writing inline UI intent.
+AI agents should use `profile.rules`, `profile.modeGroups`, and `profile.modes[].slots` from `black theme inspect --json` before writing inline UI intent, and `black theme migrate --json` before changing profile slot order for an existing project.

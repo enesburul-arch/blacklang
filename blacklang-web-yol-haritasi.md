@@ -73,6 +73,44 @@ BlackLang Core
 └── Automation Target
 ```
 
+## Katmanlı Uzun Vadeli Dil Hedefi
+
+Web target için yakın hedef JavaScript runtime parity değildir. Yakın hedef, deterministic web capability parity olmalıdır: CRUD/admin/SaaS/API/jobs/deploy/test gibi yaygın web işleri BlackLang kaynak niyetiyle kısa, doğrulanabilir ve generated-output-safe şekilde yapılabilmelidir.
+
+Bu ara hedef uzun vadeli genel amaçlı dil hedefini iptal etmez. Web completion içinde sınırlı bir Core Program Logic alt kümesi başlamıştır: computed/action/API arithmetic, action/API local `value`, indentation-based `if`/`else` ve compound `and`/`or`/`not` condition'lar. Web tarafı olgunlaştıktan sonra BlackLang ayrı bir Core Program Logic v1 katmanına ihtiyaç duyar. Bu katman, hazır declarative web blokları yetmediğinde kullanıcının kontrollü ve deterministik program mantığını row/API handler sınırının dışına taşımasını sağlar.
+
+Post-web Core Program Logic v1 için ayrı takip edilecek başlıklar:
+
+- literals
+- general-purpose variables
+- assignment
+- full expression grammar
+- operator precedence
+- boolean logic
+- conditional logic outside bounded action/API handlers
+- functions
+- parameters
+- return
+- lexical scope
+- collections
+- loops
+- error values / error handling
+- bounded async operations
+
+Bu çekirdek web completion yüzdesine karıştırılmamalıdır. Web %100 hedefi production web uygulaması üretme kapasitesini ölçer; Core Program Logic v1 ise BlackLang'in daha sonra Python/JavaScript benzeri genel amaçlı alana büyümesini sağlar.
+
+Core eval milestone'ları ayrı izlenmelidir:
+
+```text
+CORE-EVAL-001  Calculator with local expression state
+CORE-EVAL-002  Todo with local state
+CORE-EVAL-003  Conditional pricing logic
+CORE-EVAL-004  Loop over collection
+CORE-EVAL-005  Bounded async API call
+```
+
+Bu eval'ların kabul kriteri şudur: AI ajanı yalnızca resmi BlackLang kaynak syntax'ı ve compiler davranışı üzerinden çalışmalı; generated JavaScript/TypeScript dosyalarını çözüm olarak elle düzenlememelidir.
+
 ## Web %100 Kapsam Yol Haritası
 
 Bu bölümün amacı, BlackLang'in web tarafında uzun vadede "webde yapamayacağı şey kalmaması" hedefini ölçülebilir hale getirmektir.
@@ -109,35 +147,35 @@ Core içine her şeyi doldurmak dili ağırlaştırır. Ama her şeyi plugin'e b
 | App structure | Proje, target, generated sınırı, config, paketleme | Kısmen var |
 | Data model | Entity, relation, index, constraint, migration, seed | Kısmen var |
 | CRUD | Create, read, update, delete, archive, restore, bulk actions | Kısmen var |
-| Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var: stored-field custom query MVP |
-| UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Başlangıç var |
-| Styling/theme | Token, theme profile, responsive rule, state style, animation | Kısmen var |
+| Query | Filter, sort, pagination, custom query, aggregate, join, search | Kısmen var: stored-field custom query + aggregate summary MVP; join yok |
+| UI composition | Section, panel, grid, stack, tabs, modal, drawer, navbar, footer | Güçlü MVP: order, grid/stack, tabs, modal/drawer, nested groups, accessibility audit, interaction triggers |
+| Styling/theme | Token, theme profile, responsive rule, state style, animation | Kısmen var: theme profile, inline UI, migration check |
 | Forms | Inputs, validation, wizard, dynamic field, file field, dependent select | Kısmen var |
 | Routing | Nested route, dynamic route, protected route, layout route | Başlangıç gerekli |
 | State | Page state, global state, URL state, persisted state | Kısmen var |
 | Components | Input/output, variant, slot, event, composition | Kısmen var |
-| Frontend logic | if, loop, computed display, event handler, client action | Kısmen var: computed display |
-| Backend logic | service, command, transaction, domain rule, scheduled job | Eksik |
-| API | REST, OpenAPI, custom endpoint, webhook, GraphQL/gRPC adapter | Kısmen var |
+| Frontend logic | if, loop, computed display, event handler, client action | Kısmen var: computed display + generated custom action panel |
+| Backend logic | service, command, transaction, domain rule, scheduled job | Güçlü MVP: deterministic row-level custom action, top-level transaction blocks, explicit API service grouping ve read-only background query worker |
+| API | REST, OpenAPI, custom endpoint, webhook, GraphQL/gRPC adapter | Güçlü MVP: CRUD, query, custom action, explicit API declared runtime ve service metadata |
 | Auth | Email/password, OAuth, 2FA, password reset, session/JWT | Kısmen var |
-| Authorization | Role, permission, ownership, tenant, policy, row-level access | Kısmen var |
-| Security | CORS, CSRF, headers, rate limit, secrets, audit, scanning | Kısmen var |
-| Database runtime | SQLite, PostgreSQL, MySQL, Redis/cache, migrations | SQLite başlangıcı var |
-| File/media | Upload, image processing, storage provider, download permission | Eksik |
+| Authorization | Role, permission, ownership, tenant, policy, row-level access | Güçlü MVP: role/permission + multi-role kullanıcı ataması + tenant admin UI + owner/tenant policy |
+| Security | CORS, CSRF, headers, rate limit, secrets, audit, scanning, protected source | Güçlü MVP: CORS, headers, rate limit, audit, source scan, `.black.enc`, secret reference manifest, provider preflight execution, signed release trust, release transparency, key rotation policy |
+| Database runtime | SQLite, PostgreSQL, MySQL, Redis/cache, migrations | SQLite, PostgreSQL ve MySQL runtime tamamlandı; MySQL rename migration runner bilinçli sınır |
+| File/media | Upload, image processing, storage provider, download permission | Güçlü yerel MVP: `file`/`image` stored field, data URL form input, table/detail preview, API validation ve OpenAPI metadata; external storage, image processing ve download permission provider işi olarak eksik |
 | Email/notification | SMTP, provider adapter, template, queue, retry | Eksik |
 | Realtime | WebSocket, SSE, presence, live table updates, notifications | Eksik |
 | Payments | Product, price, checkout, subscription, invoice, webhook | Eksik |
-| Background jobs | Queue, cron, retry, delayed task, worker target | Eksik |
+| Background jobs | Queue, cron, retry, delayed task, worker target | Başlangıç MVP: deterministic `job` syntax, query worker, manifest, package scripts; queue/retry/provider scheduler eksik |
 | Search | Full-text, external search provider, indexing, facets | Eksik |
-| Testing | Unit, API, UI, e2e, fixture, generated benchmark tests | Eksik |
-| Observability | Logging, metrics, tracing, health check, error reporting | Eksik |
-| Deployment | Docker, VPS, preview, cloud adapter, env management, rollback | Kısmen var |
+| Testing | Unit, API, UI, e2e, fixture, generated benchmark tests | Güçlü MVP: generated contract/API/frontend/browser-check smoke tests + real browser e2e execution + cross-browser e2e matrix runner + deterministic seed fixture runtime + benchmark task/token reports |
+| Observability | Logging, metrics, tracing, health check, error reporting | Güçlü MVP: ops health/readiness/metrics + request logs + webhook hook |
+| Deployment | Docker, VPS, preview, cloud adapter, env management, rollback | Mature MVP: Docker + ops healthcheck + local preview compose + rollback metadata + cloud adapter plan/preflight + explicit provider CLI apply runner |
 | Performance | Bundle policy, cache, CDN, lazy loading, query optimization | Eksik |
 | Accessibility | Semantic UI rules, keyboard nav, contrast, aria validation | Başlangıç gerekli |
 | SEO/content | Meta, sitemap, robots, CMS/content pages, markdown routes | Başlangıç gerekli |
-| Plugin ecosystem | Extension manifest, versioning, docs, install, trust model | Eksik |
-| IDE support | Syntax highlight, autocomplete, diagnostics, refactor UI | Eksik |
-| Migration/refactor | Rename, move, split, schema migration, UI profile migration | Eksik |
+| Plugin ecosystem | Extension manifest, versioning, docs, install, trust model | Güçlü MVP: compiler-owned ecosystem discovery + npm/editor package metadata + local registry/marketplace manifests + trust validator + signed package trust workflow + multi-editor package channel metadata |
+| IDE support | Syntax highlight, autocomplete, diagnostics, refactor UI | Güçlü MVP: compiler-owned IDE metadata + packageable VS Code/Open VSX/Cursor-compatible bridge metadata + diagnostics/completion/snippet/format/affected workflow |
+| Migration/refactor | Rename, move, split, schema migration, UI profile migration | Başlangıç var: UI profile migration check |
 
 ### Yüzde Kilometre Taşları
 
@@ -154,7 +192,7 @@ Bu yüzdeler kesin matematik değil, web kapasitesini takip etmek için çalış
      layout composition, routing, modal/tabs/drawer, responsive rules, richer components
 
 %75  Business application platform
-     custom query, custom action, backend service, transaction, file upload, email, jobs
+     custom query, custom action, backend service, transaction, local media fields, read-only query jobs, email
 
 %90  Production web platform
      PostgreSQL/MySQL, migrations, tests, observability, cache, search, realtime, payments
@@ -162,6 +200,64 @@ Bu yüzdeler kesin matematik değil, web kapasitesini takip etmek için çalış
 %100 Full web coverage model
      plugin ecosystem, cloud/provider adapters, IDE support, versioned migrations,
      security hardening, performance/a11y/SEO policies, enterprise deployment workflows
+```
+
+Mevcut durum `black benchmark coverage --json` ile makine okunur şekilde raporlanır. Güncel weighted signal %100'dür. Bu oran pazarlama iddiası değil; data model/CRUD, frontend UI/layout, backend/API/actions, auth/security, database runtime, deployment/ops, testing/benchmarks, docs/AI ergonomics ve ecosystem alanlarının ağırlıklı planlama ölçüsüdür. Dış registry publish ve canlı hosted index deployment hâlâ release-owner/review sonrası adımlardır.
+
+Coverage report ayrıca roadmap gap'lerini stable ID'lere çevirir:
+
+```text
+WEB-UI-001       UI profile migration rules (done)
+WEB-LAYOUT-001   modal/drawer section display (done)
+WEB-LAYOUT-002   nested section groups with local stack/grid composition (done)
+WEB-LAYOUT-003   accessibility audit policy checks for overlays and nested groups (done)
+WEB-LAYOUT-004   advanced interactive composition triggers (done)
+WEB-LAYOUT-005   reusable page component sections bound to selected/first records (done)
+WEB-LAYOUT-006   generated JSX DOM order follows effective page view order (done)
+WEB-LAYOUT-007   collection-backed page component sections with bind each (done)
+WEB-I18N-001     runtime language switching for field labels (done)
+WEB-I18N-002     placeholder/help/message/date/number/currency/RTL support (done)
+WEB-DATA-001     generated schema migration plan before destructive database changes (done)
+WEB-DATA-002     PostgreSQL runtime support (done)
+WEB-DATA-003     applied migration runtime and first-class rename/refactor syntax (done)
+WEB-DATA-006     generated online migration runner safeguards (done)
+WEB-DATA-009     MySQL target runtime, seed, and Docker Compose provider output (done)
+WEB-DATA-007     relation response load policies for generated routes (done)
+WEB-DATA-008     single-hop bulk relation prefetch and nested relation response sanitization (done)
+WEB-SEC-001      ownership, tenant, and policy language (done)
+WEB-SEC-002      multiple roles per authenticated user (done)
+WEB-SEC-003      tenant administration UI for tenant policies (done)
+WEB-SEC-004      generated secret reference manifest and provider handoff plan (done)
+WEB-SEC-007      read-only secret manager provider preflight execution (done)
+WEB-SEC-005      signed compiler and release verification trust workflow (done)
+WEB-SEC-006      release transparency log and key rotation policy metadata (done)
+WEB-API-001      explicit API and webhook declared-runtime routes (done)
+WEB-API-002      explicit API handler syntax for business side effects (done)
+WEB-API-003      aggregate summaries for page-bound custom queries (done)
+WEB-API-004      deterministic background query worker jobs (done)
+WEB-API-005      API-only target generation (done)
+WEB-API-006      explicit API service/module grouping (done)
+WEB-OPS-001      local preview deployment target and rollback metadata (done)
+WEB-OPS-002      health/readiness/metrics probes and request logging (done)
+WEB-OPS-003      cloud adapters and external observability provider hooks (done)
+WEB-OPS-004      provider CLI deployment preflight and explicit apply runner (done)
+WEB-OPS-005      distributed trace context and OTLP exporter metadata (done)
+WEB-TEST-001     AI task benchmarks and token estimate reports (done)
+WEB-TEST-002     first-class fixture and seed syntax (done)
+WEB-TEST-003     first-class browser-check syntax and generated browser checks (done)
+WEB-TEST-004     full browser e2e execution with real browser automation (done)
+WEB-TEST-005     generated cross-browser e2e matrix plan and runner (done)
+WEB-TEST-006     long-running AI eval corpus metadata (done)
+WEB-TEST-007     evidence-backed AI eval result history export (done)
+WEB-DOCS-001     coverage status on docs site (done)
+WEB-DOCS-002     tracked web coverage issue export (done)
+WEB-DOCS-003     IDE diagnostics and autocomplete support (done)
+WEB-DOCS-004     IDE refactor workflows and packaged editor extension (done)
+WEB-DOCS-005     multi-editor marketplace package channel metadata (done)
+WEB-ECO-001      installable artifacts and plugin/adapter discovery (done)
+WEB-ECO-002      prepared package registries and provider adapter marketplace (done)
+WEB-ECO-003      signed package and provider adapter verification workflow (done)
+WEB-ECO-004      prepared public ecosystem index source for hosted package and adapter discovery (done)
 ```
 
 ### Öncelikli Büyük Aşamalar
@@ -174,7 +270,7 @@ Bu yüzdeler kesin matematik değil, web kapasitesini takip etmek için çalış
 4. Backend service/logic syntax'ını ekle.
 5. Database migration ve PostgreSQL runtime desteğini tamamla.
 6. File upload ve storage adapterlerini ekle.
-7. Email, notification ve background job sistemini ekle.
+7. Email, notification ve provider-backed job queue sistemini ekle.
 8. Realtime, cache ve full-text search katmanını ekle.
 9. Test generator ve benchmark komutlarını ekle.
 10. Payment ve webhook provider adapterlerini ekle.
@@ -427,6 +523,8 @@ Gerekli işler:
 ### Package Manager Yayılımı
 
 npm ve GitHub Releases oturduktan sonra daha fazla kanal eklenebilir.
+
+v0.2 içinde dış registry yayını yapılmadan önce yerel hazırlık katmanı eklendi: `packages/registry/package-index.blackdir`, `packages/registry/trust-policy.blackdir`, `adapters/marketplace/adapter-index.blackdir`, `adapters/marketplace/trust-policy.blackdir` ve `node packages/registry/scripts/validate-registry.mjs`. Böylece AI ajanı package/adapter publish işine başlamadan önce manifestleri ve trust kurallarını deterministik şekilde okuyabilir.
 
 Hedefler:
 
@@ -995,7 +1093,7 @@ Bu aşamada BlackLang ilk kez gerçek çalışan web uygulaması üretir.
 - TypeScript
 - Express veya Fastify
 - Prisma
-- SQLite veya PostgreSQL
+- SQLite, PostgreSQL veya MySQL
 - Vite
 
 ### Üretilecek Dosyalar
@@ -1089,6 +1187,13 @@ Bu aşamada basit CRUD, gerçek uygulama seviyesine yaklaştırılır.
 - SQLite hedefinde `decimal` ve `money` alanları MVP için `Float` olarak üretilir.
 - Yerel Windows ortamında Prisma schema-engine `db push` adımında boş hata verdiği için MVP'de `db:push`, BlackLang'in ürettiği deterministik SQLite setup scriptine bağlanır.
 - Native `prisma db push` tekrar değerlendirildi. Prisma 7.10 ile schema-engine boş hata vermiyor; ancak mevcut auth/audit tabloları Prisma schema dışında üretildiği için doğrudan `db push` veri kaybı uyarısıyla durabiliyor. Bu nedenle `db:push` güvenli BlackLang setup alias'ı olarak kalır, `db:push:native` ise bilinçli kontrol için ayrıca üretilir.
+- Entity içinde `index field` ve `index fieldA, fieldB` syntax'ı desteklenir.
+- Generator Prisma schema içinde deterministic `@@index([...], map: "..._idx")`, SQLite setup içinde `CREATE INDEX IF NOT EXISTS` üretir.
+- Relation field index'leri generated `<field>Id` kolona maplenir; computed display field'lar database kolonu olmadığı için indexlenemez.
+- `black inspect app.black --affected Entity.index --json`, index değişikliğinin generated database schema/setup etkisini raporlar.
+- `black migrate plan old.black new.black --json|--ir`, iki `.black` kaynak arasındaki entity, field, relation, required/default/unique, index ve explicit rename farklarını read-only şekilde karşılaştırır.
+- Migration plan JSON çıktısı `success`, `safe`, `destructive`, `summary`, `changes`, `steps` ve `changes[].risk` alanlarıyla safe/manual/destructive ayrımı yapar.
+- Komut database'e bağlanmaz; explicit `migration Name { rename entity Old to New; rename field Entity.old to new }` deklarasyonları generated `db:setup`/`db:push` sırasında schema setup öncesi uygulanır. Rename tahmin edilmez.
 
 ### Bu Aşamada Tamamlanan Üçüncü Parça
 
@@ -1173,7 +1278,7 @@ entity Order {
 - Validator bilinmeyen entity referanslarını hata olarak bırakır.
 - Prisma schema relation field, foreign key field ve ters relation alanı üretir.
 - SQLite setup scripti foreign key kolonunu üretir.
-- Form select input ve relation display davranışları sonraki relation parçalarına bırakılır.
+- Form select input ve relation display davranışları generated web çıktısında desteklenir.
 
 ### Bu Aşamada Tamamlanan İkinci Parça
 
@@ -1184,6 +1289,15 @@ entity Order {
 - Birden fazla `page` tanımı olduğunda generated React app sayfalar arası navigation üretir.
 
 ### Bu Aşamada Tamamlanan Üçüncü Parça
+
+- Relation field'lar `load list`, `load detail`, `load query`, `load mutation` veya `load none` ile generated API response attach context'lerini deterministic seçebilir.
+- `load` yazılmazsa backward-compatible varsayılan davranış korunur ve relation obje list/detail/query/mutation response'larında attach edilir.
+- `load none`, response içinde yalnız generated relation ID field'ını bırakır.
+- Generated list/query route'lar relation ID'lerini batch toplayıp her relation field için tek target lookup yapar; permission-aware build attached target record'ları sanitize eder.
+- Relation load policy database schema'yı değiştirmez ve query filter/sort için relation join syntax'ı eklemez.
+- OpenAPI operations `x-blacklang-relation-load-context` ve `x-blacklang-relation-load` metadata'sı üretir.
+
+### Bu Aşamada Tamamlanan Dördüncü Parça
 
 - Zorunlu relation field için hedef entity'de kayıt yoksa generated form submit butonunu devre dışı bırakır.
 - Relation select alanı boş seçenek listesinde disabled hale gelir.
@@ -1437,7 +1551,7 @@ Generated Express server bu sözleşmeyi şu adresten sunar:
 /openapi.json
 ```
 
-Draft v0.1 ayrıca explicit API contract bloklarını da okuyabilir:
+Draft v0.2 ayrıca explicit API bloklarını generated declared-runtime route olarak okuyabilir:
 
 ```black
 api LowStockReport {
@@ -1451,18 +1565,33 @@ api LowStockReport {
 api StockWebhook {
   method POST
   path "/api/webhooks/stock"
+  body tenantId text required
+  body sku text required
+  body stock number required min 0
+  update Product where sku == body.sku {
+    value incomingStock = body.stock
+    if incomingStock >= 0 and tenantId == body.tenantId
+      set stock = incomingStock
+    else
+      set stock = stock
+  }
+  respond accepted
   webhook
   public
 }
 ```
 
-Bu bloklar şu anda contract-first çalışır:
+Bu bloklar declared-runtime çalışır ve POST/PUT/PATCH için bounded update handler taşıyabilir:
 
 - Parse JSON çıktısında görünür.
 - BlackIR çıktısında görünür.
-- `black inspect` çıktısında özetlenir.
-- `generated/openapi.json` içine path, query param, path param, public/private metadata ve webhook metadata olarak yazılır.
-- Runtime Express route üretimi sonraki API aşamasına bırakılır.
+- `black inspect` ve `black inspect --affected` çıktısında özetlenir.
+- `generated/openapi.json` içine path, query param, path param, typed body schema, public/private metadata, `x-blacklang-runtime: declared`, `x-blacklang-handler` ve webhook metadata olarak yazılır.
+- Generated Express server path/query/body parametrelerini doğrulayan deterministic route üretir.
+- `update Entity where field == value set field = value` veya block-form `update Entity where field == value { value name = expression; if ... }` handler'ı `id` veya stored `unique` field ile tek bounded row seçer ve stored primitive non-policy field'ları günceller.
+- Block-form update handler ordered local `value`, indentation-based `if`/`else` ve nested deterministic branch statement'larını destekler.
+- Webhook route'ları `202 accepted` döner.
+- `private` route'lar projede `auth` varsa auth/CSRF middleware arkasında çalışır.
 
 ### Örnek
 
@@ -1603,20 +1732,21 @@ Mevcut v0.1 davranışı:
 
 Runtime enforcement tarafının ilk parçası da eklendi:
 
-- `BlackUser` tablosu tek bir `role` değeri saklar.
+- `BlackUser` tablosu primary `role` değeri ve `roles` seti saklar.
 - Yeni kayıt olan kullanıcıya ilk tanımlı rol atanır.
-- `/api/auth/me` kullanıcı rolünü döndürür.
+- `/api/auth/me` primary rolü ve atanmış rol setini döndürür.
 - `access` tanımlı sayfaların API route'ları role göre korunur.
 - Yetkisiz role sahip kullanıcı `403 Forbidden` cevabı alır.
 - Roller varsa generated uygulama temel bir Users ekranı üretir.
-- İlk tanımlı rol kullanıcıları listeleyebilir ve rollerini değiştirebilir.
+- İlk tanımlı rol kullanıcıları listeleyebilir ve bir kullanıcıya bir veya birden fazla rol atayabilir.
+- Tenant policy varsa aynı Users ekranı kullanıcı `tenantId` değerini düzenleyebilir.
 - Permission action tarafı çalışır:
   - `read` list/detail endpointlerini korur.
   - `create` create endpointini korur.
   - `update` edit/archive/restore endpointlerini korur.
   - `delete` single ve bulk delete endpointlerini korur.
-- Generated React sayfaları yetkisiz create/edit/archive/restore/delete kontrollerini gizler.
-- `deny` kuralı eşleşen `allow` kuralını ezer.
+- Generated React sayfaları kullanıcının hiçbir rolü izin vermiyorsa create/edit/archive/restore/delete kontrollerini gizler.
+- Permission kontrolü kullanıcının tüm rol setini değerlendirir; atanmış rollerden herhangi birindeki `deny` eşleşen `allow` kuralını ezer, aksi halde herhangi bir roldeki `allow` erişim verir.
 - Field-level read hiding çalışır:
   - `deny read Product price` Product kayıtlarını okunabilir bırakır.
   - API response içinden `price` alanını çıkarır.
@@ -1635,7 +1765,7 @@ Runtime enforcement tarafının ilk parçası da eklendi:
   - Generated frontend yazma isteklerinde `X-CSRF-Token` header'ı gönderir.
   - Generated API, state-changing authenticated isteklerde cookie ve header eşleşmiyorsa `403` döndürür.
 
-Henüz yapılmayan kısım gelişmiş yetki yönetimidir. Bir kullanıcıya birden fazla rol verme, ownership rule ve tenant rule sonraki güvenlik adımlarında eklenecektir.
+Gelişmiş yetki yönetimi hâlâ büyüyecektir. Owner/tenant entity policy, multi-role kullanıcı atama, tenant admin UI, secret reference manifest, read-only secret manager provider preflight execution ve signed release trust MVP tamamlandı; provider-owned runtime value injection sonraki adapter katmanında kalır.
 
 ## Aşama 13: Workflow Sistemi
 
@@ -1765,13 +1895,12 @@ Compiler şu kontrolleri yapar:
 - Aynı variant tekrar ediyor mu?
 - Variant satırında `when` koşulu var mı?
 
-Component declaration artık standalone React component dosyasına dönüşür. Variant koşulları `.black` içinde deterministik niyet olarak korunur; `stock < 10` gibi basit `input operator literal` koşulları runtime class seçimine çevrilir. Tek input'u entity field adı ve tipiyle eşleşen component'ler generated table/detail rendering alanlarına otomatik bağlanır. Aynı eşleşme generated form alanlarında canlı component önizlemesi olarak da kullanılır.
+Component declaration artık standalone React component dosyasına dönüşür. Variant koşulları `.black` içinde deterministik niyet olarak korunur; `stock < 10` gibi basit `input operator literal` koşulları runtime class seçimine çevrilir. Tek input'u entity field adı ve tipiyle eşleşen component'ler generated table/detail rendering alanlarına otomatik bağlanır. Aynı eşleşme generated form alanlarında canlı component önizlemesi olarak da kullanılır. Page `view` içinde `section StockSummary component StockBadge bind selected` gibi satırlarla declared component artık reusable inline page section olarak da yerleştirilebilir.
 
 ### Eklenecekler
 
-- Component
-- Props
-- Slots
+- Collection-backed component section
+- Nested component slots
 - Variant
 - Reusable form
 - Reusable table
@@ -1865,7 +1994,7 @@ entity Order {
 }
 ```
 
-## Aşama 17: Query ve Data Fetching
+## Aşama 17: Query, Action ve Data Logic
 
 Gerçek uygulamalarda basit CRUD dışında özel sorgular gerekir.
 
@@ -1905,10 +2034,265 @@ page LowStock {
 - Mevcut entity listesi ve CRUD davranışı korunur; relation seçenekleri normal entity listesinden yüklenir.
 - Table search/filter/sort/pagination, query'nin döndürdüğü sınırlı liste üzerinde çalışır. Bağlı sayfadaki mutation sonrası liste yeniden sorgulanır.
 - Auth, page access, entity read ve response field hiding kuralları uygulanır. Koşul veya sort alanında read izni yoksa query endpoint'i 403 döndürür.
-- Query bir liste seçim kuralıdır; ownership/tenant/row authorization getirmez ve mevcut detail/mutation endpoint'lerini daraltmaz.
+- Query bir liste seçim kuralıdır; ownership/tenant authorization deklarasyonu değildir. Entity row policy varsa query, detail ve mutation endpoint'leri aynı owner/tenant scope üzerinden çalışır.
 - JSON/BlackIR, inspect/affected, diagnostics, `docs query --json`, `explain query --json` ve generated OpenAPI desteği vardır.
 
-Warehouse örneğindeki ayrı, salt okunur LowStock sayfası `stock < 10` olan en fazla 50 ürünü gösterir. Ayrıntılı referans `docs/query.md` içindedir.
+Warehouse örneğindeki ayrı, salt okunur LowStock sayfası `stock < 10` olan en fazla 50 ürünü gösterir. Aynı query artık background query job tarafından da tüketilebilir. Ayrıntılı referans `docs/query.md` içindedir.
+
+### Mevcut Durum: Background Query Jobs MVP
+
+Bu aşama, generated web uygulamasında public endpoint açmadan periyodik, salt okunur query işlerini çalıştırmayı sağlar. İlk sürüm queue provider, retry sistemi veya external scheduler bağlamaz; `.black` kaynağı deterministic worker niyetini tarif eder.
+
+```black
+job LowStockMonitor {
+  schedule every 15 minutes
+  run query LowStockProducts
+}
+```
+
+İlk kapsam:
+
+- Top-level `job Name` PascalCase kullanır ve diğer top-level sembollerle çakışamaz.
+- Tek schedule syntax'ı `schedule every <integer> minutes|hours|days` şeklindedir.
+- Desteklenen aralıklar `1..1440 minutes`, `1..168 hours` ve `1..365 days` olarak sınırlıdır.
+- Tek run mode `run query QueryName` şeklindedir; query mevcut olmalıdır.
+- Generated worker query'nin stored-field `where`, deterministic `sort` ve `limit` kurallarını uygular.
+- Worker yalnızca kayıt ID'lerini seçer ve job adı, schedule, query, source, count, limit ve timestamp içeren kompakt JSON log üretir.
+- `jobs/manifest.json`, `src/worker.ts`, `jobs:run`, `jobs:loop` ve OpenAPI root `x-blacklang-jobs` metadata üretilir.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs job --json`, `explain job --json`, IDE metadata, Warehouse örneği ve docs sitesi desteği vardır.
+- Queue provider, retry, delayed queue, mutating job, external call, provider scheduler config, cron expression syntax ve arbitrary code bu MVP dışındadır.
+
+Warehouse örneğinde `LowStockMonitor`, `LowStockProducts` query'sini 15 dakikalık deterministic schedule ile worker'a bağlar. Ayrıntılı referans `docs/job.md` içindedir.
+
+### Mevcut Durum: Custom Action MVP
+
+Bu aşama, CRUD dışında satır bazlı domain işlemlerini `.black` kaynağında tanımlamayı sağlar. Örneğin Warehouse içinde `RestockProduct`, seçilen ürünün stok alanını doğrulanmış bir input ile artırır.
+
+```black
+action RestockProduct {
+  source Product
+  input quantity number required min 1 label "Quantity"
+  value restockValue = quantity
+  if restockValue > 0 and stock >= 0
+    set stock = stock + restockValue
+  else
+    set stock = stock
+  allow Admin, Worker
+  success "Stock updated"
+}
+
+transaction RestockAtomic {
+  action RestockProduct
+}
+
+page Products {
+  source Product
+  actions edit, RestockProduct
+}
+```
+
+İlk kapsam:
+
+- Top-level `action Name` tek bir `source Entity` bildirir; page aynı source ile `actions ..., Name` kullanır.
+- Action input'ları primitive field type ve validation modifier kullanır.
+- Input adı kaynak entity field adıyla çakışamaz; expression identifier'ları deterministik kalır.
+- `value`, action içinde ordered local expression adı üretir.
+- Indentation-based `if`/`else` branch'leri `value`, `set` ve nested `if` statement'larını taşıyabilir.
+- Condition comparison'ları `and`, `or`, `not` ve parantezle bağlanabilir; precedence sırası `not`, sonra `and`, sonra `or` şeklindedir.
+- `set` yalnızca saklanan primitive source field'larını değiştirir.
+- Expression değerleri typed literal, action input, source field veya local value olabilir.
+- Numeric expression için `+`, `-`, `*`, `/`, parentheses ve deterministic precedence desteklenir.
+- Top-level `transaction Name { action ActionName }` bloğu generated route içinde source row lookup, update ve auth audit log yazımını tek Prisma transaction olarak çalıştırır.
+- Computed display field, relation field, entity policy field, join, aggregate, raw SQL, arbitrary JS ve multi-row mutation bu MVP kapsamı dışındadır.
+- Page'e bağlanmış action için POST route, API client metodu, backend validator, React row button/form panel, OpenAPI schema ve auth/role varsa audit log üretilir.
+- Auth, page access, entity update permission, field-level update permission, entity row policy ve opsiyonel action `allow` kuralı birlikte uygulanır.
+- Query-bound page üzerinde action başarılı olunca liste server query'den yeniden yüklenir.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs action --json`, `docs transaction --json`, `explain action --json`, `explain transaction --json` ve generated OpenAPI desteği vardır.
+
+Warehouse örneğinde `RestockProduct`, Products ve LowStock sayfalarında kullanılabilir; `RestockAtomic` transaction bloğu hem bu action route’larını hem `StockWebhook` update handler’ını atomic hale getirir. Ayrıntılı referanslar `docs/action.md` ve `docs/transaction.md` içindedir.
+
+### Mevcut Durum: Service Block MVP
+
+Bu aşama, page kaynaklarına bağlı olmayan explicit API’leri ayrı bir service/module niyeti altında toplamayı sağlar. Endpoint hâlâ top-level `api` bloğunda tanımlanır; `service` bloğu yalnızca generated service metadata ve OpenAPI grouping üretir.
+
+```black
+service InventoryIntegration {
+  api StockWebhook
+}
+```
+
+İlk kapsam:
+
+- Top-level `service Name` PascalCase kullanır.
+- Her hedef satır `api APIName` şeklindedir.
+- Service yalnızca mevcut explicit API deklarasyonlarını hedefler.
+- Bir API en fazla bir service bloğuna bağlanabilir.
+- Service bloğu route, handler veya mutation tanımlamaz.
+- Generated output `services/manifest.json` ve `src/services/<service>.ts` üretir.
+- OpenAPI root `tags`, root `x-blacklang-services` ve operation-level `x-blacklang-service` metadata üretir.
+- Contract testleri service manifest ve OpenAPI service metadata'sını doğrular.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs service --json`, `explain service --json`, IDE metadata, Warehouse örneği ve site desteği vardır.
+
+Warehouse örneğinde `InventoryIntegration`, `StockWebhook` API’sini service metadata altında gruplar; `RestockAtomic` ise aynı API’nin atomic runtime boundary’sini ayrı tutar. Ayrıntılı referans `docs/service.md` içindedir.
+
+### Mevcut Durum: Owner/Tenant Entity Policy MVP
+
+Bu aşama, generated web route'larında satır kapsamını `.black` kaynağında açıkça tanımlamayı sağlar:
+
+```black
+entity Order {
+  tenantId text required default "default"
+  ownerId text required default "system"
+  total money default 0
+  status text default draft
+  policy tenant tenantId
+  policy owner ownerId
+}
+```
+
+İlk kapsam:
+
+- `policy owner field` ve `policy tenant field` satırları entity içinde yazılır.
+- Policy kullanımı `auth` gerektirir.
+- Policy field'ı aynı entity üzerinde saklanan `text required` field olmalıdır ve `unique` olamaz.
+- Generated form field listelerinde, API client input type'larında ve OpenAPI input schema'larında policy field'ları yoktur.
+- Create/update route'ları policy field'larını current authenticated user context'ten damgalar.
+- List, query, detail, archive, restore, delete, workflow transition ve custom action route'ları aynı row scope ile çalışır.
+- Custom action `set` satırları policy field yazamaz.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs policy --json`, `explain policy --json`, Warehouse örneği ve docs sitesi desteği vardır.
+
+Ayrıntılı referans `docs/policy.md` içindedir.
+
+### Mevcut Durum: Ops Runtime Signals MVP
+
+Bu aşama, generated web uygulamasının deploy edildikten sonra standart altyapı kontrolleriyle izlenebilmesini sağlar:
+
+```black
+ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe otlp endpoint env BLACKLANG_OTLP_ENDPOINT
+}
+```
+
+İlk kapsam:
+
+- Top-level `ops` bloğu health, readiness, metrics, request logging ve external observability hook/exporter niyetini taşır.
+- `health path` generated public GET endpoint üretir; process uptime, app adı, CLI version ve start time döner.
+- `readiness path` database bağlantısını `SELECT 1` ile kontrol eder; hata varsa `503` döner.
+- `metrics path` process-local request, error, status code, uptime ve start time değerlerini döner.
+- `logging requests` her gözlenen istek bitince structured JSON log yazar.
+- `observe webhook endpoint env NAME`, env set edilmişse her request sonunda non-blocking structured event POST eder.
+- `observe otlp endpoint env NAME`, env set edilmişse her request sonunda non-blocking OTLP HTTP JSON trace payload POST eder.
+- Observe middleware W3C `traceparent` context üretir veya gelen context'i taşır ve response `traceparent` header'ını yazar.
+- Observability endpoint ve provider değerleri `.black` içinde literal secret/URL olarak tutulmaz; environment üzerinden okunur.
+- Ops path'leri root-level public path olmalıdır; `/api`, `/openapi.json`, query string, fragment, brace, whitespace ve unsafe karakterler reddedilir.
+- Ops route'ları API auth ve CSRF middleware'inden önce üretilir.
+- OpenAPI içine `x-blacklang-ops` ve `x-blacklang-public` metadata yazılır.
+- OpenAPI içine observe hook varsa `x-blacklang-observability` metadata yazılır.
+- `ops/observability.json` provider, endpoint env, signal, protocol, trace context, delivery ve exporter metadata'sını kaydeder.
+- Generated contract/API smoke testleri ops path, metadata, trace context ve local observability hook/exporter delivery kontrollerini çalıştırır.
+- `deploy { target docker }` ve health path varsa Dockerfile ve docker-compose app healthcheck'i aynı health path'i probe eder.
+- JSON/BlackIR, inspect/affected, diagnostics, `docs ops --json`, `explain ops --json`, IDE metadata, Warehouse örneği ve docs sitesi desteği vardır.
+
+Ayrıntılı referans `docs/ops.md` içindedir.
+
+### Mevcut Durum: Generated Contract/API/Frontend/Browser-Check/E2E/Matrix Test MVP
+
+Bu aşama, `black build` ile üretilen web veya API-only uygulamasının kendi sözleşmesini ve temel HTTP davranışını doğrulamasını sağlar. `target web` ayrıca React render yüzeyini, declared browser-check beklentilerini, gerçek browser e2e akışını ve cross-browser matrix runner'ını doğrular. Generated proje `npm test` komutuyla OpenAPI, validation, job metadata, API server ve target'a uygun test yüzeylerini hızlıca smoke test eder; web target'ta `npm run test:e2e` tek selected browser üzerinden, `npm run test:e2e:plan` read-only matrix availability üzerinden, `npm run test:e2e:matrix` ise available Chrome/Edge/Chromium hedefleri üzerinden auth, navigation, text/page/action görünürlüğünü kontrol eder.
+
+İlk kapsam:
+
+- `target web` package script'i `npm run db:generate && tsx src/blacklang.contract.test.ts && tsx src/blacklang.api.test.ts && tsx src/blacklang.frontend.test.tsx` olarak üretilir; source içinde `test` varsa buna `tsx src/blacklang.browser.test.tsx` eklenir.
+- `target api` package script'i yalnızca `npm run db:generate && tsx src/blacklang.contract.test.ts && tsx src/blacklang.api.test.ts` çalıştırır; React, frontend smoke, browser-check, e2e ve matrix test dosyaları üretilmez.
+- Web source içinde `test` varsa `test:e2e`, `test:e2e:plan`, `test:e2e:matrix` ve `test:all` script'leri de üretilir; `test:e2e`, `db:generate` sonrası `tsx src/blacklang.e2e.test.ts` çalıştırır.
+- Test dosyası `openapi.json` içindeki ops path/metadata, observability metadata, entity schema, custom action schema, CRUD route, bound query route, background job metadata, explicit API route ve custom action metadata kayıtlarını doğrular.
+- Test dosyası generated validation fonksiyonlarını import eder ve temsilî geçerli/geçersiz entity/action payload'larını kontrol eder.
+- API smoke test generated Express app'i random localhost portunda açar; `/openapi.json`, explicit API runtime route'ları, ops endpoint'leri, local observability hook delivery, anonymous API status, auth yoksa JSON 404 ve varsa CORS allow/deny davranışını kontrol eder.
+- Frontend smoke test `target web` içinde generated React `App` bileşenini `react-dom/server` ile render eder.
+- Browser-check smoke test `target web` içinde generated page metadata, target page action listesi ve generated text/render catalog üzerinden declared `expect text`, `expect page` ve `expect action` beklentilerini doğrular.
+- Browser e2e test `target web` içinde ephemeral SQLite database kullanır, setup/seed modüllerini çalıştırır, generated API server ve Vite dev server'ı random localhost portlarında açar, auth varsa deterministic kullanıcı kaydı yapar, page navigation ve action button görünürlüğünü gerçek DOM'da doğrular.
+- Browser matrix plan `target web` içinde `tests/browser-matrix.json` ve `src/blacklang.e2e.matrix.ts` üzerinden custom, Chrome, Edge ve Chromium executable availability bilgisini read-only JSON olarak raporlar.
+- Browser matrix run aynı generated e2e intent'ini her available hedef için çalıştırır; missing hedefleri skip eder ve stdout/stderr tail alanlarıyla compact failure triage üretir.
+- `number` ve `integer` alanlarında kesirli değerlerin reddedildiği smoke test edilir.
+- Bu testler generated web/API çıktısı için deterministic contract/API/frontend/browser-check/e2e/matrix test katmanıdır. `test` declaration yine arbitrary browser step DSL değildir; generated auth, setup/seed, navigation, text/page/action kontrolleriyle sınırlıdır ve `target api` içinde unsupported diagnostic verir.
+
+### Mevcut Durum: Benchmark Command MVP
+
+Bu aşama, BlackLang kaynak boyutu, generated output boyutu ve AI task/token farkını tahmine bırakmadan ölçmeyi sağlar.
+
+İlk kapsam:
+
+- `black benchmark [file] --out <dir> --json|--ir` komutu vardır.
+- `black benchmark tasks [file] --out <dir> --json|--ir` komutu vardır.
+- `black benchmark eval [file] --out <dir> --json|--ir` komutu vardır.
+- `black benchmark eval-history [--history <file>] --json|--ir` komutu vardır.
+- Komut projeyi parse/validate eder ve generated output'u geçici dizinde üretip ölçer.
+- Configured generated output dizinini değiştirmez.
+- JSON çıktı `source`, `generated`, `ratios`, `sourceFiles`, `generatedFiles` ve `generatedKinds` alanlarını içerir.
+- Task benchmark JSON çıktısı `baseline`, `scenarios` ve `totals` alanlarını içerir.
+- Eval corpus JSON çıktısı `suite`, `cases` ve `totals` alanlarını içerir; case prompt, expected evidence, required commands ve 100 puanlık scoring rubric taşır.
+- Eval history JSON çıktısı `history`, `summary` ve `runs` alanlarını içerir; evidence path, validation/model source, pass/fail total ve scoring policy taşır.
+- İlk task benchmark seti 8 deterministic scenario üretir: query report, custom action, seed fixture, browser-check, row policy, explicit API handler, ops probes ve local preview/rollback metadata.
+- Token estimate raporu current source/generated byte-line oranlarından ve fixed scenario context boyutlarından türetilen planning signal'dır; billed-token ölçümü değildir.
+- Eval corpus read-only metadata'dır; AI model çağırmaz, configured output dizinini değiştirmez, commit/push/deploy yapmaz ve secret saklamaz.
+- Eval history published-local manifest'i `benchmarks/eval-history.blackdir` içinden okunur; local validation entry'leri billed model benchmark skoru gibi sunulamaz.
+- Compiler testleri Warehouse için kompakt golden manifest kullanır; dosya path/kind/satır/byte/SHA-256 değişimi review gerektirir.
+- Warehouse ölçümünde collection-backed component section aşaması sonunda 770 `.black` kaynak satırı 65 generated dosyada 14503 satır üretmektedir; generated/black-source line ratio 18.84'tür.
+- Warehouse task benchmark raporu 8 scenario için estimated BlackLang token total `10519`, conventional token total `90872`, estimated savings `%88` sinyali üretmektedir.
+
+### Mevcut Durum: Seed / Fixture MVP
+
+Bu aşama, demo ve test verisini `.black` içinde deterministic source intent olarak tutmayı sağlar. Generated setup schema işlemini bitirdikten sonra `db:seed` çalıştırır ve row key'leri stable id olarak upsert eder.
+
+```black
+seed DemoProducts {
+  source Product
+
+  row DemoProductLow {
+    tenantId "default"
+    sku "LOW-001"
+    name "Low Stock Widget"
+    stock 3
+    price 19.99
+  }
+}
+```
+
+İlk kapsam:
+
+- Top-level `seed Name` tek bir `source Entity` kullanır.
+- `row RowKey` stable generated `id` olur.
+- Scalar stored field değerleri typed literal olarak yazılır.
+- Relation field değerleri `ref OtherRowKey` kullanır.
+- Computed/system field, raw SQL, arbitrary code ve secret değerleri seed içinde desteklenmez.
+- Generated web output `src/seed.ts`, `db:seed` ve `db:setup` wiring üretir.
+- AI ajanları `black docs seed --json`, `black explain seed --json` ve `black inspect --affected DemoProducts --json` ile etkiyi okuyabilir.
+
+### Mevcut Durum: Browser Test Declaration MVP
+
+Bu aşama, generated web uygulamasının beklenen page/action/text yüzeyini `.black` içinde deterministic test niyeti olarak tutmayı sağlar. Amaç, AI ajanının “hangi sayfa ve aksiyon görünür olmalı?” sorusunu generated dosyaları elle okuyarak değil, source intent, JSON tooling, hızlı browser-check ve gerçek browser e2e koşumu üzerinden doğrulamasıdır.
+
+```black
+test WarehouseBrowserSmoke {
+  page Products
+  expect text "Depo"
+  expect page LowStock
+  expect action RestockProduct
+}
+```
+
+İlk kapsam:
+
+- Top-level `test Name` tek bir `page PageName` hedefler.
+- `expect text`, `npm test` içinde generated React render çıktısı veya text catalog içinde literal arar; `npm run test:e2e` ve `npm run test:e2e:matrix` içinde gerçek DOM metnini bekler.
+- `expect page`, `npm test` içinde declared page metadata varlığını; `npm run test:e2e` ve `npm run test:e2e:matrix` içinde gerçek navigation/page label görünürlüğünü kontrol eder.
+- `expect action`, `npm test` içinde hedef page'in CRUD veya custom action listesinde action bulunduğunu; `npm run test:e2e` ve `npm run test:e2e:matrix` içinde action button görünürlüğünü doğrular.
+- Generated web output `src/blacklang.browser.test.tsx` üretir ve `npm test` zincirine ekler; ayrıca `src/blacklang.e2e.test.ts`, `src/blacklang.e2e.matrix.ts`, `tests/browser-matrix.json`, `test:e2e`, `test:e2e:plan`, `test:e2e:matrix` ve `test:all` üretir.
+- AI ajanları `black docs test --json`, `black explain test --json` ve `black inspect --affected WarehouseBrowserSmoke --json` ile etkiyi okuyabilir.
+- Browser e2e execution gerçek Chrome/Chromium/Edge executable gerektirir; path otomatik bulunamazsa `BLACKLANG_E2E_BROWSER_PATH` kullanılabilir. Matrix hedefleri için `BLACKLANG_E2E_CHROME_PATH`, `BLACKLANG_E2E_EDGE_PATH` ve `BLACKLANG_E2E_CHROMIUM_PATH` kullanılabilir.
 
 ### Sonraki Genişleme
 
@@ -1917,6 +2301,9 @@ Warehouse örneğindeki ayrı, salt okunur LowStock sayfası `stock < 10` olan e
 - Join ve relation koşulları
 - Computed field filtreleme/sıralama
 - Server pagination ve total count
+- Multi-step backend service/command orchestration
+- External multi-model AI eval score history after independent harness runs
+- Multi-step backend service/command syntax
 - Cache ve realtime refresh
 
 ## Aşama 18: Dashboard ve Raporlama
@@ -2069,11 +2456,12 @@ AI'nin hata ayıklaması için uygulama kendi davranışını anlaşılır rapor
 ### Örnek
 
 ```black
-observability {
-  logs structured
-  errors json
-  healthcheck "/health"
-  audit Product create, update, delete
+ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe otlp endpoint env BLACKLANG_OTLP_ENDPOINT
 }
 ```
 
@@ -2086,9 +2474,10 @@ BlackLang'in en değerli taraflarından biri testleri de kaynaktan üretebilmesi
 - Unit test
 - API test
 - Component test
-- E2E test
-- Fixture
-- Seed data
+- Browser-check test (ilk generated page/action/text MVP var)
+- E2E test (gerçek browser automation eksik)
+- Fixture (ilk seed syntax/runtime var)
+- Seed data (ilk deterministic seed/runtime var)
 - Permission test
 - Workflow test
 
@@ -2118,11 +2507,32 @@ Uygulama büyüdükçe veri modeli değişir. Bu alan çok dikkatli tasarlanmal�
 - Rollback
 - Migration warning
 
+### Mevcut MVP
+
+Read-only schema migration plan, explicit rename runtime ve generated online migration runner tamamlandı:
+
+```bash
+black migrate plan old.black new.black --json
+black migrate plan old.black new.black --ir
+```
+
+Bu komut parser/validator sonrası iki kaynak arasındaki generated database shape farklarını safe, manual ve destructive risklere ayırır. Database'e bağlanmaz. Entity/field rename niyeti current source içindeki migration bloklarıyla açık yazılır ve generated setup runtime tarafından schema setup öncesi idempotent uygulanır. Rollback ve data transform hâlâ gelecek genişletmelerdir.
+
+Generated app içinde migration blokları varsa şu komutlar da üretilir:
+
+```bash
+npm run db:migrate:plan
+npm run db:migrate
+npm run db:setup
+```
+
+`db:migrate:plan` target database'e read-only bakar; SQLite'ta eksik DB dosyasını oluşturmaz, PostgreSQL connection string değerini JSON'a basmadan unreachable/ready bilgisini döndürür. Generated rename migration runner şimdilik SQLite ve PostgreSQL ile sınırlıdır; `database mysql` ile migration block birlikte kullanılırsa validator `UNSUPPORTED_TARGET_DATABASE_MIGRATION` raporlar. `db:migrate` yalnızca declared rename migration'larını uygular ve `BlackMigration` ledger'ına işler. Sonrasında `db:setup` normal generated setup ve seed yolunu çalıştırır.
+
 ### Örnek
 
 ```black
 migration RenameSkuToBarcode {
-  rename Product.sku to barcode
+  rename field Product.sku to barcode
 }
 ```
 
@@ -2202,7 +2612,7 @@ Pozisyonel UI syntax geriye dönük uyumluluk için sıkı kurallarla yönetilme
 3. Var olan slot taşınamaz veya anlamı değiştirilemez.
 4. Yeni slot sadece sona eklenebilir.
 5. Sondaki eksik değerler default kullanır.
-6. Araya ekleme veya yeniden sıralama gerekiyorsa compiler migration yapar.
+6. Araya ekleme veya yeniden sıralama gerekiyorsa `black theme migrate` bunu unsafe olarak raporlar; otomatik source rewrite ayrı bir gelecek refactor aşamasıdır.
 7. IDE ve AI aynı profile metadata'sını kullanır.
 
 Temel kural:
@@ -2230,6 +2640,14 @@ Eski kullanım bozulmaz:
 ```black
 ui black 1 solid 8 8 5 5 6 center
 ```
+
+Güncel CLI kontrolü:
+
+```bash
+black theme migrate theme-v1.blackthm theme-v2.blackthm --json
+```
+
+`success` ve `safe` birlikte `true` değilse mevcut `.black` kaynak theme değişikliğinden önce düzeltilmelidir.
 
 Çünkü `shadow` verilmemiştir ve generator default değer kullanır.
 
@@ -2298,6 +2716,8 @@ ui box = color width shadow style pt pr pb pl radius place;
 Çünkü `shadow` araya eklenmiştir ve eski UI satırlarının anlamını kaydırabilir. Compiler bu durumda `NON_APPEND_ONLY_UI_SLOT` hatası verir.
 
 `ui <mode> = <slot...>;` satırı generator'ın o mode için değerleri hangi sırayla okuyacağını belirler. `black theme inspect --json` çıktısındaki `profile.modeGroups`, bu standart grupların ne işe yaradığını, hangi elementlere uygulanacağını ve default slot sırasını gösterir. Standart gruplardan biri eksikse compiler `MISSING_STANDARD_UI_MODE` hatası verir.
+
+Theme değiştirirken `black theme migrate old.blackthm new.blackthm --json` kullanılmalıdır. Komut read-only çalışır; eski ve yeni profilin aynı theme/profile kimliğiyle devam ettiğini, sürümlerin geriye gitmediğini, eski mode'ların silinmediğini ve eski slot listesinin yeni slot listesinin exact prefix'i olduğunu kontrol eder. Araya slot ekleme, reorder veya silme `UI_SLOT_MIGRATION_BREAK` döndürür.
 
 ### Mevcut v0.2 Uygulaması: Inline UI Intent
 
@@ -2407,18 +2827,27 @@ Bu örnekte form önce, table sonra, detail paneli en sonda görünür.
 - `order` satırı `table`, `detail`, `form` section adlarını kabul eder.
 - Yazılan section'lar önce gelir.
 - Eksik bırakılan destekli section'lar varsayılan `table, detail, form` sırasıyla sona eklenir.
+- `compose grid`, `compose stack` ve `compose tabs` desteklenir.
+- `compose grid ... stackAt sm|md|lg|none` canonical responsive syntax'tır; generator deterministic lg/md/sm media query ladder'ı üretir.
+- Responsive kolon sayısından büyük section span'leri breakpoint içinde clamp edilir.
+- `section detail display drawer side right title "Order Details"` gibi satırlar generated detail/form panellerini overlay olarak açabilir.
+- `section form display modal title "Order Form"` create/edit formunu modal panel içinde açtırır.
+- `group CustomerWorkspace sections detail, form compose stack gap md span 1 title "Customer Workspace"` gibi satırlar contiguous inline section'ları tek generated wrapper altında toplar.
+- Group wrapper kendi `compose stack|grid`, `columns`, `gap`, `span` ve `title` niyetini taşıyabilir.
+- `tab <Name> sections table, detail` satırı tabs modunda generated tab control üretir.
+- Tabs modunda her ordered section tam bir tab içinde yer almalıdır; modal/drawer display ve group tabs ile bu MVP'de birleşmez.
+- `trigger detail on rowSelect`, `trigger form on createStart|editStart`, `trigger detail|table on saveSuccess` ve `trigger table on close` generated tab/overlay akışını deterministik hale getirir.
+- `section StockSummary component StockBadge bind selected span 1 title "Stock Summary"` declared component'i selected row'a bağlı reusable inline page section olarak üretir.
+- `bind first` ilk yüklenen listedeki ilk kaydı component'e geçirir.
+- Component section input'ları source entity'deki stored veya computed field'larla isim ve tip olarak eşleşmelidir.
+- Component section'lar bu MVP'de inline render edilir; modal/drawer component section ilerideki daha zengin composition modeline bırakılmıştır.
 - Duplicate veya desteklenmeyen section adları validator hatası üretir.
-- Generator table/detail/form için stable `.bl-view-section-*` class'ları üretir.
-- `view` intent varsa `src/styles.css` içinde deterministik order kuralları üretilir.
+- Generator table/detail/form için stable `.bl-view-section-*`, `.bl-view-display-*`, `.bl-view-side-*`, `.view-group`, `.bl-view-group-*` ve `.bl-view-has-triggers` class'ları üretir.
+- `view` intent varsa `src/styles.css` içinde deterministik order/composition/tab/overlay/group kuralları üretilir; trigger davranışı generated React state akışına bağlanır.
+- `black audit accessibility --json`, modal/drawer section title'ı ve çoklu section group title'ı için read-only policy diagnostics üretir.
 
 Sonraki genişleme:
 
-- nested section
-- grid ve stack
-- tabs
-- modal ve drawer
-- responsive layout kuralları
-- tam DOM-order rendering
 - coordinate/fixed placement gibi kontrollü pozisyonlama
 
 ## Aşama 27: Internationalization
@@ -2450,7 +2879,7 @@ label Product.name {
 
 ### Mevcut Durum
 
-Bu aşamanın ilk çalışan parçası eklendi. BlackLang artık top-level `i18n` bloğunu ve entity field hedefli `label Entity.field { ... }` translation bloklarını okuyabilir:
+Bu aşamanın genişletilmiş web kapsamı eklendi. BlackLang artık top-level `i18n` bloğunu, entity field hedefli `label Entity.field { ... }` translation bloklarını, generated UI copy hedefli `label app/page/action/table/status.* { ... }` bloklarını ve stored field hedefli `placeholder/help/message Entity.field { ... }` bloklarını okuyabilir:
 
 ```black
 i18n {
@@ -2462,26 +2891,62 @@ label Product.stock {
   tr "Stok Adedi"
   en "Stock Count"
 }
+
+label app.title {
+  tr "Depo"
+  en "Warehouse"
+}
+
+label page.Products {
+  tr "Ürünler"
+  en "Products"
+}
+
+label action.create {
+  tr "Oluştur"
+  en "Create"
+}
+
+placeholder Product.stock {
+  tr "Stok adedini gir"
+  en "Enter stock count"
+}
+
+help Product.stock {
+  tr "Satılabilir mevcut ürün adedi"
+  en "Current available quantity"
+}
+
+message Product.stock {
+  tr "Geçerli bir stok adedi gir"
+  en "Enter a valid stock count"
+}
 ```
 
-Compiler bu bilgiyi parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web generator default locale çevirisini field label olarak kullanır. Translation yoksa eski `label "Text"` modifier'ı, o da yoksa title-cased field adı kullanılır.
+Compiler bu bilgiyi parse eder, validate eder, JSON/BlackIR çıktısına taşır ve web generator çok locale varsa runtime language selector üretir. Generated App aktif locale'i sayfalara geçirir ve `lang`/`dir` attribute'larını üretir. App chrome, navigation page name, table tool, status label, CRUD/custom action button, workflow transition button, table, detail, form, filter ve column visibility field label'ları; form placeholder/help text'leri ve field-level frontend validation message'ları kullanıcı dil değiştirdiğinde yeniden render olur. Table/detail number, integer, decimal, money, date ve datetime değerleri aktif locale ile `Intl` üzerinden formatlanır. Translation yoksa önce default locale çevirisi, sonra ilgili inline field modifier'ı veya deterministic fallback kullanılır.
 
 İlk kapsam:
 
 - `i18n.default`
 - `i18n.locales`
 - `label Entity.field`
-- default locale field label generation
+- `label Entity.computedField`
+- `label app.*`
+- `label page.<Page>`
+- `label action.<key|CustomAction|workflowTransition>`
+- `label action.new/create/edit/view.<Entity>`
+- `label table.*`
+- `label status.*`
+- `placeholder Entity.field`
+- `help Entity.field`
+- `message Entity.field`
+- runtime field label switching
+- runtime app chrome/action/table/status copy switching
+- runtime field placeholder/help/message switching
+- locale-aware value formatting
+- basic RTL direction support
 - locale ve target validation
 - JSON/BlackIR visibility
-
-Sonraki genişleme:
-
-- runtime dil değiştirme
-- translation key sistemi
-- placeholder/help/message çevirileri
-- date/number/currency format
-- RTL layout desteği
 
 ## Aşama 28: Security Katmanı
 
@@ -2524,7 +2989,7 @@ database {
 }
 ```
 
-İleride eklenecek BlackLang'e özgü korumalar:
+Eklenen BlackLang'e özgü korumalar:
 
 - `database { url env DATABASE_URL }` parse/validate desteği
 - `security { cors { origins env CORS_ORIGINS } }` parse/validate desteği
@@ -2533,9 +2998,14 @@ database {
 - generated Express server içinde CORS middleware üretimi
 - `black security scan --json`
 - hardcoded secret tespiti
-- production package üretirken `.black` kaynaklarını dışarıda bırakma
-- signed compiler/release kontrolü
+- production package üretirken `.black` ve `.black.enc` kaynaklarını dışarıda bırakma
 - encrypted source mode: `app.black.enc`
+- `black security encrypt <file>`
+- `black security decrypt <file.black.enc> --stdout`
+- `.black.enc` source'u parse/lint/validate/inspect/benchmark/security scan/build sırasında bellekte okuma
+
+Kalan ileri seviye korumalar:
+
 - `black build --secure`
 - CI/CD secret ayrımı
 
@@ -2567,14 +3037,22 @@ CLI tarafında source security için şu komutlar da vardır:
 ```bash
 black security scan --json
 black security encrypted-source --json
+black security encrypt app.black --out app.black.enc --json
+black security decrypt app.black.enc --stdout
 black package --production
 ```
 
 `black security scan --json`, `.black` source içinde olası hardcoded database URL, private key, API key, token, secret ve password değerlerini raporlar.
 
-`black security encrypted-source --json`, `.black.enc` protected source modunun durumunu ve üretim kurallarını AI/CI araçlarının okuyabileceği şekilde raporlar. Draft v0.1 içinde bu mod planlıdır; production package `.black` ve `.black.enc` kaynaklarını dışarıda bırakır.
+`black security encrypted-source --json`, `.black.enc` protected source modunun durumunu ve üretim kurallarını AI/CI araçlarının okuyabileceği şekilde raporlar. `black security encrypt`, key değerini yalnızca environment'tan alarak AES-GCM encrypted source üretir. `black security decrypt --stdout`, plaintext'i dosyaya yazmadan açıkça stdout'a basar.
 
-`black package --production`, generated output'tan production artifact üretir ve `.black` source, `.env`, local database, `node_modules` ve generated Prisma client output gibi taşınmaması gereken dosyaları pakete dahil etmez.
+`parse`, `lint`, `validate`, `inspect`, `benchmark`, `security scan` ve `build` komutları key environment variable set edildiğinde `.black.enc` source'u bellekte okuyabilir. `black format`, `.black.enc` dosyasını rewrite etmez; plaintext source güvenilir workspace'te formatlanıp tekrar encrypt edilmelidir.
+
+Generated web/API output artık `security/secrets.json`, `scripts/secrets-plan.mjs` ve `scripts/secrets-provider.mjs` üretir. Manifest `DATABASE_URL`, `CORS_ORIGINS`, cloud app/region env değerleri ve observability endpoint gibi referansları source/kind/required/sensitive metadata ile listeler ama değer saklamaz. `npm run security:secrets:plan`, environment readiness bilgisini JSON olarak raporlar. `npm run security:secrets:preflight`, environment veya secret manager handoff öncesi provider label, prefix ve CLI availability bilgisini JSON olarak raporlar; secret değerlerini fetch etmez veya yazdırmaz.
+
+Release trust için repository artık `scripts/verify-release-trust.mjs` içerir. `black ecosystem --json` içinde `release.trust` alanı Ed25519 algoritmasını, `<artifact>.sig` pattern'ini, `BLACKLANG_RELEASE_PUBLIC_KEY` / `BLACKLANG_RELEASE_PUBLIC_KEY_FILE` public key referanslarını, strict verify command'ini, `transparencyLog` metadata'sını ve `keyRotation` policy metadata'sını gösterir. `packages/registry/release-transparency.blackdir`, append-only `transparency.blackdir` entry shape ve hash-chain alanlarını tanımlar. `packages/registry/key-rotation-policy.blackdir`, sha256-public-key-spki-prefix key id formatını, 30 günlük overlap kuralını ve `key-revocations.blackdir` revocation manifestini tanımlar. Npm wrapper download akışı checksum doğrulamasından sonra detached signature doğrulaması yapmadan binary extract etmez. Private signing key `.black`, manifest veya package metadata içinde tutulmaz.
+
+`black package --production`, generated output'tan production artifact üretir ve `.black`, `.black.enc`, `.env`, local database, `node_modules` ve generated Prisma client output gibi taşınmaması gereken dosyaları pakete dahil etmez.
 
 ### Eklenecekler
 
@@ -2609,6 +3087,7 @@ BlackLang sadece kod üretmekle kalmayıp uygulamanın nasıl çalıştırılaca
 - Environment variables
 - Dockerfile
 - Docker Compose
+- Ops healthcheck
 - Build script
 - Start script
 - Production config
@@ -2623,6 +3102,9 @@ deploy {
   port env PORT default 3001
   env DATABASE_URL required
   env CORS_ORIGINS optional
+  preview local
+  rollback keep 3
+  cloud fly app env FLY_APP_NAME region env FLY_REGION
 }
 ```
 
@@ -2636,6 +3118,8 @@ deploy {
   port env PORT default 3001
   env DATABASE_URL required
   env CORS_ORIGINS optional
+  preview local
+  rollback keep 3
 }
 ```
 
@@ -2644,12 +3128,22 @@ Bu blok şunları üretir:
 - `Dockerfile`
 - `.dockerignore`
 - `docker-compose.yml`
+- `docker-compose.preview.yml`
 - `.env.example` içinde `PORT`
+- `.env.example` içinde `BLACKLANG_PREVIEW_PORT`
 - generated `package.json` içinde `start`
+- generated `package.json` içinde `deploy:preview`, `deploy:preview:down` ve `deploy:rollback:plan`
+- `deploy/manifest.json`
+- `deploy/rollback.json`
+- `deploy/cloud.json`
+- `scripts/rollback-plan.mjs`
+- `scripts/cloud-plan.mjs`
+- `scripts/cloud-exec.mjs`
 - generated `src/server.ts` içinde `process.env["PORT"]`
 - generated Express server üzerinden `dist` frontend servis etme
+- `ops.health` varsa Dockerfile ve docker-compose içinde app healthcheck
 
-Şimdilik deploy target olarak yalnızca `docker` desteklenir. `database postgres` syntax'ı, generator gerçekten PostgreSQL runtime üretebildiği aşamada açılmalıdır; mevcut generated runtime SQLite tabanlıdır.
+Şimdilik deploy target olarak yalnızca `docker` desteklenir. `preview local`, normal compose stack'ten ayrı host port ve preview database default'ları üretir. `rollback keep N`, altyapıyı değiştirmeyen read-only rollback plan metadata'sı üretir. `cloud fly|render|railway app env NAME [region env NAME]`, `deploy/cloud.json`, `deploy/manifest.json` cloud metadata'sı, read-only `deploy:cloud:plan`/`deploy:cloud:preflight` çıktısı ve açık apply gerektiren `deploy:cloud:exec` provider CLI runner'ı üretir. `database sqlite` için Docker Compose local SQLite verisini `/app/data` altında tutar; `database postgres` için PostgreSQL service, healthcheck ve app `DATABASE_URL` fallback'i üretir; `database mysql` için MySQL 8.4 service, healthcheck, `MYSQL_*` local env default'ları ve app `DATABASE_URL` fallback'i üretir. Runtime probe ve observability hook syntax'ı ayrı `ops` bloğudur.
 
 ## Aşama 30: Plugin ve Target Sistemi
 
@@ -2677,7 +3171,7 @@ target web {
 
 ### Mevcut Durum
 
-Bu aşamanın ilk çalışan parçası eklendi. BlackLang artık top-level `target` bloğunu okuyabilir:
+Bu aşamanın web ve API-only çalışan parçaları eklendi. BlackLang artık top-level `target` bloğunu iki generated uygulama hedefiyle okuyabilir:
 
 ```black
 target web {
@@ -2687,7 +3181,16 @@ target web {
 }
 ```
 
-Şimdilik bilinçli olarak yalnızca `web + react + node + sqlite` desteklenir. Bunun sebebi generator'ın şu an gerçekten üretebildiği çalışan web stack'inin bu olmasıdır. PostgreSQL, mobile, desktop, API-only veya farklı backend targetları syntax olarak açılmadan önce generator adapter desteği eklenmelidir.
+```black
+target api {
+  backend node
+  database sqlite
+}
+```
+
+Şimdilik bilinçli olarak `web + react + node + sqlite|postgres|mysql` ve `api + node + sqlite|postgres|mysql` desteklenir. Bunun sebebi generator'ın gerçekten üretebildiği çalışan stack'leri syntax olarak açmasıdır. Admin, mobile, desktop veya farklı backend targetları syntax olarak açılmadan önce generator adapter desteği eklenmelidir.
+
+`target api`, React/Vite/frontend smoke/browser-check/e2e/matrix dosyalarını üretmez. Page deklarasyonları yine entity kaynaklı API route/client/validation/OpenAPI yüzeyini tarif eder; browser `test` deklarasyonları ise yalnızca `target web` içinde desteklenir.
 
 Bu aşama sayesinde:
 
@@ -2748,7 +3251,7 @@ Bu yüzden repo ve dokümantasyon sitesine şu kural eklenmiştir:
 
 ```text
 official BlackLang path:
-.black source -> black CLI -> generated web output
+.black source -> black CLI -> generated web/API output
 ```
 
 Desteklenmeyen kullanım:

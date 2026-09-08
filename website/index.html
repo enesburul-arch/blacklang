@@ -33,7 +33,7 @@
 
       <label class="nav-search">
         <span>Menüde ara</span>
-        <input type="search" id="navSearch" placeholder="entity, query, security..." />
+        <input type="search" id="navSearch" placeholder="entity, query, action, service..." />
       </label>
 
       <nav aria-label="BlackLang dokümantasyon menüsü">
@@ -46,7 +46,17 @@
         <a href="#target">target</a>
         <a href="#entity">entity</a>
         <a href="#computed">computed</a>
+        <a href="#media">media</a>
+        <a href="#relation-load">relation-load</a>
+        <a href="#index">index</a>
+        <a href="#migration">migration</a>
+        <a href="#seed">seed</a>
         <a href="#query">query</a>
+        <a href="#jobs">jobs</a>
+        <a href="#action">action</a>
+        <a href="#transaction">transaction</a>
+        <a href="#service">service</a>
+        <a href="#policy">policy</a>
         <a href="#fields">Field Tipleri</a>
         <a href="#page">page</a>
         <a href="#view">view</a>
@@ -60,15 +70,23 @@
         <a href="#state">state</a>
         <a href="#component">component</a>
         <a href="#theme">theme</a>
+        <a href="#theme-migration">theme-migration</a>
         <a href="#ui-profile">ui-profile</a>
         <a href="#ui-modes">ui-modes</a>
         <a href="#inline-ui">inline-ui</a>
         <a href="#i18n">i18n</a>
         <a href="#api">api</a>
         <a href="#security">security</a>
+        <a href="#protected-source">protected source</a>
         <a href="#cors">cors</a>
         <a href="#deploy">deploy</a>
+        <a href="#ops">ops</a>
         <a href="#cli">CLI</a>
+        <a href="#ide">IDE</a>
+        <a href="#ecosystem">Ecosystem</a>
+        <a href="#generated-tests">Generated Tests</a>
+        <a href="#test">test</a>
+        <a href="#accessibility-audit">Accessibility Audit</a>
         <a href="#errors">Hata Çıktıları</a>
         <a href="#agent-contract">Agent Contract</a>
         <a href="#ai-agents">AI Agents</a>
@@ -79,6 +97,7 @@
         <a href="#invoice-template">Invoice Template</a>
         <a href="#appointment-template">Appointment Template</a>
         <a href="#project-management-template">Project Management Template</a>
+        <a href="#coverage">Coverage</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
@@ -94,8 +113,8 @@
         </p>
         <div class="meta-row">
           <span>Current version: <strong>0.1.0-dev</strong></span>
-          <span>Target: <strong>Web applications</strong></span>
-          <span>Source: <strong>.black</strong></span>
+          <span>Target: <strong>Web + API-only applications</strong></span>
+          <span>Source: <strong>.black / .black.enc</strong></span>
           <span>Theme: <strong>.blackthm</strong></span>
         </div>
         <div class="code-panel">
@@ -104,7 +123,7 @@
   to AI coding agent
   to .black source
   to black compiler
-  to generated web application</code></pre>
+  to generated web/API application</code></pre>
         </div>
         <p>
           İlk hedef Python veya JavaScript'i tamamen değiştirmek değildir. İlk hedef,
@@ -126,10 +145,27 @@
 entity Product {
   sku text required unique
   name text required
+  photo image optional accept "image/*"
   stock number default 0
   price money
   computed inventoryValue money = stock * price label "Inventory Value"
 }
+
+action RestockProduct {
+  source Product
+  input quantity number required min 1 label "Quantity"
+  value restockValue = quantity
+  if restockValue > 0 and stock >= 0
+    set stock = stock + restockValue
+  else
+    set stock = stock
+  success "Stock updated"
+}
+
+transaction RestockAtomic {
+  action RestockProduct
+}
+
 
 page Products {
   source Product
@@ -143,13 +179,13 @@ page Products {
     fields sku, name, stock, price
   }
 
-  actions create, edit, delete
+  actions create, edit, delete, RestockProduct
 }</code></pre>
         </div>
         <p>
           Bu blok Product verisini, Products ekranını, tablo kolonlarını, form alanlarını
-          ve CRUD davranışlarını tek kaynakta toplar. Generator bu niyetten TypeScript,
-          React, API, validation ve database tarafını üretir.
+          ve CRUD/custom action davranışlarını tek kaynakta toplar. Generator bu niyetten
+          TypeScript, React, API, validation ve database tarafını üretir.
         </p>
       </section>
 
@@ -252,8 +288,9 @@ page Products {
         <h2>target</h2>
         <p>
           `target`, `.black` kaynağının hangi platform ve generated stack için yazıldığını
-          açıkça belirtir. v0.1'de bilinçli olarak tek çalışan hedef desteklenir:
-          web, React, Node ve SQLite.
+          açıkça belirtir. Current web generator React frontend, Node backend ve SQLite,
+          PostgreSQL veya MySQL runtime üretebilir; API-only target aynı backend/runtime yüzeyini
+          React ve Vite dosyaları olmadan üretir.
         </p>
         <div class="code-panel">
           <div class="code-title">Web target</div>
@@ -263,11 +300,22 @@ page Products {
   database sqlite
 }</code></pre>
         </div>
+        <div class="code-panel">
+          <div class="code-title">API-only target</div>
+          <pre><code class="language-black">target api {
+  backend node
+  database sqlite
+}</code></pre>
+        </div>
         <p>
-          Bu blok, ileride plugin/adapter sisteminin bağlanacağı yerdir. PostgreSQL,
-          mobile, desktop, API-only veya farklı backend hedefleri generator gerçekten
-          o çıktıları üretebildiğinde açılmalıdır. Blok yoksa mevcut generator eski
-          varsayılan stack'i kullanır: `web`, `react`, `node`, `sqlite`.
+          PostgreSQL için aynı blokta `database postgres`, MySQL için `database mysql` yazılır.
+          Bu seçim Prisma provider'ı, provider adapter'ı ve Docker Compose database servisi
+          üretir. `target api`, Express server, Prisma, OpenAPI, validation, API smoke test,
+          seed/job/deploy/ops çıktısını üretir; `index.html`, Vite, React page/component,
+          frontend smoke, browser-check, browser e2e ve matrix dosyalarını üretmez. Browser `test`
+          deklarasyonları yalnızca `target web` içinde desteklenir. Mobile, desktop veya
+          farklı backend hedefleri generator gerçekten o çıktıları üretebildiğinde açılmalıdır.
+          Blok yoksa mevcut generator eski varsayılan stack'i kullanır: `web`, `react`, `node`, `sqlite`.
         </p>
       </section>
 
@@ -283,14 +331,19 @@ page Products {
           <pre><code class="language-black">entity Product {
   sku text required unique length 3..40
   name text required label "Product Name"
+  photo image optional accept "image/*" label "Product Photo"
   stock number default 0 min 0
   price money min 0
   computed inventoryValue money = stock * price label "Inventory Value"
+  index stock
 }</code></pre>
         </div>
         <p>
-          Field adı solda, tipi yanında, kuralları ise aynı satırda yer alır. Bu sıra,
-          AI'nin satırı tek seferde okuyup veri niyetini anlamasını kolaylaştırır.
+          Field adı solda, tipi yanında, kuralları ise aynı satırda yer alır. `image`
+          yerel formdan data URL olarak okunan stored media field üretir. `computed`
+          database kolonu değildir; `index` ise stored field database index niyetini
+          generator'a taşır. Bu sıra, AI'nin satırı tek seferde okuyup veri niyetini
+          anlamasını kolaylaştırır.
         </p>
       </section>
 
@@ -303,10 +356,11 @@ page Products {
         </p>
         <div class="code-panel">
           <div class="code-title">Computed display field</div>
-          <pre><code class="language-black">entity Product {
+<pre><code class="language-black">entity Product {
   stock number default 0
   price money default 0
-  computed inventoryValue money = stock * price label "Inventory Value"
+  tax money default 0
+  computed inventoryValue money = stock * (price + tax) label "Inventory Value"
 }
 
 page Products {
@@ -318,10 +372,10 @@ page Products {
 }</code></pre>
         </div>
         <p>
-          v0.2 syntax'ı `computed name type = left operator right` şeklindedir. Desteklenen
-          tipler `number`, `integer`, `decimal`, `money`; desteklenen operatörler `+`,
-          `-`, `*`, `/`. Operand'lar aynı entity içindeki number-like field'lar veya
-          numeric literal değerler olmalıdır.
+          v0.2 syntax'ı `computed name type = numericExpression` şeklindedir. Desteklenen
+          tipler `number`, `integer`, `decimal`, `money`; expression içinde `+`, `-`, `*`,
+          `/`, parantez ve deterministic operator precedence desteklenir. Operand'lar aynı
+          entity içindeki number-like field'lar veya numeric literal değerler olmalıdır.
         </p>
         <div class="code-panel">
           <div class="code-title">Generated React mantığı</div>
@@ -337,18 +391,223 @@ page Products {
         </p>
       </section>
 
+      <section id="media">
+        <h2>media</h2>
+        <p>
+          `file` ve `image`, generated web app içinde yerel dosya seçimi için stored scalar
+          field tipleridir. Generator upload provider kurmaz; form seçilen dosyayı data URL
+          olarak okur, API validation zincirinden geçirir ve string kolon olarak saklar.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Local media fields</div>
+          <pre><code class="language-black">entity Product {
+  photo image optional accept "image/*" label "Product Photo"
+  specSheet file optional accept "application/pdf" label "Spec Sheet"
+}
+
+page Products {
+  source Product
+
+  table {
+    columns photo, specSheet
+  }
+
+  form {
+    fields photo, specSheet
+  }
+}</code></pre>
+        </div>
+        <p>
+          Generated UI image değerlerini thumbnail, file değerlerini link olarak gösterir.
+          OpenAPI içinde `x-blacklang-media` ve `x-blacklang-encoding: data-url` metadata'sı
+          yer alır. `accept` sadece file/image entity field'larında geçerlidir; storage
+          bucket, token ve özel endpoint değerleri `.black` içine yazılmaz.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI commands</div>
+          <pre><code class="language-bash">black docs media --json
+black explain media --json
+black inspect examples/warehouse/app.black --affected Product.photo --json</code></pre>
+        </div>
+      </section>
+
+      <section id="relation-load">
+        <h2>relation-load</h2>
+        <p>
+          Relation load policy, entity relation field'larının generated API response içinde
+          hangi context'lerde ilişki objesini attach edeceğini `.black` kaynakta belirler.
+          Böylece tablo, detay, query sonucu ve mutation response davranışı generated JS'e
+          dokunmadan, deterministic ve AI-readable kalır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Relation response load policy</div>
+          <pre><code class="language-black">entity Order {
+  customer Customer required load list detail query mutation label "Customer"
+  total money default 0
+}</code></pre>
+        </div>
+        <p>
+          Desteklenen scope'lar `list`, `detail`, `query`, `mutation` ve `none` değerleridir.
+          `load` yazılmazsa eski davranış korunur ve relation obje tüm response context'lerinde
+          attach edilir. `load none`, sadece generated relation ID field'ını bırakır.
+          Generated list/query route'lar relation ID'lerini batch toplayıp her relation field için tek target lookup yapar; permission-aware build attached target record'ları sanitize eder. Bu policy database schema'yı değiştirmez ve custom query filtrelerine relation join
+          eklemez.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI commands</div>
+          <pre><code class="language-bash">black docs relation-load --json
+black explain relation-load --json
+black inspect examples/warehouse/app.black --affected Order.customer --json</code></pre>
+        </div>
+        <p>
+          Generated OpenAPI operations `x-blacklang-relation-load-context` ve
+          `x-blacklang-relation-load` metadata'sı taşır. Bu metadata, ajanların hangi
+          route response'unun relation object beklediğini hızlıca anlamasını sağlar.
+        </p>
+      </section>
+
+      <section id="index">
+        <h2>index</h2>
+        <p>
+          `index`, stored entity field'ları için database index niyetini `.black` kaynakta
+          tutar. Generator Prisma schema içinde `@@index`, SQLite setup içinde de
+          `CREATE INDEX IF NOT EXISTS` üretir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Stored field index</div>
+          <pre><code class="language-black">entity Order {
+  customer Customer required
+  status text default draft
+  index customer, status
+}</code></pre>
+        </div>
+        <p>
+          Relation field index'leri generated foreign-key kolona maplenir; örneğin
+          `index customer, status`, Prisma tarafında `@@index([customerId, status])`
+          olur. Computed display field'lar database kolonu olmadığı için indexlenemez.
+          Index değişikliği için `black inspect app.black --affected Order.index --json`
+          generated database schema/setup etkisini gösterir.
+        </p>
+      </section>
+
+      <section id="migration">
+        <h2>migration</h2>
+        <p>
+          `migrate plan`, eski ve yeni `.black` source dosyasını karşılaştırır ve generated
+          database shape değişikliklerini deployment öncesi risk seviyelerine ayırır.
+          Komut read-only çalışır; database'e bağlanmaz, SQL uygulamaz, dosya yazmaz.
+          Explicit rename deklarasyonları ise generated `db:setup`/`db:push` içinde schema
+          setup öncesi idempotent uygulanır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Read-only schema migration plan</div>
+          <pre><code class="language-bash">black migrate plan app-v1.black app-v2.black --json
+black migrate plan app-v1.black app-v2.black --ir</code></pre>
+        </div>
+        <p>
+          JSON çıktısında `success`, `safe`, `destructive`, `summary`, `changes`,
+          `steps` ve `changes[].risk` alanları bulunur. `safe` risk stored data shape'i
+          koruyan değişiklikleri ve explicit rename'i, `manual` backfill veya veri kontrolü isteyen değişiklikleri,
+          `destructive` ise tablo/kolon silme, generated kolon adı değişimi veya tip dönüşümü
+          gibi veri kaybı ihtimali olan değişiklikleri ifade eder.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Explicit rename migration</div>
+          <pre><code class="language-black">migration RenameProductName {
+  rename entity ProductItem to Product
+  rename field Product.title to name
+}</code></pre>
+        </div>
+        <p>
+          Entity ve field rename otomatik tahmin edilmez. `to` entity veya stored field current
+          source içinde var olmalı, `from` adı current source içinde kalmamalıdır. Build çıktısı
+          `migrations/manifest.json`, `migrations/*.sql`, `src/migrate.ts`, `src/setup-db.ts`
+          ve Prisma `BlackMigration` ledger modelini üretir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated migration runner</div>
+          <pre><code class="language-bash">npm run db:migrate:plan
+npm run db:migrate
+npm run db:setup</code></pre>
+        </div>
+        <p>
+          `db:migrate:plan` target database'e read-only bakar; SQLite'ta eksik DB dosyasını
+          oluşturmaz ve PostgreSQL connection string değerini JSON'a basmaz. `db:migrate`
+          yalnızca declared rename migration'larını uygular, sonucu `BlackMigration`
+          ledger'ına işler ve ardından `db:setup` normal generated setup ve seed yolunu çalıştırır.
+        </p>
+      </section>
+
+      <section id="seed">
+        <h2>seed</h2>
+        <p>
+          `seed`, local demo ve test fixture verisini `.black` kaynağında deterministik
+          şekilde tanımlar. Row key stable generated `id` olur; generated `db:setup`
+          schema setup sonrası `db:seed` çalıştırır ve declared rows idempotent upsert edilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Warehouse: deterministic fixture rows</div>
+<pre><code class="language-black">seed DemoProducts {
+  source Product
+
+  row DemoProductLow {
+    tenantId "default"
+    sku "LOW-001"
+    name "Low Stock Widget"
+    stock 3
+    price 19.99
+  }
+}
+
+seed DemoOrders {
+  source Order
+
+  row DemoOrderDraft {
+    customer ref DemoCustomerAcme
+    total 320.50
+  }
+}</code></pre>
+        </div>
+        <p>
+          Seed değerleri stored field'lara yazılır. Text/email/date/datetime literal'ları
+          tırnaklıdır; numeric ve boolean değerler tırnaksızdır. Relation field'lar
+          `ref OtherRowKey` kullanır ve referans verilen row ilgili entity için tanımlı
+          olmalıdır. Computed display field, generated system field, raw SQL, expression,
+          environment read ve secret değerleri seed içinde desteklenmez.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs seed --json
+black explain seed --json
+black inspect --affected DemoProducts --json
+black inspect --affected seed --json
+black validate --json
+black build --json
+cd generated && npm run db:setup</code></pre>
+        </div>
+        <p>
+          Tam kurallar <a href="/seed.md">seed referansında</a>, stabil hata kodları
+          <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Seed tanımları
+          JSON, BlackIR, inspect/affected, benchmark generated file kinds ve generated
+          `package.json`/`src/seed.ts` çıktısında görünür.
+        </p>
+      </section>
+
       <section id="query">
         <h2>query</h2>
         <p>
           `query`, düşük stok gibi özel listeleri saklanan entity field'ları üzerinden
-          tanımlar. Filtre, sıralama ve kayıt sınırı server tarafında uygulanır; aynı
-          sorgu birden fazla generated sayfaya bağlanabilir.
+          tanımlar. Filtre, aggregate summary, sıralama ve kayıt sınırı server tarafında
+          uygulanır; aynı sorgu birden fazla generated sayfaya bağlanabilir.
         </p>
         <div class="code-panel">
           <div class="code-title">Warehouse: düşük stok listesi</div>
-          <pre><code class="language-black">query LowStockProducts {
+<pre><code class="language-black">query LowStockProducts {
   source Product
   where stock &lt; 10
+  aggregate lowStockCount count
+  aggregate totalStock sum stock
+  aggregate averagePrice avg price
   sort stock asc
   limit 50
 }
@@ -362,18 +621,23 @@ page LowStock {
     search sku, name
     paginate 10
   }
+
+  actions RestockProduct
 }</code></pre>
         </div>
         <p>
           Bu örnek, yukarıdaki Product modelinden stok adedi 10'dan küçük olan en fazla
           50 ürünü seçer. Stok artan sıradadır; eşit stok değerlerinde `id asc` kullanılır.
-          Form ve actions olmadığı için LowStock sayfası salt okunurdur. Computed
-          `inventoryValue` tabloda gösterilebilir; query koşulunda veya sort alanında kullanılamaz.
+          LowStock sayfası `RestockProduct` aksiyonunu kullanır; aksiyon sonrası query
+          ve summary tekrar yüklenir. Summary kartları düşük stok sayısını, toplam stoğu
+          ve ortalama fiyatı gösterir. Computed `inventoryValue` tabloda gösterilebilir;
+          query koşulunda, sort alanında veya aggregate field olarak kullanılamaz.
         </p>
         <p>
           Query top-level tanımlanır ve tek `source Entity` kullanır. Sayfa kendi `source`
           satırını korur, `query Name` ile sorguya bağlanır; iki source aynı olmalıdır.
-          Birden fazla `where` satırı AND ile birleşir. Tek bir opsiyonel `sort field asc|desc`
+          Birden fazla `where` satırı AND ile birleşir. `aggregate name count` rows sayar;
+          `aggregate name sum|avg|min|max field` stored numeric field ister. Tek bir opsiyonel `sort field asc|desc`
           kullanılabilir. Sort yoksa varsayılan `id asc`; limit yoksa varsayılan 100'dür.
           `limit`, 1 ile 1000 arasında tam sayı olmalıdır.
         </p>
@@ -393,21 +657,23 @@ where scheduledAt &gt;= "2026-09-06T12:00:00Z"</code></pre>
           sonlu ondalık literal kabul eder. `==` ve `!=` tüm desteklenen stored primitive
           tiplerde; `&lt;`, `&lt;=`, `&gt;`, `&gt;=` numeric/date/datetime tiplerinde geçerlidir.
           Relation, computed ve generated system field'ları, parametreler, OR, join,
-          aggregate ve raw SQL bu MVP'nin dışındadır.
+          raw SQL ve arbitrary code bu MVP'nin dışındadır.
         </p>
         <p>
-          Generated LowStock sayfası `GET /api/lowstock/query` üzerinden yüklenir.
-          Mevcut entity listesi ve CRUD route'ları kendi davranışını sürdürür; relation
+          Generated LowStock sayfası `GET /api/lowstock/query` ve
+          `GET /api/lowstock/query/summary` üzerinden yüklenir. Summary route aynı
+          source, where, archive ve row policy kurallarını kullanır; sort ve limit'i
+          uygulamaz. Mevcut entity listesi ve CRUD route'ları kendi davranışını sürdürür; relation
           seçenekleri normal entity listesinden gelir. Sayfaya bağlanmamış query bağımsız
           endpoint oluşturmaz. Table search/filter/pagination ve opsiyonel table sort,
           server'ın döndürdüğü sınırlı liste üzerinde çalışır. Bağlı sayfadaki başarılı
           mutation sonrası query yeniden yüklenir.
         </p>
         <p>
-          Auth, page access, entity read ve response field hiding kuralları korunur.
-          Koşul veya sort alanı mevcut role için okunabilir değilse query endpoint'i 403
-          döndürür. Query filtreleri ownership/tenant/row authorization kuralı oluşturmaz;
-          mevcut detail ve mutation endpoint'lerini daraltmaz.
+          Auth, page access, entity read, response field hiding ve entity row policy
+          kuralları korunur. Koşul, sort veya aggregate alanı mevcut role için okunabilir değilse
+          query endpoint'i 403 döndürür. Query filtreleri liste seçimidir; ownership/tenant
+          authorization için entity içinde `policy` kullanılır.
         </p>
         <div class="code-panel">
           <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
@@ -422,6 +688,296 @@ black build --json</code></pre>
           Tam kurallar <a href="/query.md">query referansında</a>, stabil hata kodları
           <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Query tanımı ve
           page bağlantısı JSON, BlackIR, inspect/affected ve generated OpenAPI çıktısında görünür.
+        </p>
+      </section>
+
+      <section id="jobs">
+        <h2>job</h2>
+        <p>
+          `job`, public endpoint açmadan generated worker içinde read-only query işi çalıştırır.
+          İlk MVP güvenli ve deterministik kalır: tek schedule syntax'ı, tek run mode ve query
+          tabanlı kayıt seçimi vardır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Warehouse: düşük stok monitor job'u</div>
+<pre><code class="language-black">job LowStockMonitor {
+  schedule every 15 minutes
+  run query LowStockProducts
+}</code></pre>
+        </div>
+        <p>
+          `run query`, mevcut bir top-level query'ye bağlanır. Worker query'nin stored-field
+          `where`, deterministic `sort` ve `limit` kurallarını uygular, yalnızca kayıt ID'lerini
+          seçer ve job adı, schedule, query, source, count, limit ve timestamp içeren kompakt
+          JSON log üretir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated output</div>
+          <pre><code class="language-text">jobs/manifest.json
+src/worker.ts
+npm run jobs:run
+npm run jobs:loop
+openapi.json x-blacklang-jobs</code></pre>
+        </div>
+        <p>
+          Desteklenen schedule aralıkları `1..1440 minutes`, `1..168 hours` ve `1..365 days`
+          şeklindedir. Queue provider, retry, delayed queue, mutating job, external call,
+          provider scheduler config, cron expression syntax ve arbitrary code bu MVP dışındadır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs job --json
+black explain job --json
+black inspect --affected LowStockMonitor --json
+black inspect --affected LowStockProducts --json
+black build --json
+cd generated && npm run jobs:run</code></pre>
+        </div>
+        <p>
+          Tam kurallar <a href="/job.md">job referansında</a>, stabil hata kodları
+          <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Job tanımı JSON,
+          BlackIR, inspect/affected, generated worker, package scripts ve OpenAPI metadata
+          çıktısında görünür.
+        </p>
+      </section>
+
+      <section id="action">
+        <h2>action</h2>
+        <p>
+          `action`, CRUD dışındaki güvenli satır işlemlerini `.black` içinde tanımlar.
+          Örneğin stok eklemek, bir talebi onaylamak veya bir kaydı iş kuralına göre
+          güncellemek için tek bir deterministik action declaration kullanılabilir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Warehouse: stok ekleme aksiyonu</div>
+          <pre><code class="language-black">action RestockProduct {
+  source Product
+  input quantity number required min 1 label "Quantity"
+  value restockValue = quantity
+  if restockValue > 0 and stock >= 0
+    set stock = stock + restockValue
+  else
+    set stock = stock
+  allow Admin, Worker
+  success "Stock updated"
+}
+
+transaction RestockAtomic {
+  action RestockProduct
+  api StockWebhook
+}
+
+page Products {
+  source Product
+  actions edit, RestockProduct
+}</code></pre>
+        </div>
+        <p>
+          Action top-level tanımlanır ve tek `source Entity` kullanır. Page aynı source ile
+          `actions ..., ActionName` yazdığında generator route, client metodu, input
+          validation, row button, form panel, OpenAPI schema ve auth/role varsa audit log
+          üretir. Page'e bağlanmamış action bağımsız endpoint oluşturmaz.
+        </p>
+        <p>
+          Input'lar primitive field type ve normal validation modifier kullanır. `number`
+          ve `integer` mevcut SQLite/Prisma runtime'da 32-bit tam sayı olarak validate edilir;
+          kesirli değer için `decimal` veya `money` kullanılmalıdır. Input adı source entity
+          field adıyla çakışamaz; böylece `set` expression içindeki identifier'ların anlamı
+          tek kalır.
+        </p>
+        <p>
+          `value`, action içinde sıralı local expression adı üretir; daha sonraki `value`,
+          `set` ve `if` satırları bu adı kullanabilir. Python-like indentation-based
+          `if`/`else` branch'leri `value`, `set` ve nested `if` statement'larını taşır.
+          `set`, yalnızca saklanan primitive source field'larını değiştirebilir. Değerler
+          typed literal, action input, source field, local value veya bounded numeric expression olabilir.
+          Numeric expression için `+`, `-`, `*`, `/`, parantez ve deterministic precedence
+          desteklenir. Condition comparison'ları `==`, `!=`, `&lt;`, `&lt;=`, `&gt;` ve `&gt;=` kullanır;
+          comparison'lar `and`, `or`, `not` ve parantez ile bağlanabilir, precedence `not`, sonra `and`, sonra `or` şeklindedir.
+          Computed display field, relation field, entity policy field, join,
+          aggregate, raw SQL, function call, loop, external call ve multi-row mutation MVP
+          dışındadır.
+        </p>
+        <p>
+          Atomic çalışma niyeti action içinde değil, top-level `transaction` bloğunda durur.
+          Böylece action yalnızca mutation'ı anlatır; transaction bloğu generated action/API
+          update route'unun source row lookup, deterministic update ve auth/role varsa audit log
+          yazımını tek `prisma.$transaction` içinde çalıştırır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated runtime contract</div>
+          <pre><code class="language-http">POST /api/products/:id/actions/restockproduct
+
+{
+  "quantity": 7
+}</code></pre>
+        </div>
+        <p>
+          Runtime page access, entity update permission, yazılan her field için field-level
+          update permission, entity row policy ve opsiyonel action `allow` kuralını birlikte
+          uygular. Query-bound sayfada aksiyon başarılı olursa liste server query'den tekrar yüklenir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs action --json
+black docs transaction --json
+black docs service --json
+black explain action --json
+black explain transaction --json
+black explain service --json
+black inspect --affected RestockProduct --json
+black inspect --affected RestockAtomic --json
+black inspect --affected InventoryIntegration --json
+black inspect --affected Product.stock --json
+black validate --json
+black build --json</code></pre>
+        </div>
+        <p>
+          Tam kurallar <a href="/action.md">action referansında</a>, stabil hata kodları
+          <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Action tanımı
+          JSON, BlackIR, inspect/affected ve generated OpenAPI çıktısında görünür.
+        </p>
+      </section>
+
+
+      <section id="transaction">
+        <h2>transaction</h2>
+        <p>
+          `transaction`, mevcut custom action veya explicit API update handler için atomic
+          generated runtime boundary bildirir. Yeni endpoint üretmez; hangi write route'unun
+          Prisma transaction içinde çalışacağını deterministik şekilde işaretler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Action/API update route transaction binding</div>
+          <pre><code class="language-black">transaction RestockAtomic {
+  action RestockProduct
+  api StockWebhook
+}</code></pre>
+        </div>
+        <p>
+          Her hedef tek satırdır: `action ActionName` veya `api ApiName`. API hedefleri
+          bounded single-line veya block-form update handler'a sahip olmalıdır. Bir action/API
+          aynı anda yalnızca bir transaction bloğuna bağlanabilir.
+        </p>
+        <p>
+          Generator targeted custom action route'larında ve explicit API update handler'larında
+          lookup, update ve audit log işini `prisma.$transaction` içine alır. Request parsing,
+          auth, page access ve field permission kontrolleri transaction açılmadan önce çalışır.
+          OpenAPI targeted operasyonlara `x-blacklang-transaction` ve
+          `x-blacklang-transaction-name` metadata'sı ekler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs transaction --json
+black explain transaction --json
+black inspect --affected RestockAtomic --json
+black validate --json
+black build --json</code></pre>
+        </div>
+      </section>
+
+      <section id="service">
+        <h2>service</h2>
+        <p>
+          `service`, mevcut explicit API deklarasyonlarını generated service/module metadata
+          altında gruplar. Endpoint üretmez ve handler tanımlamaz; route sözleşmesi hâlâ
+          top-level `api` bloğundadır. Service bloğu AI ajanları, OpenAPI client üreticileri
+          ve API-only projeler için hangi endpointlerin aynı servis yüzeyine ait olduğunu
+          kompakt biçimde görünür kılar.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Explicit API service grouping</div>
+          <pre><code class="language-black">service InventoryIntegration {
+  api StockWebhook
+}</code></pre>
+        </div>
+        <p>
+          Her hedef tek satırdır: `api APIName`. Bir API aynı anda yalnızca bir service
+          bloğuna bağlanabilir. Bu seçim generated `services/manifest.json`,
+          `src/services/&lt;service&gt;.ts`, OpenAPI root `tags`, root `x-blacklang-services`
+          ve operation-level `x-blacklang-service` metadata'sı üretir.
+        </p>
+        <p>
+          Transaction ile service ayrı niyetlerdir: `transaction` atomic runtime boundary'yi,
+          `service` ise API module boundary'yi anlatır. Warehouse örneğinde `StockWebhook`
+          hem `RestockAtomic` transaction'ına hem `InventoryIntegration` service'ine bağlıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs service --json
+black explain service --json
+black inspect --affected InventoryIntegration --json
+black inspect --affected StockWebhook --json
+black validate --json
+black build --json</code></pre>
+        </div>
+      </section>
+      <section id="policy">
+        <h2>policy</h2>
+        <p>
+          `policy`, generated web route'larında owner ve tenant satır kapsamını `.black`
+          kaynağında açıkça tanımlar. Bu, query'den farklıdır: query hangi listeyi istediğini,
+          policy ise o listenin hangi güvenli satır havuzundan okunacağını söyler.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Owner ve tenant row policy</div>
+          <pre><code class="language-black">auth {
+  strategy emailPassword
+  session cookie
+  user {
+    name text required
+    email email required
+  }
+}
+
+entity Order {
+  tenantId text required default "default"
+  ownerId text required default "system"
+  total money default 0
+  status text default draft
+  policy tenant tenantId
+  policy owner ownerId
+}
+
+page Orders {
+  source Order
+  actions create, edit, delete
+  table {
+    columns total, status
+  }
+  form {
+    fields total, status
+  }
+}</code></pre>
+        </div>
+        <p>
+          Policy field'ı aynı entity içinde saklanan `text required` field olmalıdır ve
+          `unique` olamaz. `policy owner ownerId`, satırı authenticated user `id` değerine;
+          `policy tenant tenantId`, satırı authenticated user `tenantId` değerine bağlar.
+          Generated auth runtime tenant alanını `BlackUser` üzerinde üretir ve yeni kullanıcılar
+          için varsayılan tenant `"default"` olur. Tenant policy varsa generated Users sayfası
+          kullanıcı tenant ID değerini düzenleyebilir.
+        </p>
+        <p>
+          Policy field'ları database kolonu olarak kalır, fakat generated form input'u,
+          API client input type'ı veya OpenAPI input schema alanı olmaz. Create/update route'ları
+          bu değerleri current user context'ten damgalar; list, query, detail, archive, restore,
+          delete, workflow transition ve custom action route'ları aynı scope ile çalışır.
+          Custom action `set` satırları policy field yazamaz.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs policy --json
+black explain policy --json
+black inspect --affected policy --json
+black inspect --affected Order.ownerId --json
+black validate --json
+black build --json</code></pre>
+        </div>
+        <p>
+          Tam kurallar <a href="/policy.md">policy referansında</a>, stabil hata kodları
+          <a href="/diagnostics.md">diagnostics referansında</a> bulunur. Policy tanımı
+          JSON, BlackIR, inspect/affected, generated route, API client ve OpenAPI çıktısında görünür.
         </p>
       </section>
 
@@ -444,6 +1000,8 @@ createdAt datetime</code></pre>
         <p>
           v0.1 alan tipleri: `text`, `number`, `integer`, `decimal`, `money`, `email`,
           `boolean`, `date`, `datetime`. Entity adı da relation tipi olarak kullanılabilir.
+          Mevcut generated Prisma runtime'da `number` ve `integer` tam sayı,
+          `decimal` ve `money` kesirli sayı için kullanılır.
         </p>
         <div class="code-panel">
           <div class="code-title">Modifier örnekleri</div>
@@ -482,23 +1040,36 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
           `source`, var olan bir entity'yi göstermelidir. Table ve form alanları source
           entity içinde yoksa validator stabil hata kodu üretir. İsteğe bağlı `query Name`
           satırı, listeyi aynı source entity'yi kullanan <a href="#query">özel sorguya</a> bağlar.
+          `actions` satırı CRUD davranışlarının yanında aynı source entity'ye sahip
+          <a href="#action">custom action</a> adlarını da açabilir.
         </p>
       </section>
 
       <section id="view">
         <h2>view</h2>
         <p>
-          `view`, bir page içindeki generated section sırasını `.black` kaynakta kontrol
-          eder. Böylece formu tablonun üstüne almak için React veya CSS çıktısını elle
-          düzenlemek gerekmez.
+          `view`, bir page içindeki generated section sırasını, reusable component section'ları
+          ve ilk layout composition niyetini `.black` kaynakta kontrol eder. Böylece
+          table/detail/form/component yerleşimi için React veya CSS çıktısını elle düzenlemek gerekmez.
         </p>
         <div class="code-panel">
-          <div class="code-title">Sayfa içi section sırası</div>
+          <div class="code-title">Sayfa içi section composition</div>
           <pre><code class="language-black">page Products {
   source Product
 
   view {
-    order form, table, detail
+    order table, StockSummary, StockCards, detail, form
+    compose grid columns 2 gap md stackAt md
+    section table span 2
+    section StockSummary component StockBadge bind selected span 1 title "Stock Summary"
+    section StockCards component StockBadge bind each span 1 title "Stock Cards"
+    section detail display drawer side right title "Product Details"
+    section form display modal title "Product Form"
+    trigger detail on rowSelect
+    trigger form on createStart
+    trigger form on editStart
+    trigger detail on saveSuccess
+    trigger table on close
   }
 
   table {
@@ -511,10 +1082,27 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
 }</code></pre>
         </div>
         <p>
-          v0.2 başlangıcında desteklenen section adları `table`, `detail` ve `form`dur.
-          Yazılan section'lar önce gelir; eksik bırakılan destekli section'lar varsayılan
-          `table, detail, form` sırasıyla sona eklenir. Generator bu niyetten
-          `.bl-view-section-*` class'ları ve deterministik order CSS'i üretir.
+          Desteklenen section adları `table`, `detail`, `form` ve açıkça declared component
+          section adlarıdır. `compose stack` dikey akışı korur; `compose grid`, `columns 1..4`,
+          `gap sm|md|lg` ve `stackAt sm|md|lg|none` seçeneklerinden deterministik CSS grid üretir.
+          `compose tabs`, `tab List sections table` ve `tab Record sections StockSummary, StockCards, detail, form`
+          gibi satırlardan generated React tab control üretir.
+          Generated JSX/DOM section sırası effective `view.order` ile aynıdır; CSS order kuralları stable metadata ve layout backstop olarak kalır.
+          `stackAt`, grid için canonical responsive breakpoint syntax'ıdır; generator lg/md/sm
+          media query'leri üretir ve responsive kolon sayısından büyük section span'lerini clamp eder.
+          `section table span 2` grid span'ini belirler; `section StockSummary component StockBadge bind selected`
+          declared component'i selected row'a bağlı reusable inline panel olarak üretir.
+          `section StockCards component StockBadge bind each`, aynı component'i loaded list/query
+          collection içindeki her row için render eder.
+          `section detail display drawer side right` ve `section form display modal`
+          generated detail/form panellerini overlay olarak açar.
+          `group Record sections detail, form compose stack gap md span 1 title "Record"` contiguous
+          inline section'ları tek generated wrapper altında toplar. `trigger detail on rowSelect`,
+          `trigger form on createStart|editStart`, `trigger detail|table on saveSuccess` ve
+          `trigger table on close` generated tab/overlay akışını deterministik hale getirir.
+          Component section input'ları source entity'deki stored veya computed field'larla isim/tip
+          olarak eşleşmelidir. Modal/drawer display ve group, tabs ile bu MVP'de birleşmez;
+          arbitrary frontend handler'lar sonraki layout aşamalarına bırakılmıştır.
         </p>
       </section>
 
@@ -569,11 +1157,13 @@ name text required placeholder "Enter product name" help "Visible in lists"</cod
         </p>
         <div class="code-panel">
           <div class="code-title">Desteklenen action değerleri</div>
-          <pre><code class="language-black">actions create, edit, delete, archive, restore</code></pre>
+          <pre><code class="language-black">actions create, edit, delete, archive, restore, RestockProduct</code></pre>
         </div>
         <p>
           `archive`, soft delete mantığıyla `archivedAt` set eder. `restore`, kaydı tekrar
-          görünür yapar. Role sistemi varsa action butonları izinlere göre gizlenir.
+          görünür yapar. PascalCase değerler, page source'u ile aynı source'a sahip
+          top-level custom action tanımlarına bağlanır. Role sistemi varsa action butonları
+          izinlere göre gizlenir.
         </p>
       </section>
 
@@ -719,7 +1309,10 @@ page Products {
         </div>
         <p>
           Tek input, entity field adı ve tipiyle eşleşirse generated table, detail ve form
-          preview alanlarında otomatik kullanılabilir.
+          preview alanlarında otomatik kullanılabilir. Page `view` içinde
+          `section StockSummary component StockBadge bind selected` yazıldığında aynı component
+          selected source record'a bağlı reusable inline page section olarak render edilir;
+          `bind each` ise loaded list/query collection üstünde bir component listesi üretir.
         </p>
       </section>
 
@@ -760,13 +1353,43 @@ page Products {
         <div class="code-panel">
           <div class="code-title">Inspect command</div>
           <pre><code class="language-bash">black theme inspect --json
-black theme inspect examples/warehouse/theme.blackthm --ir</code></pre>
+black theme inspect examples/warehouse/theme.blackthm --ir
+black theme migrate old.blackthm new.blackthm --json</code></pre>
         </div>
         <p>
           Hex renkler tırnak içinde yazılır, çünkü `#` tırnak dışında comment başlatır.
           `profile.modeGroups` standart UI gruplarını, `profile.baselines` kilitli sırayı,
           `profile.modes[].slots` ise güncel sırayı gösterir. Compiler, locked profilde
-          UI slot sırasının baseline ile başlamasını zorunlu tutar.
+          UI slot sırasının baseline ile başlamasını zorunlu tutar. Theme değiştirirken
+          `black theme migrate`, eski inline UI değerlerinin aynı slotlara bağlanmaya
+          devam edip etmediğini raporlar.
+        </p>
+      </section>
+
+      <section id="theme-migration">
+        <h2>theme-migration</h2>
+        <p>
+          `theme migrate`, eski ve yeni `.blackthm` dosyasını karşılaştırır ve profil
+          değişikliğinin mevcut `.black` inline UI değerlerini yanlış slotlara kaydırıp
+          kaydırmayacağını söyler. Komut read-only çalışır; theme veya generated çıktıyı
+          değiştirmez.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Migration check</div>
+          <pre><code class="language-bash">black theme migrate theme-v1.blackthm theme-v2.blackthm --json
+black theme migrate theme-v1.blackthm theme-v2.blackthm --ir</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Safe append-only change</div>
+          <pre><code class="language-blackthm">ui box = color width style;
+ui box = color width style shadow;</code></pre>
+        </div>
+        <p>
+          Güvenli migration için theme adı, target, profile adı ve sürüm yönü uyumlu
+          kalır; eski her mode yeni profilde bulunur; eski slot listesi yeni slot listesinin
+          birebir prefix'i olur. Yeni slotlar sadece sona eklenirse JSON'da `slot-appended`
+          olarak görünür. Araya slot ekleme, reorder veya silme `UI_SLOT_MIGRATION_BREAK`
+          diagnostic kodunu üretir.
         </p>
       </section>
 
@@ -878,10 +1501,13 @@ page Products {
     ui box black 1 solid 8 8 5 5 6 center | text "#172026" 14 regular left
   }
 
-  actions create
+  actions create, RestockProduct
   action create id CreateProductButton
   action create class primaryAction
   action create ui button primary white 6 md solid
+  action RestockProduct id RestockProductButton
+  action RestockProduct class restockAction
+  action RestockProduct ui button success white 6 sm solid
 }</code></pre>
         </div>
         <div class="code-panel">
@@ -897,7 +1523,9 @@ form {
 }
 
 action create id CreateProductButton
-action create class primaryAction</code></pre>
+action create class primaryAction
+action RestockProduct id RestockProductButton
+action RestockProduct class restockAction</code></pre>
         </div>
         <div class="code-panel">
           <div class="code-title">Geçerli mode bağlamları</div>
@@ -907,8 +1535,8 @@ table   box, text, table
 button  button</code></pre>
         </div>
         <p>
-          `action create ui button ...`, aynı page içindeki `actions create` listesine
-          bağlıdır. Mode hataları `UNSUPPORTED_UI_MODE`, yanlış bağlamlar
+          `action <name> ui button ...`, aynı page içindeki CRUD veya custom action
+          listesine bağlıdır. Mode hataları `UNSUPPORTED_UI_MODE`, yanlış bağlamlar
           `UNSUPPORTED_UI_TARGET_MODE`, tekrar eden mode kullanımı `DUPLICATE_UI_INTENT`
           olarak raporlanır. `id` ve `class` değerleri generated HTML'de kebab-case'e
           çevrilir; row action butonlarında tekrarlı DOM id oluşmaması için `-item-&lt;recordId&gt;`
@@ -926,11 +1554,11 @@ action  .bl-ui-action-&lt;page&gt;-&lt;action&gt;</code></pre>
       <section id="i18n">
         <h2>i18n</h2>
         <p>
-          `i18n`, generated web uygulamasında kullanılacak varsayılan dili ve desteklenen
-          locale listesini tanımlar. İlk çalışan kapsam field label çevirileridir.
+          `i18n`, generated web uygulamasının başlangıç dilini, desteklenen locale listesini,
+          runtime field/UI text ve display formatting davranışını tanımlar.
         </p>
         <div class="code-panel">
-          <div class="code-title">Locale ve field label translation</div>
+          <div class="code-title">Locale ve field text translation</div>
           <pre><code class="language-black">i18n {
   default tr
   locales tr, en
@@ -939,35 +1567,84 @@ action  .bl-ui-action-&lt;page&gt;-&lt;action&gt;</code></pre>
 label Product.name {
   tr "Ürün Adı"
   en "Product Name"
+}
+
+label app.title {
+  tr "Depo"
+  en "Warehouse"
+}
+
+label page.Products {
+  tr "Ürünler"
+  en "Products"
+}
+
+label action.create {
+  tr "Oluştur"
+  en "Create"
+}
+
+placeholder Product.name {
+  tr "Ürün adını gir"
+  en "Enter product name"
+}
+
+help Product.name {
+  tr "Listelerde görünen ürün adı"
+  en "Visible product name in lists"
+}
+
+message Product.stock {
+  tr "Geçerli bir stok adedi gir"
+  en "Enter a valid stock count"
 }</code></pre>
         </div>
         <p>
-          Generator default locale çevirisini form label, table header, detail label,
-          column visibility label, filter label ve frontend validation label alanlarında
-          kullanır. Çeviri yoksa önce field üzerindeki `label "Text"`, sonra field adının
-          title-case hali kullanılır.
+          Birden fazla locale varsa generator App içine language selector üretir ve aktif
+          locale'i sayfalara geçirir. App shell `lang` ve deterministic `dir` attribute'larını
+          üretir. App chrome, navigation page name, table tool, status label, CRUD/custom action
+          button, workflow transition button, form label, table header, detail label, column
+          visibility label, filter label, form placeholder, form help text ve field-level frontend
+          validation message alanları kullanıcı dil değiştirdiğinde yeniden render olur.
+          Table/detail number, integer, decimal, money, date ve datetime değerleri aktif locale ile
+          `Intl` üzerinden formatlanır. Computed display field label'ları aynı
+          `label Entity.computedField { ... }` biçimini kullanır; placeholder/help/message
+          translation blokları stored form field hedefler.
         </p>
         <div class="code-panel">
-          <div class="code-title">Generated label fallback sırası</div>
-          <pre><code>1. label Product.name { tr "Ürün Adı" }
-2. name text label "Product Name"
-3. name -> Name</code></pre>
+          <div class="code-title">Generated field text fallback sırası</div>
+          <pre><code>1. placeholder Product.name { tr "Ürün adını gir" }
+2. name text placeholder "Enter product name"
+3. deterministic generated fallback</code></pre>
         </div>
-        <p>
-          Runtime dil değiştirme, translation key sistemi, placeholder/help/message çevirileri,
-          date/number/currency formatları ve RTL desteği sonraki genişleme alanlarıdır.
-        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated UI label targets</div>
+          <pre><code>app.title
+app.menu
+app.language
+page.Products
+action.create
+action.RestockProduct
+action.new.Product
+action.edit.Product
+table.search
+table.columns
+table.previous
+status.active
+status.loadingRecords</code></pre>
+        </div>
       </section>
 
       <section id="api">
         <h2>api</h2>
         <p>
-          `api`, generated CRUD dışındaki contract-first endpoint niyetlerini anlatır.
-          Runtime implementation daha sonra gelişebilir; v0.1 bu bilgiyi OpenAPI çıktısına
-          taşır.
+          `api`, generated CRUD dışındaki explicit endpoint niyetlerini anlatır.
+          v0.2 bu bilgiyi OpenAPI çıktısına taşır ve generated Express server içinde
+          declared-runtime route olarak üretir. POST/PUT/PATCH endpointleri typed body
+          doğrulaması ve bounded update handler ile güvenli iş mantığı taşıyabilir.
         </p>
         <div class="code-panel">
-          <div class="code-title">Explicit API contract</div>
+          <div class="code-title">Explicit API declared runtime</div>
           <pre><code class="language-black">api LowStockReport {
   method GET
   path "/api/reports/low-stock/{warehouseId}"
@@ -979,13 +1656,30 @@ label Product.name {
 api StockWebhook {
   method POST
   path "/api/webhooks/stock"
+  body tenantId text required
+  body sku text required
+  body stock number required min 0
+  update Product where sku == body.sku {
+    value incomingStock = body.stock
+    if incomingStock >= 0 and tenantId == body.tenantId
+      set stock = incomingStock
+    else
+      set stock = stock
+  }
+  respond accepted
   webhook
   public
 }</code></pre>
         </div>
         <p>
-          `black build` generated OpenAPI contract oluşturur. Generated Express server bu
-          contract'ı `/openapi.json` üzerinden servis edebilir.
+          `black build` generated OpenAPI contract oluşturur ve aynı deklarasyondan
+          path/query/body parametrelerini doğrulayan route üretir. Service bloğuna bağlı API'ler OpenAPI `tags`, `x-blacklang-service`, root `x-blacklang-services`, `services/manifest.json` ve `src/services/&lt;service&gt;.ts` metadata çıktısı alır. Handler update'leri `id`
+          veya stored `unique` field ile tek bounded row seçer, stored primitive non-policy
+          field'ları günceller ve OpenAPI'de `x-blacklang-handler` metadata'sı yayımlar.
+          Block-form update handler'lar ordered local `value`, indentation-based `if`/`else`
+          ve nested deterministic branch statement'ları taşıyabilir.
+          Webhook route'ları `202 accepted`, private route'lar ise projede `auth` varsa
+          auth middleware arkasında çalışır.
         </p>
       </section>
 
@@ -1019,6 +1713,50 @@ security {
           generated production artifact yayınlamaktır. `black security scan --json` olası
           hardcoded secret izlerini raporlar.
         </p>
+        <p>
+          Generated web/API output `security/secrets.json`, `scripts/secrets-plan.mjs` ve
+          `scripts/secrets-provider.mjs` üretir. `npm run security:secrets:plan`,
+          `DATABASE_URL`, CORS env'i, cloud env'leri ve observability endpoint gibi
+          referansların environment readiness durumunu JSON olarak raporlar.
+          `npm run security:secrets:preflight`, provider label/prefix ve provider CLI
+          availability bilgisini kontrol eder; secret değerlerini fetch etmez veya yazdırmaz.
+        </p>
+        <p>
+          Public install ve package/adapter publish akışları için `scripts/verify-release-trust.mjs`
+          read-only verifier vardır. `release.blackdir`, `checksums.sha256`, archive hash'leri,
+          detached Ed25519 `&lt;artifact&gt;.sig` dosyaları, `BLACKLANG_RELEASE_PUBLIC_KEY` veya
+          `BLACKLANG_RELEASE_PUBLIC_KEY_FILE` public key referansı, release transparency metadata'sı
+          ve key rotation policy uyuşmadan strict trust workflow publish-ready
+          vermez.
+        </p>
+      </section>
+
+      <section id="protected-source">
+        <h2>protected source</h2>
+        <p>
+          `.black.enc`, BlackLang kaynak dosyasını production paketlerinden ayırmak ve gerektiğinde
+          güvenilir developer/CI ortamında bellekten build etmek için eklenen protected source
+          formatıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Encrypted source komutları</div>
+          <pre><code class="language-bash">black security encrypted-source --json
+BLACKLANG_SOURCE_KEY=local-key black security encrypt app.black --out app.black.enc --json
+BLACKLANG_SOURCE_KEY=local-key black security decrypt app.black.enc --stdout</code></pre>
+        </div>
+        <p>
+          Encrypted dosya `BLACKLANG-ENC v1`, `AES-256-GCM`, `SHA256-ENV`, `keyEnv` ve nonce
+          içeren küçük bir plaintext header taşır; source body encrypted base64 ciphertext olarak
+          saklanır. Key değeri `.black` veya `.black.enc` içine yazılmaz, yalnızca environment'tan
+          okunur.
+        </p>
+        <p>
+          `parse`, `lint`, `validate`, `inspect`, `benchmark`, `security scan` ve `build`,
+          gerekli key environment variable set edildiğinde `.black.enc` source'u bellekte okuyabilir.
+          `black format` encrypted source dosyalarını rewrite etmez; plaintext source formatlanıp
+          tekrar encrypt edilmelidir. Production package hem `.black` hem `.black.enc` dosyalarını
+          dışarıda bırakır.
+        </p>
       </section>
 
       <section id="cors">
@@ -1051,19 +1789,91 @@ security {
         </p>
         <div class="code-panel">
           <div class="code-title">Docker deployment</div>
-          <pre><code class="language-black">deploy {
+<pre><code class="language-black">deploy {
   target docker
   port env PORT default 3001
   env DATABASE_URL required
   env CORS_ORIGINS optional
+  preview local
+  rollback keep 3
+  cloud fly app env FLY_APP_NAME region env FLY_REGION
 }</code></pre>
         </div>
         <p>
           Bu niyet `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `.env.example` içinde
           `PORT`, generated `package.json` içinde `start` scripti ve generated server içinde
-          `process.env["PORT"]` kullanımı üretir. Mevcut runtime SQLite tabanlı olduğu için
-          PostgreSQL target'ı sonraki runtime aşamasına bırakılmıştır.
+          `process.env["PORT"]` kullanımı üretir. `preview local`, `docker-compose.preview.yml`,
+          `BLACKLANG_PREVIEW_PORT` ve preview scriptleri üretir. `rollback keep 3`,
+          `deploy/manifest.json`, `deploy/rollback.json` ve read-only rollback plan scripti
+          üretir. `cloud fly app env FLY_APP_NAME region env FLY_REGION`, `deploy/cloud.json`,
+          deploy manifest cloud metadata'sı, read-only cloud plan/preflight scriptleri ve açık
+          apply gerektiren provider CLI runner üretir. SQLite target'ında local database `/app/data` altında tutulur; PostgreSQL
+          ve MySQL target'larında ayrı database service, service healthcheck ve app `DATABASE_URL`
+          fallback'i üretilir. MySQL compose çıktısı `MYSQL_*` local env default'larını da taşır. `ops.health` varsa Dockerfile ve docker-compose app service
+          healthcheck'i aynı path'i probe eder.
         </p>
+      </section>
+
+      <section id="ops">
+        <h2>ops</h2>
+        <p>
+          `ops`, generated web uygulamasına public runtime probe endpoint'leri ve structured
+          request log niyeti ekler. Bu bölüm deploy sonrası “process ayakta mı, database hazır mı,
+          temel sayaçlar ne durumda?” sorularını generated dosya düzenlemeden cevaplar.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Runtime operation signals</div>
+          <pre><code class="language-black">ops {
+  health path "/healthz"
+  readiness path "/readyz"
+  metrics path "/metrics"
+  logging requests
+  observe otlp endpoint env BLACKLANG_OTLP_ENDPOINT
+}</code></pre>
+        </div>
+        <p>
+          `health path`, uptime, start time, app adı ve compiler version bilgisini dönen public
+          GET endpoint üretir. `readiness path`, generated database adapter üzerinden `SELECT 1`
+          çalıştırır ve database ulaşılamazsa `503` döner. `metrics path`, process-local request,
+          error ve status-code sayaçlarını gösterir. `logging requests`, her gözlenen istek
+          bitince tek satır JSON log yazar. `observe webhook endpoint env NAME`, env set edilmişse
+          response yolunu bloklamadan structured request event POST eder. `observe otlp endpoint env NAME`
+          aynı observe syntax'ı ile non-blocking OTLP HTTP JSON trace payload üretir.
+          Observe middleware W3C `traceparent` context üretir veya gelen context'i taşır.
+        </p>
+        <p>
+          Ops path'leri root-level public path olmalıdır; `/api`, `/openapi.json`, query string,
+          fragment, brace, whitespace ve unsafe karakterler reddedilir. Route'lar API auth ve
+          CSRF middleware'inden önce üretildiği için infrastructure health check'leri login
+          akışına takılmaz.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated contract</div>
+          <pre><code class="language-http">GET /healthz
+GET /readyz
+GET /metrics
+
+OpenAPI:
+x-blacklang-ops: health | readiness | metrics
+x-blacklang-public: true
+x-blacklang-observability: webhook | otlp
+ops/observability.json: provider + exporter metadata</code></pre>
+        </div>
+        <p>
+          Generated contract/API smoke testleri ops path, observability metadata, trace context ve
+          lokal hook/exporter delivery davranışını doğrular.
+          `deploy { target docker }` ile beraber `health path` varsa Dockerfile ve docker-compose
+          healthcheck'i Node'un built-in `fetch` fonksiyonuyla aynı public path'i çağırır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI için kısa öğrenme ve etki analizi</div>
+          <pre><code class="language-bash">black docs ops --json
+black explain ops --json
+black inspect --affected ops --json
+black validate --json
+black build --json
+cd generated && npm test</code></pre>
+        </div>
       </section>
 
       <section id="cli">
@@ -1084,11 +1894,33 @@ black build examples/warehouse/app.black --json
 black inspect --ir
 black inspect examples/project-management/app.black --affected ProjectTask.status --json
 black theme inspect --json
+black docs migrate --json
+black explain migrate --json
+black migrate plan old.black new.black --json
 black docs ui --json
 black docs ui-modes --json
 black docs query --json
 black explain query --json
 black inspect --affected LowStockProducts --json
+black docs action --json
+black explain action --json
+black inspect --affected RestockProduct --json
+black docs policy --json
+black explain policy --json
+black inspect --affected policy --json
+black docs ops --json
+black explain ops --json
+black inspect --affected ops --json
+black docs generated-test --json
+black docs benchmark --json
+black benchmark --json
+black benchmark tasks --json
+black ide --json
+black ide diagnostics examples/warehouse/app.black --json
+black audit accessibility --json
+black security encrypted-source --json
+black security encrypt app.black --out app.black.enc --json
+black security decrypt app.black.enc --stdout
 black docs --all --json
 black explain entity --json
 black security scan --json</code></pre>
@@ -1096,11 +1928,205 @@ black security scan --json</code></pre>
         <p>
           `agent startup`, AI ajanına proje girişinde okunacak dosyaları, source/out yollarını,
           generated dosya sınırlarını ve doğrulama komutlarını tek JSON çıktıda verir.
+          `ide`, compiler-owned completion, snippet ve diagnostic metadata üretir.
+          `ide diagnostics`, editor-friendly zero-based range'lerle format, parse, validate
+          ve source-security bulgularını döner.
           `lint` format, parse, validate ve source-security bulgularını tek raporda toplar.
-          `inspect --affected`, bir entity, field, query, page, role, workflow, state, component
+          `inspect --affected`, bir entity, field, policy, ops, migration, query, action, page, role, workflow, state, component
           veya api değiştiğinde hangi kaynak parçalarının ve generated dosyaların etkileneceğini
-          JSON olarak döner. `explain`, tek keyword için amaç, syntax, örnek, agent notu ve
-          hata kodlarını döner.
+          JSON olarak döner. `migrate plan`, eski/yeni `.black` source arasındaki database
+          shape farklarını read-only şekilde safe/manual/destructive olarak sınıflandırır.
+          `explain`, tek keyword için amaç, syntax, örnek, agent notu ve hata kodlarını döner.
+          `docs generated-test`, build sonrası generated app içindeki contract/API/frontend/browser-check
+          smoke test ve browser e2e davranışını açıklar. `docs test`, `.black` kaynak içindeki deterministic
+          browser test niyetini açıklar. `benchmark`, source/generated dosya ve satır ölçümünü geçici
+          build üzerinden üretir. `audit accessibility`, generated UI intent için source-level
+          erişilebilirlik policy finding'leri üretir. `security encrypt/decrypt`, `.black.enc` protected source
+          akışını environment key ile yönetir.
+        </p>
+      </section>
+
+      <section id="ide">
+        <h2>IDE Metadata and Diagnostics</h2>
+        <p>
+          BlackLang IDE desteği compiler-owned contract olarak başlar. Editor, LSP bridge
+          veya AI ajanı keyword/snippet/diagnostic listesini kopyalamak yerine `black ide`
+          çıktısından okur. Bu sayede autocomplete ve diagnostics davranışı local compiler
+          sürümüyle aynı kalır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">IDE contract</div>
+          <pre><code class="language-bash">black ide --json
+black ide --ir
+black ide diagnostics examples/warehouse/app.black --json
+black ide diagnostics examples/warehouse/app.black --ir</code></pre>
+        </div>
+        <p>
+          `black ide --json`; language id, `.black`/`.blackthm` extension bilgisi,
+          completion items, canonical snippets ve diagnostic code catalog döndürür.
+          `black ide diagnostics &lt;file&gt; --json`, source'u değiştirmeden format, parse,
+          validate ve source-security bulgularını zero-based, end-exclusive range'lerle verir.
+          Okunabilir ama hatalı dosyada `success: true` ve `valid: false` döner; böylece
+          editor ordinary source diagnostics'i command failure ile karıştırmaz.
+          `editors/vscode-blacklang` içindeki packageable editor bridge bu contract'ı kullanarak
+          VS Code, Open VSX ve Cursor-compatible VSIX kanalları için dynamic autocomplete/snippet,
+          diagnostics, format quick fix ve affected-symbol inspection sağlar.
+        </p>
+      </section>
+
+      <section id="ecosystem">
+        <h2>Ecosystem Discovery</h2>
+        <p>
+          BlackLang core her provider'ı içine almak yerine package, release, registry, editor, adapter ve marketplace
+          bilgisini compiler-owned discovery çıktısıyla görünür kılar. `black ecosystem --json`,
+          local npm wrapper, VS Code/Open VSX/Cursor-compatible editor package channel metadata,
+          release manifest/checksum/signature trust akışı, release transparency/key rotation policy, prepared package registry
+          manifestleri, built-in target/deploy, cloud deploy, observability adapterları, prepared
+          provider adapter marketplace manifestlerini ve `publicIndex.path` üzerinden
+          `website/ecosystem-index.json` static index kaynağını tek deterministik raporda verir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Ecosystem contract</div>
+          <pre><code class="language-bash">black ecosystem --json
+black ecosystem --ir
+black docs release-trust --json
+black docs package-registry --json
+black docs adapter-marketplace --json
+black docs editor-marketplace --json
+node scripts/verify-release-trust.mjs artifacts/releases/&lt;version&gt; --json --strict
+node packages/registry/scripts/validate-registry.mjs
+cd packages/npm && npm test
+cd editors/vscode-blacklang && npm test
+cd editors/vscode-blacklang && npm run package:vsix</code></pre>
+        </div>
+        <p>
+          `packages/npm` native `black` binary'sine forward eden ince npm/npx wrapper'dır.
+          `editors/vscode-blacklang` da `black ide` contract'ını tüketen ince editor bridge'dir; aynı
+          kaynak VS Code Marketplace, Open VSX ve Cursor-compatible VSIX kanal metadata'sına bağlanır.
+          `packages/registry/package-index.blackdir` ve `adapters/marketplace/adapter-index.blackdir`
+          package/provider ekosistemini stable ID'lerle listeler; trust policy dosyaları external publish
+          veya provider mutation öncesi koşulları açıklar.
+          `packages/registry/public-index.blackdir` ve `website/ecosystem-index.json` gelecekte hosted
+          package/provider adapter discovery için deploy edilebilir, secret-free index kaynağını temsil eder.
+          `release.trust`, Ed25519 detached signature pattern'ini, public key env adlarını, strict
+          verifier command'ini, transparencyLog metadata'sını ve keyRotation policy'sini gösterir.
+          `deploy-cloud:docker-provider` Docker image cloud plan/preflight metadata'sını ve explicit
+          apply provider CLI runner sınırını, `observability:webhook` request event hook'unu,
+          `observability:otlp` ise env-referenced OTLP HTTP trace exporter metadata'sını bildirir.
+          Provider-specific davranışlar core syntax'a girmeden önce extension/adapter disiplininden
+          geçmelidir: parser, validator, docs, JSON/BlackIR, diagnostics, affected analysis, tests,
+          manifest metadata, signed package verification, trust checks ve kısa AI öğrenme dokümanı.
+        </p>
+      </section>
+
+      <section id="generated-tests">
+        <h2>Generated Contract/API/Frontend/Browser-Check/E2E/Matrix Tests</h2>
+        <p>
+          `black build`, web ve API-only output içinde deterministik contract/API smoke testleri
+          üretir. `target web` ayrıca frontend ve declared browser-check smoke testleri ile
+          gerçek browser e2e testini ve cross-browser matrix runner'ını üretir. Bu testler,
+          generated app'in OpenAPI sözleşmesini, validation yüzeyini, temel HTTP davranışını,
+          React render zincirini ve `.black` içinde yazılan page/action/text beklentilerini
+          target'a göre kontrol eder.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Generated app içinde</div>
+<pre><code class="language-bash">cd generated
+npm test
+npm run test:e2e:plan
+npm run test:e2e:matrix</code></pre>
+        </div>
+        <p>
+          Test dosyaları her target için `src/blacklang.contract.test.ts` ve
+          `src/blacklang.api.test.ts` içinde üretilir. Generated `npm test` önce
+          `npm run db:generate` çalıştırır, sonra smoke test dosyalarını koşar. `target web` ayrıca
+          `src/blacklang.frontend.test.tsx` ve kaynak `test` deklarasyonları varsa
+          `src/blacklang.browser.test.tsx`, `src/blacklang.e2e.test.ts`,
+          `src/blacklang.e2e.matrix.ts` ve `tests/browser-matrix.json` üretir. `target api`
+          React, Vite, frontend smoke, browser-check, e2e ve matrix test dosyalarını üretmez. Contract test `openapi.json`
+          version, ops path/metadata, observability metadata, schema, CRUD path, bound query path, custom action path, explicit API path/runtime metadata
+          ve transaction flag dahil action metadata kayıtlarını denetler. API smoke test generated Express app'i random
+          localhost portunda açar, `/openapi.json`, explicit API runtime route'ları, ops endpoint'leri, local observability hook delivery, anonymous API status ve varsa CORS allow/deny
+          davranışını kontrol eder. Frontend smoke test `target web` içinde generated React `App` bileşenini
+          `react-dom/server` ile render eder. Browser-check smoke test `target web` içinde generated page metadata,
+          action listesi ve text/render katalogları üzerinden deterministic beklentileri doğrular.
+          Browser e2e test `target web` içinde `playwright-core` ile local Chrome/Chromium/Edge başlatır, ephemeral SQLite database,
+          generated setup/seed, auth register, navigation ve action button görünürlüğünü gerçek DOM'da doğrular.
+          Browser matrix plan custom, Chrome, Edge ve Chromium executable availability bilgisini read-only JSON olarak raporlar;
+          matrix run aynı generated e2e intent'ini her available hedef için çalıştırır ve compact pass/fail/skip sonucu döndürür.
+          `blacklang.toml` farklı bir `out` dizini tanımlıyorsa `npm test` o generated output
+          dizininde çalıştırılır.
+        </p>
+        <p>
+          `test` declaration arbitrary browser automation dili değildir ve `target api` içinde
+          `UNSUPPORTED_API_TARGET_TEST` üretir; generated auth, setup/seed,
+          navigation, text/page/action kontrolleriyle sınırlı deterministic bir browser koşumudur.
+          Generated dosyalar elle düzenlenmemelidir.
+        </p>
+      </section>
+
+      <section id="test">
+        <h2>test</h2>
+        <p>
+          `test`, generated `target web` output için deterministic browser-check, browser e2e ve browser matrix niyeti tanımlar.
+          Tek bir page hedefler; hızlı smoke testte generated metadata/text catalog, E2E'de gerçek
+          browser DOM'u üzerinden güvenli beklentiler çalıştırır. `target api` içinde browser runtime
+          üretilmediği için `UNSUPPORTED_API_TARGET_TEST` diagnostic'i döner.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">Browser source intent</div>
+          <pre><code class="language-black">test WarehouseBrowserSmoke {
+  page Products
+  expect text "Depo"
+  expect page LowStock
+  expect action RestockProduct
+}</code></pre>
+        </div>
+        <p>
+          `expect text`, hızlı testte generated render yüzeyi/text catalog içinde, E2E'de gerçek DOM'da
+          literal arar. `expect page`, declared metadata ve gerçek navigation/page label davranışını
+          kontrol eder. `expect action`, hedef page'in CRUD veya custom action listesinde action bulunduğunu
+          ve E2E'de ilgili action button'ın göründüğünü doğrular. Kaynakta en az bir `expect` olmalıdır.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI/CI kontrolü</div>
+          <pre><code class="language-bash">black docs test --json
+black explain test --json
+black inspect examples/warehouse/app.black --affected WarehouseBrowserSmoke --json
+black build examples/warehouse/app.black --out generated --json
+cd generated
+npm test
+npm run test:e2e:plan
+npm run test:e2e:matrix</code></pre>
+        </div>
+        <p>
+          Generated output `src/blacklang.browser.test.tsx` üretir ve `npm test` zincirine
+          ekler. Ayrıca `src/blacklang.e2e.test.ts`, `src/blacklang.e2e.matrix.ts`,
+          `tests/browser-matrix.json`, `test:e2e`, `test:e2e:plan`, `test:e2e:matrix`
+          ve `test:all` üretir. Browser executable otomatik bulunamazsa
+          `BLACKLANG_E2E_BROWSER_PATH` verilebilir; matrix hedefleri için
+          `BLACKLANG_E2E_CHROME_PATH`, `BLACKLANG_E2E_EDGE_PATH` ve
+          `BLACKLANG_E2E_CHROMIUM_PATH` kullanılabilir.
+        </p>
+      </section>
+
+      <section id="accessibility-audit">
+        <h2>Accessibility Audit</h2>
+        <p>
+          `black audit accessibility`, generated UI intent için read-only policy check çalıştırır.
+          Kaynak önce parse ve validate edilir; geçerli kaynakta modal/drawer section ve nested
+          group gibi layout niyetleri erişilebilir adlandırma açısından incelenir.
+        </p>
+        <div class="code-panel">
+          <div class="code-title">AI/CI kontrolü</div>
+          <pre><code class="language-bash">black audit accessibility --json
+black audit accessibility examples/warehouse/app.black --ir</code></pre>
+        </div>
+        <p>
+          Current policy findings `ACCESSIBILITY_MISSING_OVERLAY_TITLE` ve
+          `ACCESSIBILITY_MISSING_GROUP_TITLE` kodlarıdır. Çözüm generated React/CSS dosyasını
+          düzenlemek değil; `.black` içinde ilgili `section ... title "..."` veya
+          `group ... title "..."` niyetini eklemektir.
         </p>
       </section>
 
@@ -1150,7 +2176,7 @@ HARDCODED_*   likely secret is stored in source</code></pre>
         <p>
           Bu bölüm dış AI ajanlarının BlackLang'i yanlış yorumlamasını engeller. Resmi
           çalışma yolu `.black` kaynak, `.blackthm` tema profili ve `black` CLI üzerinden
-          generated web output üretmektir.
+          generated web/API output üretmektir.
         </p>
         <div class="code-panel">
           <div class="code-title">Resmi akış</div>
@@ -1160,14 +2186,23 @@ black inspect app.black --json
 black format --check --json
 black lint --json
 black validate --json
-black build</code></pre>
+black build
+cd generated && npm test</code></pre>
         </div>
         <p>
+          Existing database schema etkileniyorsa deploy öncesi
+          `black migrate plan old.black new.black --json` çalıştırılır; komut read-only
+          plan üretir ve `safe/manual/destructive` riskleri ayrıştırır. Rename gerekiyorsa
+          current source içinde explicit `migration` bloğu yazılır; generated setup runtime bunu
+          schema setup öncesi uygular.
+        </p>
+        <p>
           Şu an BlackLang genel amaçlı browser runtime değildir. Calculator, game,
-          custom click handler veya arbitrary JavaScript replacement gibi davranışlar
-          ilerideki frontend logic/event aşamalarına aittir. Entity tabanlı computed
-          display değerleri desteklenir; calculator tarzı lokal expression state henüz
-          desteklenmez.
+          arbitrary click handler veya JavaScript replacement gibi davranışlar ilerideki
+          frontend logic/event aşamalarına aittir. Entity tabanlı computed display değerleri
+          ve page-bound custom row action'lar desteklenir; calculator tarzı lokal expression
+          state henüz desteklenmez. Sınırlı local `value` ve `if`/`else` logic şu an
+          custom action ve explicit API update handler içinde desteklenir.
         </p>
         <div class="code-panel">
           <div class="code-title">Desteklenmeyen resmi syntax</div>
@@ -1200,7 +2235,8 @@ black build</code></pre>
 6. Run black format --check --json
 7. Run black lint --json
 8. Run black build
-9. Do not manually edit generated files</code></pre>
+9. Run generated npm test
+10. Do not manually edit generated files</code></pre>
         </div>
         <div class="code-panel">
           <div class="code-title">Startup JSON özeti</div>
@@ -1230,14 +2266,15 @@ black build</code></pre>
         <h2>Örnekler</h2>
         <p>
           İlk örnek Warehouse uygulamasıdır. Bu örnek auth, role, relation, workflow, state,
-          component, table, form, computed display, custom query, validation ve API contract
-          özelliklerini aynı kaynakta gösterir. Salt okunur LowStock sayfası, özel sorguyla
-          düşük stoklu ürünleri listeler.
+          component, reusable page component section, table, form, relation load policy, computed display, custom query, custom action, owner/tenant
+          policy, ops runtime signals, validation, generated contract test ve explicit API runtime özelliklerini aynı kaynakta gösterir. Salt
+          okunur LowStock sayfası özel sorguyla düşük stoklu ürünleri listeler; RestockProduct
+          action'ı Products ve LowStock satırlarında stok artırır.
         </p>
         <div class="code-panel">
           <div class="code-title">Relation ve validation örneği</div>
           <pre><code class="language-black">entity Order {
-  customer Customer required label "Customer"
+  customer Customer required load list detail query mutation label "Customer"
   total money default 0 min 0
   discount money default 0 min 0
   status text default draft
@@ -1257,7 +2294,7 @@ black build</code></pre>
         <p>
           SalesCRM, gerçek uygulama şablonlarının ilkidir. Company, Contact, Deal ve
           Activity kayıtlarını tek `.black` kaynakta tanımlar; auth, role/access, workflow,
-          state, component, validation ve OpenAPI contract davranışlarını birlikte gösterir.
+          state, component, validation, OpenAPI ve explicit API runtime davranışlarını birlikte gösterir.
         </p>
         <div class="code-panel">
           <div class="code-title">examples/crm/app.black</div>
@@ -1316,7 +2353,7 @@ workflow DealPipeline {
           InventoryControl, ikinci gerçek uygulama şablonudur. Warehouse, Supplier,
           Category, Item, PurchaseOrder ve StockMovement kayıtlarını tek `.black`
           kaynakta tanımlar; stok yönetimi, satın alma akışı, stok hareketi akışı,
-          field-level access, validation ve API contract davranışlarını birlikte ölçer.
+          field-level access, validation, OpenAPI ve explicit API runtime davranışlarını birlikte ölçer.
         </p>
         <div class="code-panel">
           <div class="code-title">examples/inventory/app.black</div>
@@ -1458,7 +2495,7 @@ page Tickets {
           InvoiceFlow, dördüncü gerçek uygulama şablonudur. Client, BillingContact,
           TaxRate, CatalogItem, Invoice, InvoiceLine, Payment ve CreditNote kayıtlarını
           tek `.black` kaynakta tanımlar; fatura onayı, ödeme takibi, iade notları,
-          field-level access, validation ve API contract davranışlarını birlikte ölçer.
+          field-level access, validation, OpenAPI ve explicit API runtime davranışlarını birlikte ölçer.
         </p>
         <div class="code-panel">
           <div class="code-title">examples/invoice/app.black</div>
@@ -1533,7 +2570,7 @@ page Invoices {
           Service, StaffMember, Room, AvailabilityBlock, Appointment, AppointmentReminder
           ve WaitlistEntry kayıtlarını tek `.black` kaynakta tanımlar; randevu planlama,
           uygunluk blokları, hatırlatmalar, bekleme listesi, field-level access,
-          validation ve API contract davranışlarını birlikte ölçer.
+          validation, OpenAPI ve explicit API runtime davranışlarını birlikte ölçer.
         </p>
         <div class="code-panel">
           <div class="code-title">examples/appointment/app.black</div>
@@ -1606,7 +2643,7 @@ page Appointments {
           TeamMember, Project, Milestone, ProjectTask, TaskComment, TimeEntry, Risk
           ve ProjectUpdate kayıtlarını tek `.black` kaynakta tanımlar; proje teslimi,
           görev akışı, milestone takibi, zaman kaydı, risk yönetimi, field-level access,
-          validation ve API contract davranışlarını birlikte ölçer.
+          validation, OpenAPI ve explicit API runtime davranışlarını birlikte ölçer.
         </p>
         <div class="code-panel">
           <div class="code-title">examples/project-management/app.black</div>
@@ -1664,9 +2701,71 @@ page ProjectTasks {
         </div>
         <p>
           Bu şablon relation yoğunluğu, iki ayrı workflow, görev state'i,
-          proje sağlık raporu API'si ve webhook contract davranışlarını bugünkü compiler
+          proje sağlık raporu API'si ve webhook declared-runtime davranışlarını bugünkü compiler
           kapasitesiyle ölçer. Benchmark raporu `benchmarks/project-management-v0.2.md`
           altında tutulur.
+        </p>
+      </section>
+
+      <section id="coverage">
+        <h2>Web Coverage Status</h2>
+        <p>
+          BlackLang'in web hedefi “çalışan CRUD app” ile sınırlı değildir. Full web coverage;
+          UI/layout, backend/API, database runtime, auth/security, deployment/ops, testing,
+          docs/AI ergonomics ve ecosystem alanlarının birlikte olgunlaşması demektir.
+          `black benchmark coverage --json`, bu alanları weighted matrix olarak raporlar.
+        </p>
+        <div class="metric-grid">
+          <div>
+            <strong>100%</strong>
+            <span>Current weighted web coverage signal</span>
+          </div>
+          <div>
+            <strong>9</strong>
+            <span>Tracked coverage areas</span>
+          </div>
+          <div>
+            <strong>54</strong>
+            <span>Stable issue IDs</span>
+          </div>
+          <div>
+            <strong>100%</strong>
+            <span>Full web target milestone</span>
+          </div>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Coverage command</div>
+          <pre><code class="language-bash">black benchmark coverage --json
+black benchmark coverage --ir
+black benchmark issues --json</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Weight</th>
+                <th>Score</th>
+                <th>Next gap</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>data-model-crud</td><td>10</td><td>100</td><td>multi-hop relation graph loading after explicit relation graph syntax</td></tr>
+              <tr><td>frontend-ui-layout</td><td>15</td><td>100</td><td>client-side local expression state after Core Program Logic v1</td></tr>
+              <tr><td>backend-api-actions</td><td>15</td><td>100</td><td>cross-service command orchestration beyond explicit API grouping</td></tr>
+              <tr><td>auth-permissions-security</td><td>15</td><td>100</td><td>provider-owned runtime value injection adapters</td></tr>
+              <tr><td>database-runtime</td><td>10</td><td>100</td><td>MySQL rename migration runner after provider-specific DDL safeguards</td></tr>
+              <tr><td>deployment-operations</td><td>10</td><td>100</td><td>vendor-specific tracing backend packages after public adapter marketplace publishing</td></tr>
+              <tr><td>testing-benchmarks</td><td>10</td><td>100</td><td>external multi-model scored eval board after independent harness runs</td></tr>
+              <tr><td>docs-ai-ergonomics</td><td>10</td><td>100</td><td>external editor marketplace owner publication</td></tr>
+              <tr><td>ecosystem-integrations</td><td>5</td><td>95</td><td>external registry publication and deployed provider marketplace index after release-owner review</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Coverage issue IDs such as `WEB-LAYOUT-001`, `WEB-LAYOUT-002`, `WEB-LAYOUT-003`, `WEB-LAYOUT-004`, `WEB-LAYOUT-005`, `WEB-LAYOUT-006`, `WEB-LAYOUT-007`, `WEB-DATA-002`, `WEB-DATA-003`, `WEB-DATA-007`, `WEB-DATA-008`, `WEB-DATA-009`, `WEB-SEC-001`, `WEB-SEC-002`, `WEB-SEC-003`, `WEB-SEC-004`, `WEB-SEC-007`, `WEB-SEC-005`, `WEB-SEC-006`, `WEB-API-002`, `WEB-API-003`, `WEB-API-004`, `WEB-API-005`, `WEB-OPS-001`, `WEB-OPS-002`, `WEB-OPS-003`, `WEB-OPS-004`, `WEB-OPS-005`, `WEB-DOCS-002`, `WEB-DOCS-003`, `WEB-DOCS-004`, `WEB-DOCS-005`,
+          `WEB-TEST-001`, `WEB-TEST-003`, `WEB-TEST-004`, `WEB-TEST-005`, `WEB-TEST-006`, `WEB-TEST-007`, `WEB-ECO-001`, `WEB-ECO-002`, `WEB-ECO-003`, and `WEB-ECO-004` are emitted by the CLI so worklogs, docs, and future GitHub
+          issues can refer to the same gaps without rewriting the taxonomy.
         </p>
       </section>
 
@@ -1675,6 +2774,14 @@ page ProjectTasks {
         <p>
           BlackLang'in iddiası ölçülmelidir: kaç satır `.black` yazıldı, kaç satır generated
           kod üretildi, normal web stack karşılığı ne olurdu ve AI kaç dosyaya dokundu?
+          `black benchmark --json`, source/generated ölçümlerini geçici build üzerinden üretir
+          ve configured output dizinini değiştirmez. `black benchmark tasks --json`, common AI
+          web değişiklikleri için deterministic scenario ve token estimate raporu üretir.
+          `black benchmark eval --json`, aynı senaryoları repeat count, case prompt, evidence,
+          scoring rubric ve required commands içeren long-running corpus'a dönüştürür.
+          `black benchmark eval-history --json`, evidence-backed published-local history
+          manifest'ini okur; local validation entry'leri billed model score olarak sunulamaz.
+          Compiler testleri Warehouse generated output'u için kompakt golden manifest kullanır.
         </p>
         <div class="metric-grid">
           <div>
@@ -1695,14 +2802,42 @@ page ProjectTasks {
           </div>
         </div>
         <div class="code-panel">
-          <div class="code-title">Rapor şablonu</div>
-          <pre><code>Metric                 Normal Stack   BlackLang
-Source lines                    TBD         TBD
-Generated lines                 TBD         TBD
-Files edited                    TBD         TBD
-Input tokens                    TBD         TBD
-Output tokens                   TBD         TBD
-Build time                      TBD         TBD</code></pre>
+          <div class="code-title">Warehouse measured output</div>
+          <pre><code class="language-bash">black benchmark examples/warehouse/app.black --out generated --json
+
+source.lines = 770
+generated.files = 66
+generated.lines = 14665
+generated/black-source line ratio = 19.05</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Warehouse AI task benchmark signal</div>
+          <pre><code class="language-bash">black benchmark tasks examples/warehouse/app.black --out generated --json
+
+scenarios = 8
+estimated BlackLang tokens = 10519
+estimated conventional tokens = 90872
+estimated savings = 88%</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Warehouse long-running AI eval corpus</div>
+          <pre><code class="language-bash">black benchmark eval examples/warehouse/app.black --out generated --json
+
+suite = BLACKLANG-WEB-AI-EVAL-v0.2
+cases = 8
+repeat = 3
+total runs = 24
+max score = 2400</code></pre>
+        </div>
+        <div class="code-panel">
+          <div class="code-title">Warehouse AI eval history</div>
+          <pre><code class="language-bash">black benchmark eval-history --json
+
+history = BLACKLANG-WEB-AI-EVAL-HISTORY
+status = published-local
+runs = 1
+total runs = 24
+failed = 0</code></pre>
         </div>
       </section>
 
@@ -1711,20 +2846,28 @@ Build time                      TBD         TBD</code></pre>
         <p>
           v0.1 web MVP tamamlandı: parser, validator, generator, CRUD, relation, auth,
           role/access, workflow, state, component, validation, OpenAPI ve source security
-          temelleri var. v0.2 data logic kapsamında computed display fields ve stored-field
-          custom query MVP tamamlandı. Sonraki adım custom mutation/action tanımlarıdır.
+          temelleri var. v0.2 data logic kapsamında computed display fields, relation response load policies with generated batch prefetch, stored-field
+          custom query aggregate summary MVP, background query worker job MVP, API-only target MVP, custom row action MVP, action/API local value + compound condition + if/else logic, transaction block MVP ve explicit API typed update handler tamamlandı. Database runtime tarafında
+          entity index declarations, read-only schema migration plan, explicit rename runtime ve deterministic seed/fixture runtime eklendi. Phase 29
+          owner/tenant policy MVP ile generated route row scope eklendi. Phase 20
+          UI profile migration checks, Phase 22 generated contract/API/frontend/browser-check/e2e/matrix tests,
+          first-class browser test declarations, benchmark command, long-running AI eval corpus, evidence-backed eval history, local preview deploy, rollback metadata
+          reusable page component sections, collection-backed component sections, DOM-order rendering, protected source MVP ve secret provider preflight execution da eklendi. Web completion hedefi
+          JavaScript runtime parity değil; deterministic web capability parity olarak takip ediliyor.
         </p>
         <div class="code-panel">
           <div class="code-title">v0.2 odakları</div>
           <pre><code>Phase 18: Release and install path
 Phase 19: Developer and AI ergonomics, including agent contract and inspect --affected
 Phase 20: UI and theme language
-Phase 21: Computed fields and custom queries complete; custom actions next
-Phase 22: Tests, benchmarks, and evals
-Phase 23: Protected source mode
+Phase 21: Computed fields, relation response load policies with generated batch prefetch, custom queries, background query jobs, API-only target, custom actions, action/API local logic, explicit API handlers, and transaction blocks complete
+Phase 22: Generated contract/API/frontend/browser-check/e2e/matrix tests, seed fixture runtime, and benchmark command complete
+Phase 23: Protected source mode MVP
 Phase 24: Documentation site
 Phase 25: Real app templates
-Phase 28: Page view order and layout composition</code></pre>
+Phase 28: Page view order, DOM-order rendering, layout composition, tabs, overlays, groups, triggers, and reusable component sections
+Phase 29: Ownership and tenant policies
+Phase 30: Runtime ops signals, Docker healthchecks, local preview, and rollback metadata</code></pre>
         </div>
         <p>
           Bu site Phase 24'ün ilk yayınlanabilir sürümüdür. Dil büyüdükçe her yeni syntax,

@@ -381,6 +381,44 @@ pre code {
   font-size: 0.94rem;
 }
 
+.table-wrap {
+  max-width: 100%;
+  margin: 22px 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.table-wrap table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.table-wrap th,
+.table-wrap td {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-wrap th {
+  color: var(--text);
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-wrap td {
+  color: var(--muted);
+}
+
+.table-wrap tr:last-child td {
+  border-bottom: 0;
+}
+
 .copy-button {
   margin-left: auto;
   border: 1px solid #40506d;

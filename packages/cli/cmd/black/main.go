@@ -38,16 +38,26 @@ func main() {
 		runValidate(args[1:])
 	case "build":
 		runBuild(args[1:])
+	case "benchmark":
+		runBenchmark(args[1:])
+	case "ecosystem":
+		runEcosystem(args[1:])
+	case "migrate":
+		runMigrate(args[1:])
 	case "inspect":
 		runInspect(args[1:])
 	case "docs":
 		runDocs(args[1:])
 	case "explain":
 		runExplain(args[1:])
+	case "ide":
+		runIDE(args[1:])
 	case "agent":
 		runAgent(args[1:])
 	case "theme":
 		runTheme(args[1:])
+	case "audit":
+		runAudit(args[1:])
 	case "security":
 		runSecurity(args[1:])
 	case "package":
@@ -170,6 +180,68 @@ Options:
   --json      Print machine-readable JSON`)
 }
 
+func runAudit(args []string) {
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	if len(args) == 0 || hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printAuditHelp()
+		if len(args) == 0 {
+			os.Exit(1)
+		}
+		return
+	}
+	if args[0] != "accessibility" {
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_AUDIT_COMMAND",
+			Message:    "Audit command must be `audit accessibility`.",
+			Suggestion: "Use `black audit accessibility --json`.",
+		}
+		printCommandError("audit", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+
+	commandArgs := args[1:]
+	config := LoadConfig(".")
+	file := firstNonOptionArg(commandArgs)
+	if file == "" {
+		file = config.Source
+	}
+	if file == "" {
+		file = "examples/warehouse/app.black"
+	}
+
+	result := AccessibilityAuditFile(file)
+	if irOutput {
+		fmt.Print(FormatAccessibilityAuditIR(result))
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	printAccessibilityAuditResult(result)
+	if !result.Success {
+		os.Exit(1)
+	}
+}
+
+func printAuditHelp() {
+	fmt.Println(`BlackLang audit
+
+Usage:
+  black audit accessibility [file] [options]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
+}
+
 func printHelp() {
 	fmt.Println(`BlackLang CLI
 
@@ -183,11 +255,16 @@ Commands:
   lint        Check source formatting, syntax, semantics, and source security
   validate    Validate .black project semantics
   build       Generate target application code
+  benchmark   Measure source/generated size, AI task/eval estimates, web coverage, and tracked issues
+  ecosystem   Print release, package, registry, adapter, marketplace, public index, and extension discovery metadata
+  migrate     Plan safe, manual, and destructive schema changes
   inspect     Print project summary or affected graph for humans or AI agents
   docs        Print compact language docs for one keyword or all keywords
   explain     Print action-oriented docs for one keyword
+  ide         Export IDE metadata and source diagnostics
   agent       Print AI agent startup checklist output
-  theme       Inspect .blackthm UI theme profiles
+  theme       Inspect and migrate .blackthm UI theme profiles
+  audit       Run read-only policy audits
   security    Scan BlackLang source for source-security risks
   package     Create deployable artifacts without protected source files
   version     Print CLI version
@@ -201,16 +278,18 @@ Options:
 func runSecurity(args []string) {
 	jsonOutput := hasJSONFlag(args)
 	irOutput := hasIRFlag(args)
-	if len(args) == 0 {
-		diagnostic := Diagnostic{
-			Code:       "UNKNOWN_SECURITY_COMMAND",
-			Message:    "Security command must be `security scan` or `security encrypted-source`.",
-			Suggestion: "Use `black security scan --json` or `black security encrypted-source --json`.",
+	if len(args) == 0 || hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printSecurityHelp()
+		if len(args) == 0 {
+			os.Exit(1)
 		}
-		printCommandError("security", jsonOutput, diagnostic)
-		os.Exit(1)
+		return
 	}
-	if args[0] == "encrypted-source" {
+
+	command := args[0]
+	commandArgs := args[1:]
+	switch command {
+	case "encrypted-source":
 		result := EncryptedSourceMode()
 		if irOutput {
 			fmt.Print(FormatEncryptedSourceIR(result))
@@ -221,19 +300,143 @@ func runSecurity(args []string) {
 			return
 		}
 		fmt.Printf("encrypted source mode %s %s\n", result.Status, result.Extension)
-		return
-	}
-	if args[0] != "scan" {
+	case "encrypt":
+		runSecurityEncrypt(commandArgs, jsonOutput, irOutput)
+	case "decrypt":
+		runSecurityDecrypt(commandArgs, jsonOutput, irOutput)
+	case "scan":
+		runSecurityScan(commandArgs, jsonOutput, irOutput)
+	default:
 		diagnostic := Diagnostic{
 			Code:       "UNKNOWN_SECURITY_COMMAND",
-			Message:    "Security command must be `security scan` or `security encrypted-source`.",
-			Suggestion: "Use `black security scan --json` or `black security encrypted-source --json`.",
+			Message:    "Security command must be `security scan`, `security encrypted-source`, `security encrypt`, or `security decrypt`.",
+			Suggestion: "Use `black security scan --json`, `black security encrypted-source --json`, `black security encrypt app.black --json`, or `black security decrypt app.black.enc --stdout`.",
 		}
 		printCommandError("security", jsonOutput, diagnostic)
 		os.Exit(1)
 	}
+}
+
+func printSecurityHelp() {
+	fmt.Println(`BlackLang security
+
+Usage:
+  black security scan [file] [--json|--ir]
+  black security encrypted-source [--json|--ir]
+  black security encrypt <file> [--out <file.black.enc>] [--key-env <ENV>] [--json|--ir]
+  black security decrypt <file.black.enc> --stdout [--key-env <ENV>] [--json|--ir]
+
+Options:
+  --out <file>      Write encrypted source to this file
+  --key-env <ENV>   Read encryption key material from this environment variable
+  --stdout          Print decrypted plaintext instead of writing a file
+  --json            Print machine-readable JSON
+  --ir              Print compact BlackIR`)
+}
+
+func runSecurityEncrypt(args []string, jsonOutput bool, irOutput bool) {
 	config := LoadConfig(".")
-	file := firstNonOptionArg(args[1:])
+	file := firstNonOptionArg(args)
+	if file == "" {
+		file = config.Source
+	}
+	if file == "" {
+		diagnostic := Diagnostic{
+			Code:       "MISSING_SECURITY_SOURCE",
+			Message:    "Security encrypt requires a .black source file.",
+			Suggestion: "Use `black security encrypt app.black --out app.black.enc`.",
+		}
+		printCommandError("security encrypt", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+
+	result := EncryptBlackSourceFile(file, optionValue(args, "--out"), optionValue(args, "--key-env"))
+	if irOutput {
+		fmt.Print(FormatSecurityEncryptIR(result))
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		os.Exit(1)
+	}
+	fmt.Printf("encrypted %s -> %s\n", result.File, result.OutFile)
+	fmt.Printf("key env %s\n", result.KeyEnv)
+}
+
+func runSecurityDecrypt(args []string, jsonOutput bool, irOutput bool) {
+	stdout := hasFlag(args, "--stdout")
+	file := firstNonOptionArg(args)
+	if file == "" {
+		diagnostic := Diagnostic{
+			Code:       "MISSING_SECURITY_SOURCE",
+			Message:    "Security decrypt requires a .black.enc source file.",
+			Suggestion: "Use `black security decrypt app.black.enc --stdout`.",
+		}
+		printCommandError("security decrypt", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+	if !stdout {
+		result := SecurityDecryptResult{
+			Success: false,
+			Command: "security decrypt",
+			Version: version,
+			File:    file,
+			KeyEnv:  optionValue(args, "--key-env"),
+			Errors: []Diagnostic{{
+				File:       file,
+				Code:       "MISSING_DECRYPT_STDOUT",
+				Message:    "Security decrypt requires --stdout so plaintext is never written to disk by default.",
+				Suggestion: "Use `black security decrypt " + file + " --stdout` inside a trusted developer or CI environment.",
+			}},
+		}
+		if irOutput {
+			fmt.Print(FormatSecurityDecryptIR(result))
+		} else if jsonOutput {
+			printJSON(result)
+		} else {
+			printDiagnostics(result.Errors)
+		}
+		os.Exit(1)
+	}
+
+	plaintext, result := DecryptBlackSourceFile(file, optionValue(args, "--key-env"))
+	if result.Success && jsonOutput {
+		result.Plaintext = plaintext
+	}
+	if irOutput {
+		fmt.Print(FormatSecurityDecryptIR(result))
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		os.Exit(1)
+	}
+	fmt.Print(plaintext)
+}
+
+func runSecurityScan(args []string, jsonOutput bool, irOutput bool) {
+	config := LoadConfig(".")
+	file := firstNonOptionArg(args)
 	if file == "" {
 		file = config.Source
 	}
@@ -257,18 +460,8 @@ func runSecurity(args []string) {
 		return
 	}
 	if !result.Success {
-		for _, diagnostic := range result.Errors {
-			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
-			if diagnostic.Suggestion != "" {
-				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
-			}
-		}
-		for _, finding := range result.Findings {
-			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", finding.File, finding.Line, finding.Column, finding.Code, finding.Message)
-			if finding.Suggestion != "" {
-				fmt.Fprintf(os.Stderr, "suggestion: %s\n", finding.Suggestion)
-			}
-		}
+		printDiagnostics(result.Errors)
+		printDiagnostics(result.Findings)
 		os.Exit(1)
 	}
 	fmt.Printf("security scan ok %s\n", result.File)
@@ -398,20 +591,25 @@ func runParse(args []string) {
 		file = "examples/warehouse/app.black"
 	}
 
-	source, err := os.ReadFile(file)
-	if err != nil {
-		printCommandError("parse", jsonOutput, Diagnostic{
-			File:       file,
-			Line:       0,
-			Column:     0,
-			Code:       "FILE_READ_ERROR",
-			Message:    err.Error(),
-			Suggestion: "Check that the file exists and is readable.",
-		})
+	source, readDiagnostics := ReadBlackSource(file)
+	if len(readDiagnostics) > 0 {
+		if irOutput {
+			printDiagnosticsIR("parse", readDiagnostics)
+		} else if jsonOutput {
+			printJSON(ParseResult{
+				Success: false,
+				Command: "parse",
+				Version: version,
+				File:    file,
+				Errors:  readDiagnostics,
+			})
+		} else {
+			printDiagnostics(readDiagnostics)
+		}
 		os.Exit(1)
 	}
 
-	program, diagnostics := Parse(file, string(source))
+	program, diagnostics := Parse(file, source)
 	if len(diagnostics) > 0 {
 		if irOutput {
 			printDiagnosticsIR("parse", diagnostics)
@@ -590,6 +788,251 @@ func runBuild(args []string) {
 	}
 }
 
+func runBenchmark(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printBenchmarkHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	if len(args) > 0 && args[0] == "coverage" {
+		result := WebCoverageReport()
+		if irOutput {
+			fmt.Print(FormatCoverageIR(result))
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			return
+		}
+		printCoverageResult(result)
+		return
+	}
+	if len(args) > 0 && args[0] == "issues" {
+		result := WebCoverageIssuesReport()
+		if irOutput {
+			fmt.Print(FormatCoverageIssuesIR(result))
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			return
+		}
+		printCoverageIssuesResult(result)
+		return
+	}
+	if len(args) > 0 && args[0] == "eval-history" {
+		result := BenchmarkEvalHistory(args[1:])
+		if irOutput {
+			if result.Success {
+				fmt.Print(FormatAIEvalHistoryIR(result))
+			} else {
+				printDiagnosticsIR("benchmark eval-history", result.Errors)
+			}
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printAIEvalHistoryResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if len(args) > 0 && args[0] == "tasks" {
+		result := BenchmarkTasks(args[1:])
+		if irOutput {
+			if result.Success {
+				fmt.Print(FormatAITaskBenchmarkIR(result))
+			} else {
+				printDiagnosticsIR("benchmark tasks", result.Errors)
+			}
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printAITaskBenchmarkResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if len(args) > 0 && args[0] == "eval" {
+		result := BenchmarkEvalCorpus(args[1:])
+		if irOutput {
+			if result.Success {
+				fmt.Print(FormatAIEvalCorpusIR(result))
+			} else {
+				printDiagnosticsIR("benchmark eval", result.Errors)
+			}
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printAIEvalCorpusResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	result := BenchmarkProject(args)
+	if irOutput {
+		if result.Success {
+			fmt.Print(FormatBenchmarkIR(result))
+		} else {
+			printDiagnosticsIR("benchmark", result.Errors)
+		}
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	printBenchmarkResult(result)
+	if !result.Success {
+		os.Exit(1)
+	}
+}
+
+func runEcosystem(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printEcosystemHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	result := EcosystemStatus()
+	if irOutput {
+		fmt.Print(FormatEcosystemIR(result))
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		return
+	}
+	printEcosystemResult(result)
+}
+
+func runMigrate(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printMigrateHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_MIGRATE_COMMAND",
+			Message:    "Migrate command must be `migrate plan`.",
+			Suggestion: "Use `black migrate plan old.black new.black --json`.",
+		}
+		printCommandError("migrate", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+	if args[0] != "plan" {
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_MIGRATE_COMMAND",
+			Message:    fmt.Sprintf("No migrate command exists for %q.", args[0]),
+			Suggestion: "Use `black migrate plan old.black new.black --json`.",
+		}
+		printCommandError("migrate", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+
+	result := MigratePlan(args[1:])
+	if irOutput {
+		fmt.Print(FormatSchemaMigrationPlanIR(result))
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if jsonOutput {
+		printJSON(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	printSchemaMigrationPlanResult(result)
+	if !result.Success {
+		os.Exit(1)
+	}
+}
+
+func printMigrateHelp() {
+	fmt.Println(`BlackLang migrate
+
+Usage:
+  black migrate plan <old.black> <new.black> [--json|--ir]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
+}
+
+func printBenchmarkHelp() {
+	fmt.Println(`BlackLang benchmark
+
+Usage:
+  black benchmark [file] [options]
+  black benchmark coverage [--json|--ir]
+  black benchmark issues [--json|--ir]
+  black benchmark tasks [file] [--out <dir>] [--json|--ir]
+  black benchmark eval [file] [--out <dir>] [--json|--ir]
+  black benchmark eval-history [--history <file>] [--json|--ir]
+
+Options:
+  --out <dir>  Use the configured output directory label in reported generated paths
+  --history    Read an eval history manifest instead of benchmarks/eval-history.blackdir
+  --json       Print machine-readable JSON
+  --ir         Print compact BlackIR`)
+}
+
+func printEcosystemHelp() {
+	fmt.Println(`BlackLang ecosystem
+
+Usage:
+  black ecosystem [options]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
+}
+
 func runInspect(args []string) {
 	if hasFlag(args, "--help") || hasFlag(args, "-h") {
 		printInspectHelp()
@@ -693,7 +1136,7 @@ Usage:
   black inspect [file] [options]
 
 Options:
-  --affected <symbol>  Print affected graph for an entity, field, page, role, workflow, state, component, api, target, or deploy
+  --affected <symbol>  Print affected graph for an entity, field, query, job, action, page, role, workflow, state, component, api, target, deploy, or ops
   --json               Print machine-readable JSON
   --ir                 Print compact BlackIR`)
 }
@@ -743,7 +1186,7 @@ func runDocs(args []string) {
 		result.Errors = []Diagnostic{{
 			Code:       "UNKNOWN_DOC_KEYWORD",
 			Message:    fmt.Sprintf("No docs entry exists for %q.", keyword),
-			Suggestion: "Use syntax, version, docs, explain, agent, agent-contract, diagnostics, format, lint, app, target, auth, role, access, entity, computed, query, layout, page, view, table, form, actions, ui, ui-profile, ui-modes, search, filter, paginate, workflow, state, component, blackir, openapi, package, security, cors, deploy, audit, or csrf.",
+			Suggestion: "Use syntax, version, docs, explain, ide, ecosystem, agent, agent-contract, diagnostics, format, lint, migrate, migration, app, target, auth, role, access, accessibility, entity, computed, query, action, ops, layout, page, test, view, table, form, actions, ui, ui-profile, ui-modes, theme, theme-migration, search, filter, paginate, workflow, state, component, blackir, openapi, generated-test, benchmark, package, package-registry, adapter-marketplace, editor-marketplace, security, cors, deploy, audit, or csrf.",
 		}}
 	}
 
@@ -810,6 +1253,72 @@ func runExplain(args []string) {
 	}
 }
 
+func runIDE(args []string) {
+	if hasFlag(args, "--help") || hasFlag(args, "-h") {
+		printIDEHelp()
+		return
+	}
+
+	jsonOutput := hasJSONFlag(args)
+	irOutput := hasIRFlag(args)
+	command := ""
+	commandArgs := args
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		command = args[0]
+		commandArgs = args[1:]
+	}
+
+	switch command {
+	case "":
+		result := IDESupport()
+		if irOutput {
+			fmt.Print(FormatIDESupportIR(result))
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			return
+		}
+		printIDESupportResult(result)
+	case "diagnostics":
+		config := LoadConfig(".")
+		file := firstNonOptionArg(commandArgs)
+		if file == "" {
+			file = config.Source
+		}
+		if file == "" {
+			file = "examples/warehouse/app.black"
+		}
+		result := IDEDiagnosticsFile(file)
+		if irOutput {
+			fmt.Print(FormatIDEDiagnosticsIR(result))
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printIDEDiagnosticsResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+	default:
+		diagnostic := Diagnostic{
+			Code:       "UNKNOWN_IDE_COMMAND",
+			Message:    fmt.Sprintf("No IDE command exists for %q.", command),
+			Suggestion: "Use `black ide --json` or `black ide diagnostics app.black --json`.",
+		}
+		printCommandError("ide", jsonOutput, diagnostic)
+		os.Exit(1)
+	}
+}
+
 func runAgent(args []string) {
 	if hasFlag(args, "--help") || hasFlag(args, "-h") {
 		printAgentHelp()
@@ -865,40 +1374,65 @@ func runTheme(args []string) {
 
 	jsonOutput := hasJSONFlag(args)
 	irOutput := hasIRFlag(args)
-	inspectArgs := args
-	if len(args) > 0 && args[0] == "inspect" {
-		inspectArgs = args[1:]
-	} else if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") || args[0] == "inspect" {
+		inspectArgs := args
+		if len(args) > 0 && args[0] == "inspect" {
+			inspectArgs = args[1:]
+		}
+		result := InspectTheme(inspectArgs)
+		if irOutput {
+			if result.Success {
+				fmt.Print(FormatThemeIR(result))
+			} else {
+				printDiagnosticsIR("theme inspect", result.Errors)
+			}
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printThemeInspectResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if args[0] == "migrate" {
+		result := MigrateTheme(args[1:])
+		if irOutput {
+			fmt.Print(FormatThemeMigrationIR(result))
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		if jsonOutput {
+			printJSON(result)
+			if !result.Success {
+				os.Exit(1)
+			}
+			return
+		}
+		printThemeMigrationResult(result)
+		if !result.Success {
+			os.Exit(1)
+		}
+		return
+	}
+	if !strings.HasPrefix(args[0], "-") {
 		diagnostic := Diagnostic{
 			Code:       "UNKNOWN_THEME_COMMAND",
 			Message:    fmt.Sprintf("No theme command exists for %q.", args[0]),
-			Suggestion: "Use `black theme inspect --json`.",
+			Suggestion: "Use `black theme inspect --json` or `black theme migrate old.blackthm new.blackthm --json`.",
 		}
 		printCommandError("theme", jsonOutput, diagnostic)
-		os.Exit(1)
-	}
-
-	result := InspectTheme(inspectArgs)
-	if irOutput {
-		if result.Success {
-			fmt.Print(FormatThemeIR(result))
-		} else {
-			printDiagnosticsIR("theme inspect", result.Errors)
-		}
-		if !result.Success {
-			os.Exit(1)
-		}
-		return
-	}
-	if jsonOutput {
-		printJSON(result)
-		if !result.Success {
-			os.Exit(1)
-		}
-		return
-	}
-	printThemeInspectResult(result)
-	if !result.Success {
 		os.Exit(1)
 	}
 }
@@ -908,6 +1442,7 @@ func printThemeHelp() {
 
 Usage:
   black theme inspect [file] [options]
+  black theme migrate <old.blackthm> <new.blackthm> [options]
   black theme [options]
 
 Options:
@@ -938,10 +1473,22 @@ Options:
   --ir        Print compact BlackIR`)
 }
 
+func printIDEHelp() {
+	fmt.Println(`BlackLang IDE
+
+Usage:
+  black ide [options]
+  black ide diagnostics [file] [options]
+
+Options:
+  --json      Print machine-readable JSON
+  --ir        Print compact BlackIR`)
+}
+
 func firstNonOptionArg(args []string) string {
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
-		if arg == "--out" || arg == "--affected" {
+		if arg == "--out" || arg == "--affected" || arg == "--key-env" || arg == "--history" {
 			index++
 			continue
 		}
@@ -950,6 +1497,31 @@ func firstNonOptionArg(args []string) string {
 		}
 	}
 	return ""
+}
+
+func nonOptionArgs(args []string) []string {
+	values := []string{}
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		if arg == "--out" || arg == "--affected" || arg == "--key-env" || arg == "--history" {
+			index++
+			continue
+		}
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		values = append(values, arg)
+	}
+	return values
+}
+
+func printDiagnostics(diagnostics []Diagnostic) {
+	for _, diagnostic := range diagnostics {
+		fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+		if diagnostic.Suggestion != "" {
+			fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+		}
+	}
 }
 
 func optionValue(args []string, name string) string {
@@ -1009,6 +1581,26 @@ func printLintResult(result LintResult) {
 		}
 		fmt.Fprintf(os.Stderr, "%s %s findings=%d\n", status, check.Name, check.Findings)
 	}
+	for _, diagnostic := range result.Findings {
+		fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+		if diagnostic.Suggestion != "" {
+			fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+		}
+	}
+	for _, diagnostic := range result.Errors {
+		fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+		if diagnostic.Suggestion != "" {
+			fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+		}
+	}
+}
+
+func printAccessibilityAuditResult(result AccessibilityAuditResult) {
+	if result.Success {
+		fmt.Printf("accessibility audit ok %s\n", result.File)
+		return
+	}
+
 	for _, diagnostic := range result.Findings {
 		fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
 		if diagnostic.Suggestion != "" {
@@ -1112,6 +1704,207 @@ func printBuildResult(jsonOutput bool, result BuildResult) {
 	}
 }
 
+func printBenchmarkResult(result BenchmarkResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+
+	fmt.Printf("benchmark %s\n", result.Summary.App)
+	fmt.Printf("source files: %d\n", result.Source.Files)
+	fmt.Printf("source lines: %d\n", result.Source.Lines)
+	fmt.Printf("generated files: %d\n", result.Generated.Files)
+	fmt.Printf("generated lines: %d\n", result.Generated.Lines)
+	fmt.Printf("generated/source line ratio: %.2f\n", result.Ratios.GeneratedToSourceLines)
+}
+
+func printCoverageResult(result CoverageResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("web coverage %d%%\n", result.CompletionPercent)
+	for _, area := range result.Areas {
+		fmt.Printf("%s: %d%% (%s, weight %d)\n", area.Name, area.Score, area.Status, area.Weight)
+	}
+}
+
+func printCoverageIssuesResult(result CoverageIssuesResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("web coverage issues %d%%\n", result.CompletionPercent)
+	fmt.Printf("total: %d\n", result.Summary.Total)
+	fmt.Printf("open: %d\n", result.Summary.Open)
+	fmt.Printf("done: %d\n", result.Summary.Done)
+	for _, issue := range result.Issues {
+		fmt.Printf("- %s [%s] %s %s: %s\n", issue.ID, issue.Status, issue.Priority, issue.Area, issue.Title)
+	}
+}
+
+func printIDESupportResult(result IDESupportResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ide %s %s\n", result.Language.ID, result.Language.LanguageVersion)
+	fmt.Printf("extensions: %s\n", strings.Join(result.Language.Extensions, ", "))
+	fmt.Printf("diagnostics: %s\n", result.Capabilities.Diagnostics)
+	fmt.Printf("completion items: %d\n", len(result.CompletionItems))
+	fmt.Printf("snippets: %d\n", len(result.Snippets))
+	fmt.Printf("diagnostic codes: %d\n", len(result.DiagnosticCodes))
+}
+
+func printIDEDiagnosticsResult(result IDEDiagnosticsResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ide diagnostics %s\n", result.File)
+	fmt.Printf("valid: %t\n", result.Valid)
+	fmt.Printf("diagnostics: %d\n", result.Summary.Total)
+	for _, diagnostic := range result.Diagnostics {
+		fmt.Printf(
+			"%s:%d:%d %s %s: %s\n",
+			diagnostic.File,
+			diagnostic.Range.Start.Line,
+			diagnostic.Range.Start.Character,
+			diagnostic.Severity,
+			diagnostic.Code,
+			diagnostic.Message,
+		)
+		if diagnostic.Suggestion != "" {
+			fmt.Printf("suggestion: %s\n", diagnostic.Suggestion)
+		}
+	}
+}
+
+func printEcosystemResult(result EcosystemResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ecosystem %s\n", result.Release.Channel)
+	if result.Release.Trust.SignatureAlgorithm != "" {
+		fmt.Printf("release trust: %s %s\n", result.Release.Trust.SignatureAlgorithm, result.Release.Trust.SignatureFilePattern)
+		fmt.Printf("verify: %s\n", result.Release.Trust.VerifyCommand)
+		if result.Release.Trust.TransparencyLog.PolicyFile != "" {
+			fmt.Printf("release transparency: %s %s\n", result.Release.Trust.TransparencyLog.HashAlgorithm, result.Release.Trust.TransparencyLog.PolicyFile)
+		}
+		if result.Release.Trust.KeyRotation.PolicyFile != "" {
+			fmt.Printf("release key rotation: %s overlap %d days\n", result.Release.Trust.KeyRotation.KeyIDFormat, result.Release.Trust.KeyRotation.MinimumOverlapDays)
+		}
+	}
+	fmt.Printf("packages: %d\n", len(result.Packages))
+	for _, pkg := range result.Packages {
+		fmt.Printf("- %s [%s] %s\n", pkg.ID, pkg.Status, pkg.Path)
+	}
+	fmt.Printf("adapters: %d\n", len(result.Adapters))
+	for _, adapter := range result.Adapters {
+		fmt.Printf("- %s [%s] %s\n", adapter.ID, adapter.Status, adapter.Name)
+	}
+	fmt.Printf("registries: %d\n", len(result.Registries))
+	for _, registry := range result.Registries {
+		fmt.Printf("- %s [%s] %s\n", registry.ID, registry.Status, registry.Path)
+	}
+	fmt.Printf("marketplaces: %d\n", len(result.Marketplaces))
+	for _, marketplace := range result.Marketplaces {
+		fmt.Printf("- %s [%s] %s\n", marketplace.ID, marketplace.Status, marketplace.Path)
+	}
+}
+
+func printAITaskBenchmarkResult(result AITaskBenchmarkResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ai task benchmark %s\n", result.Summary.App)
+	fmt.Printf("baseline source lines: %d\n", result.Baseline.SourceLines)
+	fmt.Printf("baseline generated lines: %d\n", result.Baseline.GeneratedLines)
+	fmt.Printf("scenarios: %d\n", result.Totals.ScenarioCount)
+	fmt.Printf("estimated BlackLang tokens: %d\n", result.Totals.BlackLangTotal)
+	fmt.Printf("estimated conventional tokens: %d\n", result.Totals.ConventionalTotal)
+	fmt.Printf("estimated savings: %d%%\n", result.Totals.EstimatedSavingsPercent)
+	for _, scenario := range result.Scenarios {
+		fmt.Printf("- %s: %d%% savings\n", scenario.ID, scenario.EstimatedTokens.EstimatedSavingsPercent)
+	}
+}
+
+func printAIEvalCorpusResult(result AIEvalCorpusResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ai eval corpus %s\n", result.Summary.App)
+	fmt.Printf("suite: %s\n", result.Suite.ID)
+	fmt.Printf("mode: %s\n", result.Suite.Mode)
+	fmt.Printf("cases: %d\n", result.Totals.CaseCount)
+	fmt.Printf("repeat: %d\n", result.Totals.Repeat)
+	fmt.Printf("total runs: %d\n", result.Totals.TotalRuns)
+	fmt.Printf("estimated minutes: %d\n", result.Totals.EstimatedMinutesTotal)
+	fmt.Printf("estimated savings: %d%%\n", result.Totals.EstimatedSavingsPercent)
+	for _, item := range result.Cases {
+		fmt.Printf("- %s: %s\n", item.ID, item.Name)
+	}
+}
+
+func printAIEvalHistoryResult(result AIEvalHistoryResult) {
+	if !result.Success {
+		printDiagnostics(result.Errors)
+		return
+	}
+	fmt.Printf("ai eval history %s\n", result.History.ID)
+	fmt.Printf("status: %s\n", result.History.Status)
+	fmt.Printf("published: %s\n", result.History.PublishedAt)
+	fmt.Printf("runs: %d\n", result.Summary.RunCount)
+	fmt.Printf("models: %d\n", result.Summary.ModelCount)
+	fmt.Printf("total runs: %d\n", result.Summary.TotalRuns)
+	fmt.Printf("passed: %d\n", result.Summary.PassedRuns)
+	fmt.Printf("failed: %d\n", result.Summary.FailedRuns)
+	fmt.Printf("average score: %d\n", result.Summary.AverageScore)
+	fmt.Printf("coverage: %d%%\n", result.Summary.CoveragePercent)
+	for _, run := range result.Runs {
+		fmt.Printf("- %s: %s score %d%%\n", run.ID, run.Status, run.AverageScore)
+	}
+}
+
+func printSchemaMigrationPlanResult(result SchemaMigrationPlanResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+
+	fmt.Printf("schema migration plan %s -> %s\n", result.OldFile, result.NewFile)
+	fmt.Printf("safe: %t\n", result.Safe)
+	fmt.Printf("destructive: %t\n", result.Destructive)
+	fmt.Printf("changes: %d\n", len(result.Changes))
+	for _, change := range result.Changes {
+		target := change.Entity
+		if change.Field != "" {
+			target += "." + change.Field
+		}
+		if change.Index != "" {
+			target += "." + change.Index
+		}
+		value := ""
+		if change.OldValue != "" || change.NewValue != "" {
+			value = fmt.Sprintf(" value=%s->%s", change.OldValue, change.NewValue)
+		}
+		fmt.Printf("- %s %s risk=%s%s\n", change.Type, target, change.Risk, value)
+	}
+}
+
 func printAffectedResult(result InspectAffectedResult) {
 	if !result.Success {
 		for _, diagnostic := range result.Errors {
@@ -1128,6 +1921,10 @@ func printAffectedResult(result InspectAffectedResult) {
 	printAffectedItems("entities", affected.Entities)
 	printAffectedItems("pages", affected.Pages)
 	printAffectedItems("queries", affected.Queries)
+	printAffectedItems("jobs", affected.Jobs)
+	printAffectedItems("actions", affected.Actions)
+	printAffectedItems("transactions", affected.Transactions)
+	printAffectedItems("services", affected.Services)
 	printAffectedItems("roles", affected.Roles)
 	printAffectedItems("workflows", affected.Workflows)
 	printAffectedItems("states", affected.States)
@@ -1214,6 +2011,37 @@ func printThemeInspectResult(result ThemeInspectResult) {
 			modeLabel += " (standard)"
 		}
 		fmt.Printf("- mode %s: %s\n", modeLabel, strings.Join(mode.Slots, ", "))
+	}
+}
+
+func printThemeMigrationResult(result ThemeMigrationResult) {
+	if !result.Success {
+		for _, diagnostic := range result.Errors {
+			fmt.Fprintf(os.Stderr, "%s:%d:%d %s: %s\n", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Suggestion != "" {
+				fmt.Fprintf(os.Stderr, "suggestion: %s\n", diagnostic.Suggestion)
+			}
+		}
+		return
+	}
+	fmt.Printf("theme migration ok %s -> %s\n", result.OldFile, result.NewFile)
+	fmt.Printf("safe: %t\n", result.Safe)
+	fmt.Printf("theme: %s v%d -> v%d\n", result.Summary.NewTheme, result.Summary.OldVersion, result.Summary.NewVersion)
+	fmt.Printf("profile: %s v%d -> v%d\n", result.Summary.NewProfile, result.Summary.OldProfileVersion, result.Summary.NewProfileVersion)
+	if len(result.Changes) == 0 {
+		fmt.Println("changes: none")
+		return
+	}
+	fmt.Printf("changes: %d\n", len(result.Changes))
+	for _, change := range result.Changes {
+		switch change.Type {
+		case "slot-appended":
+			fmt.Printf("- %s %s.%s slot %s at %d\n", change.Type, change.Profile, change.Mode, change.Slot, change.Index)
+		case "mode-added":
+			fmt.Printf("- %s %s.%s\n", change.Type, change.Profile, change.Mode)
+		default:
+			fmt.Printf("- %s %s -> %s\n", change.Type, change.OldValue, change.NewValue)
+		}
 	}
 }
 

@@ -1,0 +1,31 @@
+publicIndex blacklang-ecosystem-public-index
+version 0.2
+status prepared-local-source
+path website/ecosystem-index.json
+format json
+format blackir
+source packages/registry/package-index.blackdir
+source adapters/marketplace/adapter-index.blackdir
+source packages/registry/trust-policy.blackdir
+source adapters/marketplace/trust-policy.blackdir
+package npm:blacklang
+package vscode:blacklang-vscode
+package openvsx:blacklang-vscode
+package cursor:blacklang-vscode
+adapter deploy-cloud:docker-provider
+adapter observability:webhook
+adapter observability:otlp
+adapter editor:vscode
+adapter editor:open-vsx
+adapter editor:cursor-compatible
+adapter target:web-react-node-sqlite
+adapter target:web-react-node-postgres
+adapter target:web-react-node-mysql
+trust compiler-owned-ecosystem-source true
+trust no-secret-values true
+trust signed-release-verification true
+trust release-transparency-log true
+trust release-key-rotation true
+trust registry-validator true
+publish external-deploy-after-release-owner-review
+policy "Public hosted indexes must be generated from black ecosystem output and validated registry manifests before deployment."

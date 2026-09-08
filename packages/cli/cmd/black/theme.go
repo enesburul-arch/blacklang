@@ -29,6 +29,141 @@ func InspectTheme(args []string) ThemeInspectResult {
 	}
 }
 
+func MigrateTheme(args []string) ThemeMigrationResult {
+	files := nonOptionArgs(args)
+	if len(files) < 2 {
+		diagnostic := Diagnostic{
+			Code:       "MISSING_THEME_MIGRATION_FILES",
+			Message:    "Theme migration check requires an old theme file and a new theme file.",
+			Suggestion: "Use `black theme migrate old.blackthm new.blackthm --json`.",
+		}
+		return ThemeMigrationResult{
+			Success: false,
+			Command: "theme migrate",
+			Version: version,
+			Safe:    false,
+			Changes: []ThemeMigrationChange{},
+			Errors:  []Diagnostic{diagnostic},
+		}
+	}
+	return AnalyzeThemeMigration(files[0], files[1])
+}
+
+func AnalyzeThemeMigration(oldFile string, newFile string) ThemeMigrationResult {
+	oldTheme, oldDiagnostics := LoadTheme(oldFile)
+	newTheme, newDiagnostics := LoadTheme(newFile)
+	result := ThemeMigrationResult{
+		Success: false,
+		Command: "theme migrate",
+		Version: version,
+		OldFile: oldFile,
+		NewFile: newFile,
+		Safe:    false,
+		Summary: ThemeMigrationSummary{
+			OldTheme:          oldTheme.Name,
+			NewTheme:          newTheme.Name,
+			OldVersion:        oldTheme.Version,
+			NewVersion:        newTheme.Version,
+			Target:            newTheme.Target,
+			OldLocked:         oldTheme.Locked,
+			NewLocked:         newTheme.Locked,
+			OldProfile:        oldTheme.Profile.Name,
+			NewProfile:        newTheme.Profile.Name,
+			OldProfileVersion: oldTheme.Profile.Version,
+			NewProfileVersion: newTheme.Profile.Version,
+		},
+		Changes: []ThemeMigrationChange{},
+		Errors:  append(append([]Diagnostic{}, oldDiagnostics...), newDiagnostics...),
+	}
+	if len(result.Errors) > 0 {
+		return result
+	}
+
+	addDiagnostic := func(pos Position, code string, message string, suggestion string) {
+		result.Errors = append(result.Errors, Diagnostic{
+			File:       pos.File,
+			Line:       pos.Line,
+			Column:     pos.Column,
+			Code:       code,
+			Message:    message,
+			Suggestion: suggestion,
+		})
+	}
+	addChange := func(change ThemeMigrationChange) {
+		result.Changes = append(result.Changes, change)
+	}
+
+	if oldTheme.Name != newTheme.Name {
+		addDiagnostic(newTheme.Position, "THEME_MIGRATION_NAME_CHANGED", fmt.Sprintf("Theme migration changed theme name from %s to %s.", oldTheme.Name, newTheme.Name), "Keep the theme name stable across a migration so configured projects keep resolving the same theme.")
+	}
+	if oldTheme.Target != newTheme.Target {
+		addDiagnostic(newTheme.Position, "THEME_MIGRATION_TARGET_CHANGED", fmt.Sprintf("Theme migration changed target from %s to %s.", oldTheme.Target, newTheme.Target), "Keep target web for web theme migrations.")
+	}
+	if newTheme.Version < oldTheme.Version {
+		addDiagnostic(newTheme.Position, "THEME_VERSION_REGRESSION", fmt.Sprintf("Theme version regressed from %d to %d.", oldTheme.Version, newTheme.Version), "Increase the new theme version or keep it equal to the old version.")
+	} else if newTheme.Version > oldTheme.Version {
+		addChange(ThemeMigrationChange{Type: "theme-version-advanced", OldValue: strconv.Itoa(oldTheme.Version), NewValue: strconv.Itoa(newTheme.Version)})
+	}
+	if oldTheme.Locked && !newTheme.Locked {
+		addDiagnostic(newTheme.Position, "UI_PROFILE_UNLOCKED", "Theme migration changed locked true to locked false.", "Keep locked true after a UI profile has been frozen.")
+	} else if !oldTheme.Locked && newTheme.Locked {
+		addChange(ThemeMigrationChange{Type: "profile-locked", Profile: newTheme.Profile.Name})
+	}
+
+	if oldTheme.Profile.Name != newTheme.Profile.Name {
+		addDiagnostic(newTheme.Profile.Position, "UI_PROFILE_MIGRATION_NAME_CHANGED", fmt.Sprintf("UI profile migration changed profile name from %s to %s.", oldTheme.Profile.Name, newTheme.Profile.Name), "Keep the profile name stable so inline UI intent keeps using the same slot profile.")
+	}
+	if newTheme.Profile.Version < oldTheme.Profile.Version {
+		addDiagnostic(newTheme.Profile.Position, "UI_PROFILE_VERSION_REGRESSION", fmt.Sprintf("UI profile version regressed from %d to %d.", oldTheme.Profile.Version, newTheme.Profile.Version), "Increase the new profile version or keep it equal to the old version.")
+	} else if newTheme.Profile.Version > oldTheme.Profile.Version {
+		addChange(ThemeMigrationChange{Type: "profile-version-advanced", Profile: newTheme.Profile.Name, OldValue: strconv.Itoa(oldTheme.Profile.Version), NewValue: strconv.Itoa(newTheme.Profile.Version)})
+	}
+
+	oldModes := uiModesByName(oldTheme.Profile.Modes)
+	newModes := uiModesByName(newTheme.Profile.Modes)
+	for _, oldMode := range oldTheme.Profile.Modes {
+		newMode, ok := newModes[oldMode.Name]
+		if !ok {
+			addDiagnostic(newTheme.Profile.Position, "UI_MODE_REMOVED", fmt.Sprintf("UI mode %s was removed during theme migration.", oldMode.Name), fmt.Sprintf("Restore `ui %s = %s;` or keep the old theme until source UI intent is migrated.", oldMode.Name, strings.Join(oldMode.Slots, " ")))
+			continue
+		}
+		if !slotsHavePrefix(newMode.Slots, oldMode.Slots) {
+			addDiagnostic(newMode.Position, "UI_SLOT_MIGRATION_BREAK", fmt.Sprintf("UI mode %s changed existing slot order during theme migration.", oldMode.Name), fmt.Sprintf("Keep existing slots at the start: `ui %s = %s ...;` and append new slots only at the end.", oldMode.Name, strings.Join(oldMode.Slots, " ")))
+			continue
+		}
+		for index := len(oldMode.Slots); index < len(newMode.Slots); index++ {
+			addChange(ThemeMigrationChange{
+				Type:    "slot-appended",
+				Profile: newTheme.Profile.Name,
+				Mode:    newMode.Name,
+				Slot:    newMode.Slots[index],
+				Index:   index + 1,
+			})
+		}
+	}
+	for _, newMode := range newTheme.Profile.Modes {
+		if _, ok := oldModes[newMode.Name]; !ok {
+			addChange(ThemeMigrationChange{
+				Type:    "mode-added",
+				Profile: newTheme.Profile.Name,
+				Mode:    newMode.Name,
+			})
+		}
+	}
+
+	result.Success = len(result.Errors) == 0
+	result.Safe = result.Success
+	return result
+}
+
+func uiModesByName(modes []UIModeDecl) map[string]UIModeDecl {
+	index := map[string]UIModeDecl{}
+	for _, mode := range modes {
+		index[mode.Name] = mode
+	}
+	return index
+}
+
 func LoadTheme(file string) (ThemeDecl, []Diagnostic) {
 	source, err := os.ReadFile(file)
 	if err != nil {

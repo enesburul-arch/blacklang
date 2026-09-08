@@ -1,0 +1,53 @@
+{
+  "scopeName": "source.blacklang-theme",
+  "name": "BlackLang Theme",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.blacklang-theme",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.blacklang-theme",
+          "begin": "\"",
+          "end": "\""
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.blacklang-theme",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.blacklang-theme",
+          "match": "\\b(blackthm|version|target|locked|profile|mode|ui|baseline|box|text|table|button|color|tone|space|radius|shadow|border|font|size|weight|align|width|background|foreground|muted|danger|success)\\b"
+        }
+      ]
+    }
+  }
+}

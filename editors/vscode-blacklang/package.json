@@ -1,0 +1,114 @@
+{
+  "name": "blacklang-vscode",
+  "displayName": "BlackLang",
+  "description": "Compiler-backed BlackLang language support for diagnostics, completions, snippets, and refactor workflows.",
+  "version": "0.1.0",
+  "publisher": "blacklang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enesburul-arch/blacklang.git",
+    "directory": "editors/vscode-blacklang"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:blacklang",
+    "onLanguage:blacklang-theme",
+    "onCommand:blacklang.refreshDiagnostics",
+    "onCommand:blacklang.showIDEManifest",
+    "onCommand:blacklang.inspectAffected",
+    "onCommand:blacklang.formatSource"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "blacklang",
+        "aliases": [
+          "BlackLang",
+          "blacklang"
+        ],
+        "extensions": [
+          ".black"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "blacklang-theme",
+        "aliases": [
+          "BlackLang Theme",
+          "blacklang-theme"
+        ],
+        "extensions": [
+          ".blackthm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "blacklang",
+        "scopeName": "source.blacklang",
+        "path": "./syntaxes/black.tmLanguage.json"
+      },
+      {
+        "language": "blacklang-theme",
+        "scopeName": "source.blacklang-theme",
+        "path": "./syntaxes/blackthm.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "blacklang.refreshDiagnostics",
+        "title": "BlackLang: Refresh Diagnostics"
+      },
+      {
+        "command": "blacklang.showIDEManifest",
+        "title": "BlackLang: Show IDE Manifest"
+      },
+      {
+        "command": "blacklang.inspectAffected",
+        "title": "BlackLang: Inspect Affected Symbol"
+      },
+      {
+        "command": "blacklang.formatSource",
+        "title": "BlackLang: Format Source"
+      }
+    ],
+    "configuration": {
+      "title": "BlackLang",
+      "properties": {
+        "blacklang.cliPath": {
+          "type": "string",
+          "default": "black",
+          "description": "Path to the BlackLang CLI executable."
+        },
+        "blacklang.diagnostics.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run compiler-backed diagnostics for .black files."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node scripts/validate-extension.mjs",
+    "package:vsix": "npx --yes @vscode/vsce package --no-dependencies"
+  },
+  "files": [
+    "extension.js",
+    "language-configuration.json",
+    "syntaxes/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "package.json"
+  ]
+}

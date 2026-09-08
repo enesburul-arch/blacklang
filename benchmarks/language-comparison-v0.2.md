@@ -62,7 +62,7 @@ This means BlackLang's advantage is not replacing every language immediately. It
 
 Safe current claim:
 
-> BlackLang v0.2 can describe and generate useful CRUD/admin-style web applications with auth, roles, relations, workflow, validation, i18n labels, inline UI intent, OpenAPI, Docker deployment, and AI-readable CLI outputs.
+> BlackLang v0.2 can describe and generate useful CRUD/admin-style web applications with auth, roles, relations, workflow, validation, computed display fields, custom queries, custom row-level actions, i18n field/UI text, locale-aware display formatting, inline UI intent, page view order, view interaction triggers, OpenAPI, Docker deployment, source-security checks, production packaging, and AI-readable CLI outputs.
 
 Unsafe current claim:
 

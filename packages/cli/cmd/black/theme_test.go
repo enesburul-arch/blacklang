@@ -325,6 +325,208 @@ func TestFormatThemeIR(t *testing.T) {
 	}
 }
 
+func TestAnalyzeThemeMigrationAllowsAppendOnlySlots(t *testing.T) {
+	root := t.TempDir()
+	oldFile := filepath.Join(root, "old.blackthm")
+	newFile := filepath.Join(root, "new.blackthm")
+	writeTestFile(t, oldFile, `blackthm WarehouseTheme {
+  version 1
+  target web
+  locked true
+
+  profile UICompact {
+    version 1
+    baseline box color width style
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
+    ui box = color width style;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+	writeTestFile(t, newFile, `blackthm WarehouseTheme {
+  version 2
+  target web
+  locked true
+
+  profile UICompact {
+    version 2
+    baseline box color width style
+    baseline text color size weight align
+    baseline table color width style density zebra
+    baseline button bg color radius size variant
+
+    ui box = color width style shadow;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+
+	result := AnalyzeThemeMigration(oldFile, newFile)
+	if !result.Success || !result.Safe {
+		t.Fatalf("expected safe migration, got %#v", result.Errors)
+	}
+	if result.Summary.OldVersion != 1 || result.Summary.NewVersion != 2 || result.Summary.OldProfileVersion != 1 || result.Summary.NewProfileVersion != 2 {
+		t.Fatalf("unexpected migration summary: %#v", result.Summary)
+	}
+	if !migrationChangeExists(result.Changes, "slot-appended", "box", "shadow") {
+		t.Fatalf("expected appended shadow slot, got %#v", result.Changes)
+	}
+}
+
+func TestAnalyzeThemeMigrationRejectsInsertedSlots(t *testing.T) {
+	root := t.TempDir()
+	oldFile := filepath.Join(root, "old.blackthm")
+	newFile := filepath.Join(root, "new.blackthm")
+	writeTestFile(t, oldFile, `blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  profile UICompact {
+    version 1
+    ui box = color width style;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+	writeTestFile(t, newFile, `blackthm WarehouseTheme {
+  version 2
+  target web
+  locked false
+
+  profile UICompact {
+    version 2
+    ui box = color shadow width style;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+
+	result := AnalyzeThemeMigration(oldFile, newFile)
+	if result.Success || result.Safe {
+		t.Fatalf("expected unsafe migration")
+	}
+	codes := diagnosticCodes(result.Errors)
+	if !codes["UI_SLOT_MIGRATION_BREAK"] {
+		t.Fatalf("expected UI_SLOT_MIGRATION_BREAK, got %#v", result.Errors)
+	}
+}
+
+func TestAnalyzeThemeMigrationRejectsRemovedMode(t *testing.T) {
+	root := t.TempDir()
+	oldFile := filepath.Join(root, "old.blackthm")
+	newFile := filepath.Join(root, "new.blackthm")
+	writeTestFile(t, oldFile, `blackthm WarehouseTheme {
+  version 1
+  target web
+  locked false
+
+  profile UICompact {
+    version 1
+    ui box = color width style;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+    ui badge = color tone;
+  }
+}
+`)
+	writeTestFile(t, newFile, `blackthm WarehouseTheme {
+  version 2
+  target web
+  locked false
+
+  profile UICompact {
+    version 2
+    ui box = color width style;
+    ui text = color size weight align;
+    ui table = color width style density zebra;
+    ui button = bg color radius size variant;
+  }
+}
+`)
+
+	result := AnalyzeThemeMigration(oldFile, newFile)
+	if result.Success || result.Safe {
+		t.Fatalf("expected unsafe migration")
+	}
+	codes := diagnosticCodes(result.Errors)
+	if !codes["UI_MODE_REMOVED"] {
+		t.Fatalf("expected UI_MODE_REMOVED, got %#v", result.Errors)
+	}
+}
+
+func TestMigrateThemeRequiresFiles(t *testing.T) {
+	result := MigrateTheme([]string{"--json"})
+	if result.Success || result.Safe {
+		t.Fatalf("expected missing file diagnostic")
+	}
+	codes := diagnosticCodes(result.Errors)
+	if !codes["MISSING_THEME_MIGRATION_FILES"] {
+		t.Fatalf("expected MISSING_THEME_MIGRATION_FILES, got %#v", result.Errors)
+	}
+}
+
+func TestFormatThemeMigrationIR(t *testing.T) {
+	result := ThemeMigrationResult{
+		Success: true,
+		Command: "theme migrate",
+		Version: version,
+		OldFile: "old.blackthm",
+		NewFile: "new.blackthm",
+		Safe:    true,
+		Summary: ThemeMigrationSummary{
+			OldTheme:          "WarehouseTheme",
+			NewTheme:          "WarehouseTheme",
+			OldVersion:        1,
+			NewVersion:        2,
+			Target:            "web",
+			OldLocked:         true,
+			NewLocked:         true,
+			OldProfile:        "UICompact",
+			NewProfile:        "UICompact",
+			OldProfileVersion: 1,
+			NewProfileVersion: 2,
+		},
+		Changes: []ThemeMigrationChange{
+			{Type: "slot-appended", Profile: "UICompact", Mode: "box", Slot: "shadow", Index: 4},
+		},
+		Errors: []Diagnostic{},
+	}
+	ir := FormatThemeMigrationIR(result)
+	for _, value := range []string{
+		"theme migrate ok",
+		"safe true",
+		"theme WarehouseTheme version 1 -> WarehouseTheme version 2 target web",
+		"profile UICompact version 1 locked true -> UICompact version 2 locked true",
+		"slot-appended profile UICompact mode box slot shadow index 4",
+	} {
+		if !strings.Contains(ir, value) {
+			t.Fatalf("expected migration IR to contain %q, got:\n%s", value, ir)
+		}
+	}
+}
+
+func migrationChangeExists(changes []ThemeMigrationChange, changeType string, mode string, slot string) bool {
+	for _, change := range changes {
+		if change.Type == changeType && change.Mode == mode && change.Slot == slot {
+			return true
+		}
+	}
+	return false
+}
+
 func diagnosticCodes(diagnostics []Diagnostic) map[string]bool {
 	codes := map[string]bool{}
 	for _, diagnostic := range diagnostics {

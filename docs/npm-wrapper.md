@@ -11,7 +11,7 @@ npx blacklang validate --json
 npx blacklang build
 ```
 
-The npm package should not reimplement BlackLang in JavaScript.
+The npm package does not reimplement BlackLang in JavaScript.
 
 It is a small launcher that installs or finds the compiled Go CLI binary and forwards arguments to it.
 
@@ -33,7 +33,7 @@ The final name must be checked at publish time. The wrapper design must work for
 
 ## User-Facing Commands
 
-The package should expose both commands:
+The package exposes both commands:
 
 ```text
 blacklang
@@ -62,7 +62,7 @@ Rules:
 
 ## Package Layout
 
-Planned wrapper package:
+Current local wrapper package source:
 
 ```text
 packages/npm/
@@ -115,16 +115,17 @@ Rules:
 
 ## Install Flow
 
-`scripts/install.mjs` should:
+`scripts/install.mjs`:
 
 1. Detect OS and CPU architecture.
 2. Map Node platform names to release artifact names.
 3. Download the matching archive from GitHub Releases.
 4. Download `checksums.sha256` or `release.blackdir`.
 5. Verify the archive SHA-256 hash.
-6. Extract the archive into `vendor/<os>-<arch>/`.
-7. Mark the binary executable on Linux/macOS.
-8. Run `black version` to verify the binary.
+6. Download `<artifact>.sig` and verify the detached Ed25519 signature with the trusted release public key.
+7. Extract the archive into `vendor/<os>-<arch>/`.
+8. Mark the binary executable on Linux/macOS.
+9. Run `black version` to verify the binary.
 
 Example mapping:
 
@@ -139,7 +140,7 @@ darwin arm64 -> darwin arm64  -> black
 
 ## Runtime Flow
 
-`bin/blacklang.mjs` should:
+`bin/blacklang.mjs`:
 
 1. Locate the installed native binary under `vendor/<os>-<arch>/`.
 2. Respect `BLACKLANG_BINARY` when a user or CI provides a custom binary path.
@@ -153,10 +154,12 @@ Runtime must not parse BlackLang source itself.
 The first implementation can use a fixed GitHub Releases URL pattern:
 
 ```text
-https://github.com/blacklang/blacklang/releases/download/<version>/<artifact>
+https://github.com/enesburul-arch/blacklang/releases/download/<version>/<artifact>
 ```
 
 Future implementations may read a generated `release.blackdir` index from the docs site or package metadata.
+
+The current installer uses local/trusted binaries by default. It accepts `BLACKLANG_BINARY`, recognizes vendored binaries, and only downloads release archives when `BLACKLANG_ALLOW_DOWNLOAD=1` is set. This avoids unexpected network work during local development.
 
 ## Checksum Rule
 
@@ -168,6 +171,12 @@ Accepted checksum sources:
 - `release.blackdir`
 
 If both are present and disagree, installation must fail.
+
+## Signature Rule
+
+Downloaded release archives must have a detached Ed25519 signature named `<artifact>.sig`.
+
+The trusted public key is supplied by `BLACKLANG_RELEASE_PUBLIC_KEY` or `BLACKLANG_RELEASE_PUBLIC_KEY_FILE` in CI and release tests. The npm wrapper must fail closed when a downloaded archive is missing its signature or the signature cannot be verified.
 
 ## Offline and CI Rules
 
@@ -190,6 +199,7 @@ BLACKLANG_VENDOR_DIR
 ## Security Rules
 
 - Never execute downloaded files before checksum verification.
+- Never execute downloaded files before detached signature verification.
 - Never download `.black` source files as part of npm install.
 - Never store secrets in npm package metadata.
 - Fail closed when platform, URL, checksum, or extraction is unknown.

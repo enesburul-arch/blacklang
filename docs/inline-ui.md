@@ -56,8 +56,9 @@ form {
 Action button intent:
 
 ```black
-actions create, edit
+actions create, edit, RestockProduct
 action create ui button primary white 6 md solid
+action RestockProduct ui button success white 6 sm solid
 ```
 
 ## Current Mode Rules
@@ -69,7 +70,7 @@ table   box, text, table
 button  button
 ```
 
-`action <name> ui button ...` must reference an action listed in the page `actions` line.
+`action <name> ui button ...` must reference a CRUD action or declared custom action listed in the page `actions` line.
 
 ## JSON Shape
 
@@ -112,6 +113,8 @@ form {
 
 action create id CreateProductButton
 action create class primaryAction
+action RestockProduct id RestockProductButton
+action RestockProduct class restockAction
 ```
 
 Generated IDs and classes are normalized to kebab-case. Repeated action buttons receive safe suffixes such as `-open`, `-submit`, `-bulk`, or `-item-<recordId>` so generated DOM IDs stay unique.

@@ -1,0 +1,20 @@
+policy release-key-rotation
+version 0.2
+status prepared-local
+purpose "Public key rotation rules for BlackLang release trust."
+
+key-id-format sha256-public-key-spki-prefix
+minimum-overlap-days 30
+revocation-file key-revocations.blackdir
+
+require release-public-key-env BLACKLANG_RELEASE_PUBLIC_KEY
+require release-public-key-file-env BLACKLANG_RELEASE_PUBLIC_KEY_FILE
+require new-public-key-listed-before-signing true
+require old-new-key-overlap-days 30
+require emergency-revocation-record true
+require revoked-key-refused-for-new-release true
+require private-key-outside-repository true
+require private-key-outside-black-source true
+require private-key-outside-generated-output true
+require private-key-outside-manifests true
+require no-secret-values true

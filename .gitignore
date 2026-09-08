@@ -37,6 +37,7 @@ Thumbs.db
 
 # Temporary files
 .tmp/
+.tmp_*
 tmp/
 temp/
 init-check-*/

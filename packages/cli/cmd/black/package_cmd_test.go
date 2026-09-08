@@ -20,6 +20,7 @@ func TestPackageProductionExcludesProtectedSourceAndLocalSecrets(t *testing.T) {
 		".env":               "DATABASE_URL=secret",
 		".env.example":       "DATABASE_URL=file:./dev.db",
 		"app.black":          "app Secret",
+		"app.black.enc":      "BLACKLANG-ENC v1\n---\nopaque",
 		"src/generated/a.ts": "generated prisma",
 		"node_modules/a.js":  "dependency",
 		"dev.db":             "database",
@@ -44,7 +45,7 @@ func TestPackageProductionExcludesProtectedSourceAndLocalSecrets(t *testing.T) {
 			t.Fatalf("expected %s to be included: %v", included, err)
 		}
 	}
-	for _, excluded := range []string{"README.md", ".env", ".env.example", "app.black", "src/generated/a.ts", "node_modules/a.js", "dev.db", "smoke-test.db", "dist/assets/old.js"} {
+	for _, excluded := range []string{"README.md", ".env", ".env.example", "app.black", "app.black.enc", "src/generated/a.ts", "node_modules/a.js", "dev.db", "smoke-test.db", "dist/assets/old.js"} {
 		if _, err := os.Stat(filepath.Join(outDir, filepath.FromSlash(excluded))); !os.IsNotExist(err) {
 			t.Fatalf("expected %s to be excluded", excluded)
 		}

@@ -1,6 +1,6 @@
 # Warehouse Benchmark v0.1
 
-Date: 2026-09-05
+Date: 2026-09-06
 
 ## Purpose
 
@@ -19,8 +19,8 @@ examples/warehouse/app.black
 Current source contains:
 
 ```text
-Total lines: 164
-Code lines:  135
+Total lines: 770
+Code lines:  639
 ```
 
 The source describes:
@@ -28,10 +28,14 @@ The source describes:
 - 1 app
 - auth intent: emailPassword with cookie session
 - secret-safe database intent: `url env DATABASE_URL`
+- generated secret provider preflight: `npm run security:secrets:preflight`
+- Docker deploy intent with local preview, rollback metadata, cloud plan/preflight, and explicit provider CLI apply runner
 - 3 entities: Product, Customer, Order
 - 2 roles: Admin, Worker
-- 2 explicit API contracts: LowStockReport, StockWebhook
-- 3 pages: Products, Customers, Orders
+- 2 explicit API declared-runtime routes: LowStockReport, StockWebhook
+- 4 pages: Products, LowStock, Customers, Orders
+- 3 deterministic seed/fixture declarations for Product, Customer, and Order demo rows
+- 1 deterministic browser-check/browser e2e test declaration for Products
 - 1 workflow: OrderPreparation
 - 1 client state declaration: OrdersPageState
 - 1 component declaration: StockBadge
@@ -43,6 +47,9 @@ The source describes:
 - relation empty-state guidance
 - relation navigation to related page
 - relation display in table/detail
+- relation response load policy for list/detail/query/mutation contexts
+- generated batch relation response attachment
+- nested relation response sanitization in permission-aware routes
 - relation search
 - field labels
 - field placeholders
@@ -63,7 +70,8 @@ The source describes:
 - responsive drawer navigation
 - generated OpenAPI contract
 - generated OpenAPI route
-- explicit API path/query/path-param/access/webhook metadata in OpenAPI
+- explicit API path/query/path-param/body/access/webhook metadata in OpenAPI and generated runtime routes
+- bounded explicit API update handler for the StockWebhook endpoint
 - generated secure API defaults
 - generated login/register UI shell
 - generated auth API routes
@@ -101,11 +109,26 @@ The source describes:
 - generated component variant class selection
 - generated component table/detail rendering binding
 - generated live component preview in matching form fields
+- generated reusable page component section binding
+- generated JSX DOM order following effective page view order
 - generated frontend and API validation from field constraints
 - generated frontend and API validation from cross-field constraints
 - generated frontend and API validation from conditional required constraints
 - parsed and validated explicit API declarations
-- explicit API intent in JSON/BlackIR outputs
+- explicit API intent in JSON/BlackIR outputs and generated server routes
+- custom query intent for LowStockProducts
+- generated query list route and API client
+- generated query aggregate summary route, API client method, OpenAPI metadata, and React summary cards
+- transactional custom action route intent for RestockProduct
+- first-class seed/fixture intent in JSON/BlackIR/inspect/affected output
+- generated deterministic `src/seed.ts` runtime and `db:setup`/`db:seed` package scripts
+- first-class browser-check/browser e2e intent in JSON/BlackIR/inspect/affected output
+- generated deterministic `src/blacklang.browser.test.tsx` browser-check runtime and `npm test` wiring
+- generated deterministic `src/blacklang.e2e.test.ts` browser e2e runtime with `test:e2e`/`test:all` package scripts
+- generated `docker-compose.preview.yml`, `BLACKLANG_PREVIEW_PORT`, and preview package scripts
+- generated `deploy/manifest.json`, `deploy/rollback.json`, and read-only rollback plan script
+- generated `deploy/cloud.json`, read-only cloud plan/preflight scripts, and explicit apply provider CLI runner script
+- runtime i18n labels for generated app chrome, page names, table/status copy, CRUD actions, custom actions, and workflow transitions
 
 ## Generated Web Output
 
@@ -118,8 +141,8 @@ generated/
 Counted generated source files:
 
 ```text
-Generated source files: 32
-Generated source lines: 5385
+Generated source files: 65
+Generated source lines: 14503
 ```
 
 Excluded from this measurement:
@@ -128,66 +151,81 @@ Excluded from this measurement:
 - `generated/dist/`
 - `generated/src/generated/prisma/`
 - runtime database files
-- generated README text
-- `.env.example`
 
 ## Ratio
 
 ```text
-BlackLang code lines:       135
-Generated web source lines: 5385
-Approximate ratio:          39.9x
+BlackLang source lines:     770
+Generated web source lines: 14503
+Approximate ratio:          18.84x
 ```
 
-In this benchmark, one BlackLang source line represents about 40 generated web stack source lines.
+In this benchmark, one BlackLang source line represents about 18.84 generated web stack source lines.
 
 ## Counted Generated Files
 
-```text
-generated/package.json
-generated/index.html
-generated/tsconfig.json
-generated/vite.config.ts
-generated/prisma.config.ts
-generated/openapi.json
-generated/prisma/schema.prisma
-generated/src/main.tsx
-generated/src/App.tsx
-generated/src/db.ts
-generated/src/setup-db.ts
-generated/src/server.ts
-generated/src/styles.css
-generated/src/vite-env.d.ts
-generated/src/types.ts
-generated/src/auth/AuthPage.tsx
-generated/src/auth/UsersPage.tsx
-generated/src/auth/AuditPage.tsx
-generated/src/components/StockBadge.tsx
-generated/src/routes/auth.ts
-generated/src/api/product.ts
-generated/src/api/customer.ts
-generated/src/api/order.ts
-generated/src/routes/product.ts
-generated/src/routes/customer.ts
-generated/src/routes/order.ts
-generated/src/validation/product.ts
-generated/src/validation/customer.ts
-generated/src/validation/order.ts
-generated/src/pages/ProductsPage.tsx
-generated/src/pages/CustomersPage.tsx
-generated/src/pages/OrdersPage.tsx
+The authoritative path list is emitted by:
+
+```bash
+black benchmark examples/warehouse/app.black --out generated --json
 ```
+
+The current run reports 64 deterministic generator-owned files, including API clients, routes, OpenAPI, tests, migrations, deterministic seed runtime, generated browser-check/e2e runtime, Docker files, local preview compose, rollback metadata, cloud plan/preflight/explicit-apply scripts, React pages, CSS, and validation modules.
+
+## AI Task Benchmark Signal
+
+The deterministic AI task scenario report is emitted by:
+
+```bash
+black benchmark tasks examples/warehouse/app.black --out generated --json
+black benchmark eval examples/warehouse/app.black --out generated --json
+```
+
+Current scenario summary:
+
+```text
+Scenarios:                       8
+Estimated BlackLang tokens:      10519
+Estimated conventional tokens:   90872
+Estimated savings signal:        88%
+```
+
+Scenario IDs:
+
+```text
+AI-TASK-QUERY-001
+AI-TASK-ACTION-001
+AI-TASK-SEED-001
+AI-TASK-TEST-001
+AI-TASK-POLICY-001
+AI-TASK-API-001
+AI-TASK-OPS-001
+AI-TASK-DEPLOY-001
+```
+
+These are deterministic planning estimates derived from current source/generated measurements and fixed scenario context sizes. They are not billed-token measurements and they do not call an AI model.
 
 ## Verification Commands
 
 ```bash
 dist/black.exe validate --json
 dist/black.exe security scan --json
+dist/black.exe ide --json
+dist/black.exe ide diagnostics examples/warehouse/app.black --json
 dist/black.exe build
 dist/black.exe package --production
 cd generated
 npm run build
 npm run db:setup
+npm test
+npm run test:e2e
+npm run test:e2e:plan
+npm run test:e2e:matrix
+npm run deploy:rollback:plan
+npm run deploy:cloud:plan
+npm run deploy:cloud:preflight
+black benchmark tasks examples/warehouse/app.black --out generated --json
+black benchmark eval examples/warehouse/app.black --out generated --json
 ```
 
 Last verified result:
@@ -195,10 +233,21 @@ Last verified result:
 ```text
 BlackLang validation: passed
 BlackLang security scan: passed
+BlackLang IDE export:    passed
+BlackLang IDE diagnostics: passed
 BlackLang build:      passed
 Production package:   passed
 Generated web build:  passed
 Generated DB setup:   passed
+Generated npm test:    passed
+Generated e2e test:   passed
+Rollback plan script: passed
+Cloud plan script:    passed
+Cloud preflight:      passed
+AI task benchmark:    passed
+AI eval corpus:        passed
+Browser matrix plan:   passed
+Browser matrix run:    passed
 Workflow API smoke:   passed
 ```
 

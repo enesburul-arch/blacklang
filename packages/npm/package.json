@@ -1,0 +1,26 @@
+{
+  "name": "blacklang",
+  "version": "0.1.0",
+  "description": "AI-native deterministic intent language CLI wrapper",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "black": "./bin/blacklang.mjs",
+    "blacklang": "./bin/blacklang.mjs"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.mjs",
+    "test": "node scripts/validate-package.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "scripts/",
+    "vendor/",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

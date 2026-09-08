@@ -25,6 +25,10 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://black.muenspeak.com/theme-migration.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://black.muenspeak.com/ui-profile.md</loc>
     <priority>0.7</priority>
   </url>
@@ -45,7 +49,111 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://black.muenspeak.com/media.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/relation-load.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/index.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/migration.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/seed.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://black.muenspeak.com/query.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/job.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/action.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/state.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/transaction.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/service.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/api.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/policy.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/generated-test.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/test.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/accessibility.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/benchmark.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/ide.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/ecosystem.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/package-registry.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/adapter-marketplace.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/editor-marketplace.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/release-trust.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/release-artifacts.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/npm-wrapper.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/install.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/github-publish.md</loc>
     <priority>0.7</priority>
   </url>
   <url>
@@ -57,7 +165,19 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://black.muenspeak.com/protected-source.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/secret-management.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://black.muenspeak.com/deployment.md</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://black.muenspeak.com/ops.md</loc>
     <priority>0.7</priority>
   </url>
 </urlset>

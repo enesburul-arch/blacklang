@@ -3573,3 +3573,41 @@ Notlar:
 - JSON output modları korundu.
 - Tek davranış için alternatif syntax eklenmedi.
 - Commit, push veya canlı site deploy henüz yapılmadı.
+
+## Public Bootstrap GitHub / Live Site Publication - 2026-09-11
+
+Bu aşama ne işe yarıyor / neyi mümkün kılıyor?
+
+Yerelde doğrulanan external agent onboarding düzeltmesini GitHub `main` ve canlı `https://black.muenspeak.com` yayınına taşır. Böylece sadece proje klasörünü bilen ajanlar değil, siteyi okuyan ve bilgisayarında BlackLang kurulu olmayan ajanlar da resmi source bootstrap yolunu görebilir.
+
+Yapılanlar:
+
+- Public bootstrap değişiklikleri commit edildi: `d5f3420 Document public source bootstrap`.
+- Commit `origin/main` üzerine push edildi.
+- Canlı site paketi hazırlandı: 52 root file, 44 Markdown dokümanı, 4 asset dosyası.
+- Paket VPS'ye `/tmp/blacklang-site-20260911232731.tar.gz` olarak yüklendi.
+- İlk remote deploy komutunda PowerShell `$()` genişlemesi komutu yerelde bozduğu için canlı root durum kontrolü yapıldı; site root'unun eski 51 root file / 43 markdown file durumunda kaldığı ve bozulmadığı doğrulandı.
+- Deploy komutu güvenli quoting ile yeniden çalıştırıldı.
+- Önceki canlı site `/tmp/blacklang-site-backup-20260911232731` altında yedeklendi.
+- Yeni paket `/var/www/black.muenspeak.com` içine açıldı.
+- Static dosya izinleri düzeltildi: dizinler `755`, dosyalar `644`.
+- `nginx -t` geçti ve Nginx reload edildi.
+
+Doğrulama:
+
+- Remote site root sayımı geçti: 52 root file, 44 Markdown file, 4 asset file.
+- `curl -I https://black.muenspeak.com/` 200 ve `Content-Type: text/html` döndü.
+- `https://black.muenspeak.com/` içinde `Bugünkü public bootstrap`, `go run ./cmd/black docs agent-contract --json` ve `validate rightValue != 0` uyarısı göründü.
+- `https://black.muenspeak.com/install.md` içinde `Current Public Bootstrap From Source`, bootstrap validate komutu ve agent rule göründü.
+- `curl -I https://black.muenspeak.com/install.md` 200 ve `Content-Type: text/markdown` döndü.
+- `curl -I https://black.muenspeak.com/ai-agent-contract.md` 200 ve `Content-Type: text/markdown` döndü.
+- `https://black.muenspeak.com/ai-agent-contract.md` içinde current public source bootstrap, no-installed-CLI path ve unsupported `validate rightValue != 0` uyarısı göründü.
+- `https://black.muenspeak.com/llms.txt` içinde `No installed CLI bootstrap` ve `source bootstrap is the current verified path` göründü.
+- `git status --short --branch` push sonrası `## main...origin/main` durumuna döndü.
+
+Notlar:
+
+- Generated dosyalar elle düzenlenmedi.
+- VPS'ye secret yazılmadı.
+- JSON output modları korundu.
+- Tek davranış için alternatif syntax eklenmedi.

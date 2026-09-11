@@ -104,6 +104,8 @@ Read first:
 
 Agent rule:
 
+No installed CLI bootstrap: if `black` is unavailable, clone `https://github.com/enesburul-arch/blacklang`, enter `blacklang/packages/cli`, and use `go run ./cmd/black ...`. Read `go run ./cmd/black docs agent-contract --json` before writing syntax. Signed GitHub Release archives and the npm wrapper are planned public install paths; source bootstrap is the current verified path.
+
 1. Run `black agent startup --json` when available.
 2. Read the returned `readFirst` files that exist.
 3. Use `black ide --json` for compiler-owned completions, snippets, file extensions, and diagnostic code metadata. The packageable editor bridge lives in `editors/vscode-blacklang`; registry metadata prepares VS Code, Open VSX, and Cursor-compatible package channels from the same source.

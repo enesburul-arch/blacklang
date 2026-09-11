@@ -421,6 +421,12 @@ func TestFindAgentContractDoc(t *testing.T) {
 	if !strings.Contains(strings.Join(doc.AgentNotes, " "), "text/black") {
 		t.Fatalf("expected agent-contract docs to mention unsupported text/black runtime, got %#v", doc)
 	}
+	if !strings.Contains(strings.Join(doc.AgentNotes, " "), "source bootstrap") {
+		t.Fatalf("expected agent-contract docs to mention source bootstrap, got %#v", doc)
+	}
+	if !strings.Contains(strings.Join(doc.AgentNotes, " "), "validate rightValue != 0") {
+		t.Fatalf("expected agent-contract docs to warn about unsupported literal validation, got %#v", doc)
+	}
 }
 
 func TestFindThemeDoc(t *testing.T) {

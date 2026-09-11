@@ -6,6 +6,46 @@ This document defines the official install paths for BlackLang.
 
 It separates current local development usage from planned public distribution through GitHub Releases and npm.
 
+## Current Public Bootstrap From Source
+
+Until signed GitHub Release archives and the npm wrapper are published, the verified public path for a computer with no `black` command installed is source bootstrap from GitHub.
+
+Requirements:
+
+- Git
+- Go 1.22 or newer
+- Node.js only when running generated app builds or generated npm tests
+
+Bootstrap commands:
+
+```bash
+git clone https://github.com/enesburul-arch/blacklang.git
+cd blacklang/packages/cli
+go run ./cmd/black --help
+go run ./cmd/black version --json
+go run ./cmd/black docs agent-contract --json
+go run ./cmd/black validate ../../examples/warehouse/app.black --json
+go run ./cmd/black build ../../examples/warehouse/app.black --out ../../generated --json
+```
+
+Optional local binary build on Windows:
+
+```powershell
+cd blacklang\packages\cli
+go build -o ..\..\dist\black.exe ./cmd/black
+..\..\dist\black.exe version --json
+```
+
+Optional local binary build on Linux or macOS:
+
+```bash
+cd blacklang/packages/cli
+go build -o ../../dist/black ./cmd/black
+../../dist/black version --json
+```
+
+Agent rule: if `black` is not on `PATH`, do not invent syntax and do not stop at a prototype. Clone the repository, use `go run ./cmd/black ...` from `packages/cli`, read `docs agent-contract`, then run format, lint, validate, inspect, and build through compiler JSON commands.
+
 ## Current Local Development Install
 
 Inside this repository, build the Windows CLI binary with:

@@ -197,16 +197,20 @@ page Products {
           Node.js zorunlu olmamalıdır.
         </p>
         <div class="code-panel">
-          <div class="code-title">Planlanan kullanım</div>
-          <pre><code class="language-bash">black init
-black format --check --json
-black lint --json
-black validate --json
-black build</code></pre>
+          <div class="code-title">Bugünkü public bootstrap</div>
+          <pre><code class="language-bash">git clone https://github.com/enesburul-arch/blacklang.git
+cd blacklang/packages/cli
+go run ./cmd/black --help
+go run ./cmd/black version --json
+go run ./cmd/black docs agent-contract --json
+go run ./cmd/black validate ../../examples/warehouse/app.black --json
+go run ./cmd/black build ../../examples/warehouse/app.black --out ../../generated --json</code></pre>
         </div>
         <p>
-          npm yolu da yaygınlaşma için planlanır. npm paketi platforma uygun binary'yi
-          çağırır; BlackLang'in compiler mantığı yine tek binary içinde kalır.
+          `black` komutu sistemde yoksa resmi geçici yol budur: repo klonlanır ve CLI
+          `packages/cli` içinden `go run ./cmd/black ...` ile çalıştırılır. Signed GitHub
+          Release arşivleri ve npm yolu yaygın public kurulum için planlanır; npm paketi
+          platforma uygun binary'yi çağırır, compiler mantığı yine tek binary içinde kalır.
         </p>
       </section>
 
@@ -2190,6 +2194,12 @@ black build
 cd generated && npm test</code></pre>
         </div>
         <p>
+          `black` komutu kurulu değilse ajan syntax uydurmamalıdır. Bugünkü güvenilir yol
+          GitHub reposunu klonlayıp `packages/cli` içinde `go run ./cmd/black ...` komutlarını
+          kullanmak, önce `docs agent-contract --json` çıktısını okumak ve sonra format/lint/
+          validate/build akışını JSON çıktılarla çalıştırmaktır.
+        </p>
+        <p>
           Existing database schema etkileniyorsa deploy öncesi
           `black migrate plan old.black new.black --json` çalıştırılır; komut read-only
           plan üretir ve `safe/manual/destructive` riskleri ayrıştırır. Rename gerekiyorsa
@@ -2201,8 +2211,11 @@ cd generated && npm test</code></pre>
           arbitrary click handler veya JavaScript replacement gibi davranışlar ilerideki
           frontend logic/event aşamalarına aittir. Entity tabanlı computed display değerleri
           ve page-bound custom row action'lar desteklenir; calculator tarzı lokal expression
-          state henüz desteklenmez. Sınırlı local `value` ve `if`/`else` logic şu an
-          custom action ve explicit API update handler içinde desteklenir.
+          state henüz desteklenmez. Basit öğrenme örneklerinde `+`, `-`, `*`, `/` için
+          computed alanlar kullanılabilir; fakat `validate rightValue != 0` gibi literal
+          karşılaştırmalı entity validation henüz resmi syntax değildir. Sınırlı local
+          `value` ve `if`/`else` logic şu an custom action ve explicit API update handler
+          içinde desteklenir.
         </p>
         <div class="code-panel">
           <div class="code-title">Desteklenmeyen resmi syntax</div>

@@ -181,10 +181,12 @@ black docs agent-contract --json
 black docs --all --json`,
 		AgentNotes: []string{
 			"Official BlackLang work uses .black source files, .blackthm theme/profile files, and the black CLI.",
+			"If black is not installed, clone https://github.com/enesburul-arch/blacklang, enter packages/cli, and use go run ./cmd/black ... as the current public source bootstrap path.",
 			"Do not invent unsupported syntax or present a normal HTML/JavaScript prototype as official BlackLang output.",
 			"`script type=\"text/black\"` is not supported unless an official browser runtime exists.",
 			"Current BlackLang is strongest for CRUD/admin-style generated web applications, not arbitrary frontend calculator/game logic.",
 			"Entity computed display fields are supported, and bounded local value/if-else logic is supported inside custom actions and explicit API update blocks.",
+			"For calculator-like learning examples, use input fields plus computed display fields for arithmetic; do not write unsupported literal-comparison validations such as validate rightValue != 0.",
 			"Calculator-style client local expression state, arbitrary click handlers, and general-purpose variables outside bounded action/API handlers are not yet supported.",
 			"Declared custom row-level actions are supported when bound through page actions; arbitrary frontend event handlers are not yet supported.",
 			"If a task is outside the current boundary, state the limitation and either label a normal web prototype clearly or add the missing compiler feature first.",

@@ -3531,3 +3531,45 @@ Notlar:
 - JSON output modları korundu.
 - Tek davranış için alternatif syntax eklenmedi.
 - Bu deploy kaydı ve önceki GitHub publish kaydı ayrı takip commit'i olarak kaydedildi.
+
+## Public Bootstrap / External Agent Onboarding - 2026-09-11
+
+Bu aşama ne işe yarıyor / neyi mümkün kılıyor?
+
+BlackLang kurulu olmayan bir bilgisayarda veya sadece canlı dokümantasyon sitesini okuyan dış AI ajanında ilk adımı netleştirir. Ajan artık syntax tahmin etmek yerine GitHub reposunu klonlayıp `packages/cli` içinden `go run ./cmd/black ...` ile resmi compiler/docs/validate/build akışını çalıştırması gerektiğini görür.
+
+Yapılanlar:
+
+- `docs/install.md` içine güncel public source bootstrap akışı eklendi.
+- `docs/ai-agent-contract.md` içine no-installed-CLI bootstrap kuralı eklendi.
+- Calculator öğrenme sınırı netleştirildi: entity `computed` alanlarıyla aritmetik örnek yapılabilir, fakat button-driven browser calculator ve `validate rightValue != 0` tarzı literal-comparison entity validation henüz resmi syntax değildir.
+- `packages/cli/cmd/black/docs.go` içindeki `black docs agent-contract --json` çıktısı aynı bootstrap ve calculator sınırını anlatacak şekilde güncellendi.
+- `packages/cli/cmd/black/docs_test.go` agent-contract docs testleri source bootstrap ve unsupported literal validation uyarısını da arayacak şekilde genişletildi.
+- `website/index.html` kurulum bölümü bugünkü güvenilir yolu GitHub repo + Go source bootstrap olarak gösterecek şekilde güncellendi.
+- `website/index.html` Agent Contract bölümü, `black` yoksa ajanların syntax uydurmadan source bootstrap yolunu kullanması gerektiğini anlatacak şekilde güncellendi.
+- `website/llms.txt`, `docs/llms.txt` ve `README.md` dış AI ajanlarının hızlı okuyacağı bootstrap notuyla güncellendi.
+
+Doğrulama:
+
+- `go test -count=1 ./...` geçti.
+- `go run ./cmd/black --help` geçti.
+- `go run ./cmd/black docs agent-contract --json` geçti ve source bootstrap + calculator validation uyarılarını içerdi.
+- `go run ./cmd/black docs --all --json` geçti.
+- `go run ./cmd/black format --check --json ../../examples/warehouse/app.black` geçti.
+- `go run ./cmd/black lint ../../examples/warehouse/app.black --json` geçti.
+- `go run ./cmd/black validate ../../examples/warehouse/app.black --json` geçti.
+- `go run ./cmd/black inspect ../../examples/warehouse/app.black --json` geçti.
+- `go run ./cmd/black build ../../examples/warehouse/app.black --out ../../generated --json` geçti.
+- `npm test` geçti.
+- `npm run build` geçti.
+- `npm run test:e2e` ilk paralel matrix denemesiyle aynı SQLite dosyasına çarpıştığı için başarısız göründü; tek başına tekrar çalıştırıldığında geçti.
+- `npm run test:e2e:matrix` ilk paralel e2e denemesiyle aynı SQLite dosyasına çarpıştığı için başarısız göründü; tek başına tekrar çalıştırıldığında Chrome ve Edge için geçti, optional custom/chromium hedefleri beklendiği gibi skip edildi.
+- `git diff --check` geçti; yalnızca mevcut line-ending uyarıları göründü.
+
+Notlar:
+
+- Generated dosyalar elle düzenlenmedi; warehouse output generator üzerinden yenilendi.
+- `.black` içine secret yazılmadı.
+- JSON output modları korundu.
+- Tek davranış için alternatif syntax eklenmedi.
+- Commit, push veya canlı site deploy henüz yapılmadı.

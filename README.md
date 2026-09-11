@@ -12,6 +12,16 @@ The planned npm wrapper for `npx blacklang` is documented in `docs/npm-wrapper.m
 
 Install paths for local development, GitHub Releases, and npm are documented in `docs/install.md`.
 
+If `black` is not installed yet, the current public bootstrap path is source-based:
+
+```bash
+git clone https://github.com/enesburul-arch/blacklang.git
+cd blacklang/packages/cli
+go run ./cmd/black --help
+go run ./cmd/black docs agent-contract --json
+go run ./cmd/black validate ../../examples/warehouse/app.black --json
+```
+
 GitHub publish rules are documented in `docs/github-publish.md`.
 
 The first static documentation site source is under `website/`.

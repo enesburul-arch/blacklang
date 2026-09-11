@@ -107,6 +107,8 @@ Important principle:
 
 BlackLang may be unknown to AI models at first. Use local docs, version-aware CLI output, and JSON diagnostics as the source of truth.
 
+No installed CLI bootstrap: if `black` is unavailable, clone `https://github.com/enesburul-arch/blacklang`, enter `blacklang/packages/cli`, and use `go run ./cmd/black ...`. Read `go run ./cmd/black docs agent-contract --json` before writing syntax. Signed GitHub Release archives and the npm wrapper are planned public install paths; source bootstrap is the current verified path.
+
 Use BlackIR when a compact AI-readable project summary is better than verbose JSON.
 
 Use `black agent startup --json` first when entering an unfamiliar BlackLang project.
